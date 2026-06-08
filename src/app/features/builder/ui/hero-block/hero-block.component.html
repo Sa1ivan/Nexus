@@ -1,0 +1,22 @@
+<section
+  class="hero-block"
+  [class.hero-block--left]="block().styles.alignment === 'left'"
+  [class.hero-block--center]="block().styles.alignment === 'center'"
+  [class.hero-block--right]="block().styles.alignment === 'right'"
+  [style.background-color]="block().styles.backgroundColor"
+  [style.color]="block().styles.textColor"
+  [style.min-height]="block().styles.minHeight"
+>
+  <div class="hero-block__content">
+    <h1 class="hero-block__title">{{ block().title }}</h1>
+    <p class="hero-block__subtitle">{{ block().subtitle }}</p>
+    <button
+      class="hero-block__button"
+      type="button"
+      [style.background-color]="block().styles.buttonBackgroundColor"
+      [style.color]="block().styles.buttonTextColor"
+    >
+      {{ block().buttonText }}
+    </button>
+  </div>
+</section>

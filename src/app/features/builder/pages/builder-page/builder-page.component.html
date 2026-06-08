@@ -1,0 +1,43 @@
+<main class="builder-page">
+  <aside class="builder-page__sidebar" aria-label="Site structure">
+    <header class="builder-page__brand">
+      <mat-icon aria-hidden="true">dashboard</mat-icon>
+      <div>
+        <span class="builder-page__label">Site</span>
+        <strong>{{ siteConfig().name }}</strong>
+      </div>
+    </header>
+
+    <nav class="builder-page__nav" aria-label="Pages">
+      @for (page of pages(); track page.slug) {
+        <button
+          mat-button
+          class="builder-page__nav-button"
+          type="button"
+          [class.builder-page__nav-button--active]="page.slug === activePageSlug()"
+          (click)="selectPage(page.slug)"
+        >
+          <mat-icon aria-hidden="true">article</mat-icon>
+          {{ page.title }}
+        </button>
+      }
+    </nav>
+  </aside>
+
+  <section class="builder-page__workspace" aria-label="Builder workspace">
+    <header class="builder-page__topbar">
+      <div>
+        <span class="builder-page__label">Page</span>
+        <h2>{{ activePage()?.title }}</h2>
+      </div>
+
+      <button mat-icon-button type="button" aria-label="Preview page" matTooltip="Preview page">
+        <mat-icon>visibility</mat-icon>
+      </button>
+    </header>
+
+    <div class="builder-page__canvas" aria-label="Page preview">
+      <app-block-renderer [blocks]="activeBlocks()" />
+    </div>
+  </section>
+</main>

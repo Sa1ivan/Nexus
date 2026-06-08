@@ -1,0 +1,3 @@
+display_name: Angular SaaS Builder
+short_description: Extend the Nexus Angular standalone Signals website-builder architecture.
+default_prompt: Use this skill when adding features, fixing bugs, or changing architecture in the Nexus Angular SaaS website-builder project.
