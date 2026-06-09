@@ -1,0 +1,105 @@
+:host {
+  display: block;
+}
+
+.site-footer {
+  padding: 40px 32px 28px;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.site-footer__main {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(200px, 1fr);
+  gap: 24px;
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.site-footer__brand {
+  display: block;
+  font-size: 22px;
+}
+
+.site-footer__cta {
+  min-height: 42px;
+  margin-top: 18px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #f97316;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.site-footer__contacts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  color: #cbd5e1;
+  font-style: normal;
+}
+
+.site-footer__map {
+  min-height: 128px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #cbd5e1;
+  font-weight: 800;
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: min(100%, 1040px);
+  margin: 28px auto 0;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: #cbd5e1;
+    font: inherit;
+    cursor: pointer;
+  }
+}
+
+.site-footer--map .site-footer__main {
+  grid-template-columns: 1fr 1fr 1.2fr;
+}
+
+.site-footer--compact {
+  padding: 28px 32px;
+
+  .site-footer__cta {
+    display: none;
+  }
+}
+
+.site-footer--social {
+  background: #0f766e;
+}
+
+.site-footer--booking {
+  background: #1f2937;
+
+  .site-footer__cta {
+    background: #d7b46a;
+    color: #111827;
+  }
+}
+
+@media (max-width: 820px) {
+  .site-footer {
+    padding: 34px 20px;
+  }
+
+  .site-footer__main,
+  .site-footer--map .site-footer__main {
+    grid-template-columns: 1fr;
+  }
+}

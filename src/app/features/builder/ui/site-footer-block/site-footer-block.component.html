@@ -1,0 +1,30 @@
+<footer
+  class="site-footer"
+  [class.site-footer--map]="block().variant === 'contactMap'"
+  [class.site-footer--compact]="block().variant === 'compactLegal'"
+  [class.site-footer--social]="block().variant === 'socialLead'"
+  [class.site-footer--booking]="block().variant === 'bookingFooter'"
+>
+  <div class="site-footer__main">
+    <div>
+      <strong class="site-footer__brand">{{ block().brandName }}</strong>
+      <button class="site-footer__cta" type="button">{{ block().ctaText }}</button>
+    </div>
+
+    <address class="site-footer__contacts">
+      @for (line of block().contactLines; track line) {
+        <span>{{ line }}</span>
+      }
+    </address>
+
+    @if (block().variant === 'contactMap') {
+      <div class="site-footer__map">Карта</div>
+    }
+  </div>
+
+  <div class="site-footer__bottom">
+    @for (link of block().links; track link) {
+      <button type="button">{{ link }}</button>
+    }
+  </div>
+</footer>

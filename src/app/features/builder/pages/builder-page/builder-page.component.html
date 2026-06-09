@@ -1,14 +1,14 @@
 <main class="builder-page">
-  <aside class="builder-page__sidebar" aria-label="Site structure">
+  <aside class="builder-page__sidebar" aria-label="Структура сайта">
     <header class="builder-page__brand">
       <mat-icon aria-hidden="true">dashboard</mat-icon>
       <div>
-        <span class="builder-page__label">Site</span>
+        <span class="builder-page__label">Сайт</span>
         <strong>{{ siteConfig().name }}</strong>
       </div>
     </header>
 
-    <nav class="builder-page__nav" aria-label="Pages">
+    <nav class="builder-page__nav" aria-label="Страницы">
       @for (page of pages(); track page.slug) {
         <button
           mat-button
@@ -24,19 +24,31 @@
     </nav>
   </aside>
 
-  <section class="builder-page__workspace" aria-label="Builder workspace">
+  <section class="builder-page__workspace" aria-label="Рабочая область конструктора">
     <header class="builder-page__topbar">
       <div>
-        <span class="builder-page__label">Page</span>
+        <span class="builder-page__label">Страница</span>
         <h2>{{ activePage()?.title }}</h2>
       </div>
 
-      <button mat-icon-button type="button" aria-label="Preview page" matTooltip="Preview page">
-        <mat-icon>visibility</mat-icon>
-      </button>
+      <div class="builder-page__actions">
+        <a mat-flat-button routerLink="/create" class="builder-page__create-button">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Новый лендинг
+        </a>
+
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Предпросмотр страницы"
+          matTooltip="Предпросмотр страницы"
+        >
+          <mat-icon>visibility</mat-icon>
+        </button>
+      </div>
     </header>
 
-    <div class="builder-page__canvas" aria-label="Page preview">
+    <div class="builder-page__canvas" aria-label="Предпросмотр страницы">
       <app-block-renderer [blocks]="activeBlocks()" />
     </div>
   </section>

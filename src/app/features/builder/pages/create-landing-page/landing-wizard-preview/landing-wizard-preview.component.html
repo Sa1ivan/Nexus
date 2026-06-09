@@ -1,0 +1,34 @@
+<div
+  class="wizard-preview"
+  [class.is-premium]="tone() === 'premium'"
+  [class.is-friendly]="tone() === 'friendly'"
+  [class.is-minimal]="tone() === 'minimal'"
+  [class.is-bold]="tone() === 'bold'"
+>
+  <div class="wizard-preview__bar">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <div class="wizard-preview__site">
+    <header>
+      <strong>{{ brandName() }}</strong>
+      <button type="button">Заявка</button>
+    </header>
+
+    <section>
+      <span>{{ brandName() }}</span>
+      <h3>{{ title() }}</h3>
+      <p>{{ offerName() }}</p>
+    </section>
+
+    <div class="wizard-preview__list">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <footer></footer>
+  </div>
+</div>

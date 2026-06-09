@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockRendererComponent } from '../../ui/block-renderer/block-renderer.component';
@@ -9,7 +10,7 @@ import { BlockRendererComponent } from '../../ui/block-renderer/block-renderer.c
 @Component({
   selector: 'app-builder-page',
   standalone: true,
-  imports: [BlockRendererComponent, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [BlockRendererComponent, MatButtonModule, MatIconModule, MatTooltipModule, RouterLink],
   templateUrl: './builder-page.component.html',
   styleUrl: './builder-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
