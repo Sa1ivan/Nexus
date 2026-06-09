@@ -1,0 +1,24 @@
+<header
+  class="site-header"
+  [class.site-header--centered]="block().variant === 'centeredHero'"
+  [class.site-header--split]="block().variant === 'splitMedia'"
+  [class.site-header--booking]="block().variant === 'reservationBar'"
+  [class.site-header--editorial]="block().variant === 'editorial'"
+>
+  <div class="site-header__brand">{{ block().brandName }}</div>
+
+  <nav class="site-header__nav" aria-label="Навигация лендинга">
+    @for (item of block().navigationItems; track item) {
+      <button class="site-header__link" type="button">{{ item }}</button>
+    }
+  </nav>
+
+  @if (block().variant === 'reservationBar') {
+    <div class="site-header__booking-bar" aria-label="Быстрое бронирование">
+      <span>Сегодня</span>
+      <span>2 гостя</span>
+    </div>
+  }
+
+  <button class="site-header__cta" type="button">{{ block().ctaText }}</button>
+</header>

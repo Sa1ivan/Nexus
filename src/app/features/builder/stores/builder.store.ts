@@ -1,7 +1,14 @@
 import { computed, Injectable, signal } from '@angular/core';
 
 import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
-import type { HeroBlockUpdate, PageBlockConfig, PageConfig, SiteConfig } from '../domain/models';
+import { buildLandingDraft } from '../data-access/landing-draft.factory';
+import type {
+  CompleteLandingWizardSelection,
+  HeroBlockUpdate,
+  PageBlockConfig,
+  PageConfig,
+  SiteConfig,
+} from '../domain/models';
 
 @Injectable({
   providedIn: 'root',
@@ -41,6 +48,13 @@ export class BuilderStore {
       ...siteConfig,
       name: normalizedName,
     }));
+  }
+
+  createLandingDraft(selection: CompleteLandingWizardSelection): void {
+    const siteConfig = buildLandingDraft(selection);
+
+    this.siteConfigSignal.set(siteConfig);
+    this.activePageSlugSignal.set(siteConfig.pages[0]?.slug ?? '');
   }
 
   updateHeroBlock(blockId: string, update: HeroBlockUpdate): void {

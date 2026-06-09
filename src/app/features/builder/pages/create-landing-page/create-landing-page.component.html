@@ -1,0 +1,207 @@
+<main class="wizard">
+  <header class="wizard__header">
+    <a mat-button routerLink="/" class="wizard__back">
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      Конструктор
+    </a>
+
+    <div class="wizard__headline">
+      <span class="wizard__eyebrow">Новый лендинг</span>
+      <h1>Мастер создания лендинга</h1>
+      <p>Соберите основу страницы из ниши, подачи, хедера, списка предложений и футера.</p>
+    </div>
+
+    <div class="wizard__progress" aria-label="Прогресс заполнения">
+      <strong>{{ progress() }}%</strong>
+      <mat-progress-bar mode="determinate" [value]="progress()" />
+    </div>
+  </header>
+
+  <section class="wizard__shell">
+    <aside class="wizard__steps" aria-label="Шаги создания лендинга">
+      @for (step of stepDefinitions; track step.id; let stepIndex = $index) {
+        <button
+          class="wizard__step"
+          type="button"
+          [class.is-active]="stepIndex === currentStepIndex()"
+          [class.is-complete]="isStepComplete(step.id)"
+          [disabled]="!isStepAccessible(stepIndex)"
+          [attr.aria-current]="stepIndex === currentStepIndex() ? 'step' : null"
+          (click)="goToStep(stepIndex)"
+        >
+          <span class="wizard__step-icon">
+            <mat-icon aria-hidden="true">{{ isStepComplete(step.id) ? 'check' : step.icon }}</mat-icon>
+          </span>
+          <span>{{ step.label }}</span>
+        </button>
+      }
+    </aside>
+
+    <section class="wizard__question" aria-live="polite">
+      <div class="wizard__question-head">
+        <span class="wizard__eyebrow">
+          Шаг {{ currentStepIndex() + 1 }} из {{ stepDefinitions.length }}
+        </span>
+        <h2>{{ currentQuestionCopy().title }}</h2>
+        <p>{{ currentQuestionCopy().description }}</p>
+      </div>
+
+      <div class="wizard__body">
+        @switch (currentStep().id) {
+          @case ('industry') {
+            <div class="wizard__options">
+              @for (option of industryOptions; track option.id) {
+                <button
+                  class="wizard__option"
+                  type="button"
+                  [class.is-selected]="selection().industry === option.id"
+                  [attr.aria-pressed]="selection().industry === option.id"
+                  (click)="selectIndustry(option.id)"
+                >
+                  <span class="wizard__option-icon">
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  </span>
+                  <span>
+                    <strong>{{ option.title }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+          @case ('tone') {
+            <div class="wizard__options wizard__options--two">
+              @for (option of toneOptions; track option.id) {
+                <button
+                  class="wizard__option"
+                  type="button"
+                  [class.is-selected]="selection().tone === option.id"
+                  [attr.aria-pressed]="selection().tone === option.id"
+                  (click)="selectTone(option.id)"
+                >
+                  <span class="wizard__option-icon">
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  </span>
+                  <span>
+                    <strong>{{ option.title }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+          @case ('header') {
+            <div class="wizard__options wizard__options--two">
+              @for (option of headerOptions; track option.id) {
+                <button
+                  class="wizard__option"
+                  type="button"
+                  [class.is-selected]="selection().header === option.id"
+                  [attr.aria-pressed]="selection().header === option.id"
+                  (click)="selectHeader(option.id)"
+                >
+                  <span class="wizard__option-icon">
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  </span>
+                  <span>
+                    <strong>{{ option.title }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+          @case ('offerList') {
+            <div class="wizard__options wizard__options--two">
+              @for (option of offerListOptions; track option.id) {
+                <button
+                  class="wizard__option"
+                  type="button"
+                  [class.is-selected]="selection().offerList === option.id"
+                  [attr.aria-pressed]="selection().offerList === option.id"
+                  (click)="selectOfferList(option.id)"
+                >
+                  <span class="wizard__option-icon">
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  </span>
+                  <span>
+                    <strong>{{ option.title }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+          @case ('footer') {
+            <div class="wizard__options wizard__options--two">
+              @for (option of footerOptions; track option.id) {
+                <button
+                  class="wizard__option"
+                  type="button"
+                  [class.is-selected]="selection().footer === option.id"
+                  [attr.aria-pressed]="selection().footer === option.id"
+                  (click)="selectFooter(option.id)"
+                >
+                  <span class="wizard__option-icon">
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  </span>
+                  <span>
+                    <strong>{{ option.title }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+          @case ('summary') {
+            <div class="wizard__summary">
+              @for (item of blueprintItems(); track item.label) {
+                <div class="wizard__summary-item" [class.is-complete]="item.completed">
+                  <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                  <span>
+                    <small>{{ item.label }}</small>
+                    <strong>{{ item.value }}</strong>
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <footer class="wizard__actions">
+        <button mat-button type="button" [disabled]="currentStepIndex() === 0" (click)="previousStep()">
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+          Назад
+        </button>
+
+        @if (currentStep().id === 'summary') {
+          <button mat-flat-button color="primary" type="button" [disabled]="!canFinish()" (click)="createLanding()">
+            <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+            Собрать лендинг
+          </button>
+        } @else {
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!currentStepCompleted()"
+            (click)="nextStep()"
+          >
+            Дальше
+            <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          </button>
+        }
+      </footer>
+    </section>
+
+    <aside class="wizard__preview" aria-label="Предпросмотр лендинга">
+      <app-landing-wizard-preview
+        [brandName]="previewBrandName()"
+        [offerName]="previewOfferName()"
+        [title]="currentQuestionCopy().title"
+        [tone]="selection().tone"
+      />
+    </aside>
+  </section>
+</main>

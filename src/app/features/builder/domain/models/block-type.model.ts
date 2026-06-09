@@ -1,1 +1,1 @@
-export type BlockType = 'hero';
+export type BlockType = 'hero' | 'siteHeader' | 'offerList' | 'siteFooter';

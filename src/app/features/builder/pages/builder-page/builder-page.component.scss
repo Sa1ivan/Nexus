@@ -72,6 +72,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   min-height: 64px;
   margin-bottom: 24px;
 
@@ -80,6 +81,16 @@
     font-size: 24px;
     line-height: 1.2;
   }
+}
+
+.builder-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.builder-page__create-button {
+  border-radius: 6px;
 }
 
 .builder-page__canvas {
@@ -102,5 +113,10 @@
 
   .builder-page__workspace {
     padding: 16px;
+  }
+
+  .builder-page__topbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

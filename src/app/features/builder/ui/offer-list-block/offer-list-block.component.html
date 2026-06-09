@@ -1,0 +1,22 @@
+<section
+  class="offer-list"
+  [class.offer-list--menu]="block().variant === 'menuGrid'"
+  [class.offer-list--rooms]="block().variant === 'roomCards'"
+  [class.offer-list--pricing]="block().variant === 'pricingTable'"
+  [class.offer-list--catalog]="block().variant === 'catalogGrid'"
+>
+  <div class="offer-list__inner">
+    <p class="offer-list__eyebrow">{{ block().eyebrow }}</p>
+    <h2 class="offer-list__title">{{ block().title }}</h2>
+
+    <div class="offer-list__grid">
+      @for (item of block().items; track item.title) {
+        <article class="offer-list__item">
+          <span class="offer-list__meta">{{ item.meta }}</span>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
