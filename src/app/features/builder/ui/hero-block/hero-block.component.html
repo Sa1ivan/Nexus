@@ -1,4 +1,5 @@
 <section
+  id="hero"
   class="hero-block"
   [class.hero-block--left]="block().styles.alignment === 'left'"
   [class.hero-block--center]="block().styles.alignment === 'center'"
@@ -13,13 +14,13 @@
   <div class="hero-block__content">
     <h1 class="hero-block__title">{{ block().title }}</h1>
     <p class="hero-block__subtitle">{{ block().subtitle }}</p>
-    <button
+    <a
       class="hero-block__button"
-      type="button"
+      href="#offers"
       [style.background-color]="block().styles.buttonBackgroundColor"
       [style.color]="block().styles.buttonTextColor"
     >
       {{ block().buttonText }}
-    </button>
+    </a>
   </div>
 </section>

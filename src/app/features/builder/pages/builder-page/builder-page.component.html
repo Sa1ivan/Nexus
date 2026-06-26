@@ -1,39 +1,92 @@
 <main class="builder-page">
   <aside class="builder-page__sidebar" aria-label="Структура сайта">
     <header class="builder-page__brand">
-      <mat-icon aria-hidden="true">dashboard</mat-icon>
+      <span class="builder-page__brand-mark">
+        <mat-icon aria-hidden="true">dashboard</mat-icon>
+      </span>
       <div>
-        <span class="builder-page__label">Сайт</span>
+        <span class="builder-page__label">Nexus</span>
         <strong>{{ siteConfig().name }}</strong>
       </div>
     </header>
 
+    <label class="builder-page__field builder-page__field--compact">
+      <span>Название сайта</span>
+      <input type="text" [value]="siteConfig().name" (input)="updateSiteName($event)" />
+    </label>
+
     <nav class="builder-page__nav" aria-label="Страницы">
       @for (page of pages(); track page.slug) {
         <button
-          mat-button
           class="builder-page__nav-button"
           type="button"
-          [class.builder-page__nav-button--active]="page.slug === activePageSlug()"
+          [class.is-active]="page.slug === activePageSlug()"
           (click)="selectPage(page.slug)"
         >
           <mat-icon aria-hidden="true">article</mat-icon>
-          {{ page.title }}
+          <span>{{ page.title }}</span>
         </button>
       }
     </nav>
+
+    <section class="builder-page__palette" aria-label="Добавить блок">
+      <div class="builder-page__section-head">
+        <span class="builder-page__label">Добавить</span>
+        <mat-icon aria-hidden="true">add_circle</mat-icon>
+      </div>
+
+      <div class="builder-page__palette-grid">
+        @for (item of blockPalette; track item.type) {
+          <button class="builder-page__palette-button" type="button" (click)="addBlock(item.type)">
+            <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+            <span>
+              <strong>{{ item.label }}</strong>
+              <small>{{ item.description }}</small>
+            </span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="builder-page__layers" aria-label="Порядок блоков">
+      <div class="builder-page__section-head">
+        <span class="builder-page__label">Слои</span>
+        <span>{{ activeBlocks().length }}</span>
+      </div>
+
+      @if (activeBlocks().length > 0) {
+        <div class="builder-page__layer-list">
+          @for (block of activeBlocks(); track block.id) {
+            <button
+              class="builder-page__layer"
+              type="button"
+              [class.is-active]="block.id === selectedBlock()?.id"
+              (click)="selectBlock(block.id)"
+            >
+              <mat-icon aria-hidden="true">{{ getBlockIcon(block.type) }}</mat-icon>
+              <span>
+                <strong>{{ getBlockTypeLabel(block.type) }}</strong>
+                <small>{{ getBlockLabel(block) }}</small>
+              </span>
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="builder-page__empty-text">Добавьте первый блок кнопкой выше.</p>
+      }
+    </section>
   </aside>
 
   <section class="builder-page__workspace" aria-label="Рабочая область конструктора">
     <header class="builder-page__topbar">
       <div>
         <span class="builder-page__label">Страница</span>
-        <h2>{{ activePage()?.title }}</h2>
+        <h1>{{ activePage()?.title }}</h1>
       </div>
 
       <div class="builder-page__actions">
-        <a mat-flat-button routerLink="/create" class="builder-page__create-button">
-          <mat-icon aria-hidden="true">add</mat-icon>
+        <a mat-stroked-button routerLink="/create" class="builder-page__create-button">
+          <mat-icon aria-hidden="true">auto_awesome</mat-icon>
           Новый лендинг
         </a>
 
@@ -42,14 +95,464 @@
           type="button"
           aria-label="Предпросмотр страницы"
           matTooltip="Предпросмотр страницы"
+          (click)="openPreview()"
         >
           <mat-icon>visibility</mat-icon>
         </button>
       </div>
     </header>
 
-    <div class="builder-page__canvas" aria-label="Предпросмотр страницы">
-      <app-block-renderer [blocks]="activeBlocks()" />
+    <div class="builder-page__canvas-shell">
+      <div
+        class="builder-page__canvas"
+        cdkDropList
+        cdkDropListLockAxis="y"
+        [cdkDropListData]="activeBlocks()"
+        (cdkDropListDropped)="dropBlock($event)"
+        aria-label="Холст страницы"
+      >
+        @if (activeBlocks().length > 0) {
+          @for (block of activeBlocks(); track block.id) {
+            <article
+              class="builder-page__block-frame"
+              cdkDrag
+              [cdkDragData]="block"
+              [class.is-selected]="block.id === selectedBlock()?.id"
+              (click)="selectBlock(block.id)"
+            >
+              <header class="builder-page__block-toolbar">
+                <button
+                  class="builder-page__drag-handle"
+                  type="button"
+                  cdkDragHandle
+                  aria-label="Перетащить блок"
+                  matTooltip="Перетащить"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+                </button>
+
+                <div>
+                  <span>{{ getBlockTypeLabel(block.type) }}</span>
+                  <strong>{{ getBlockLabel(block) }}</strong>
+                </div>
+
+                <div class="builder-page__block-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Поднять блок"
+                    matTooltip="Выше"
+                    [disabled]="!canMoveBlock(block.id, 'up')"
+                    (click)="moveBlock(block.id, 'up'); $event.stopPropagation()"
+                  >
+                    <mat-icon>keyboard_arrow_up</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Опустить блок"
+                    matTooltip="Ниже"
+                    [disabled]="!canMoveBlock(block.id, 'down')"
+                    (click)="moveBlock(block.id, 'down'); $event.stopPropagation()"
+                  >
+                    <mat-icon>keyboard_arrow_down</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Дублировать блок"
+                    matTooltip="Дублировать"
+                    (click)="duplicateBlock(block.id); $event.stopPropagation()"
+                  >
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Удалить блок"
+                    matTooltip="Удалить"
+                    (click)="removeBlock(block.id); $event.stopPropagation()"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </header>
+
+              <app-block-renderer [blocks]="[block]" />
+            </article>
+          }
+        } @else {
+          <section class="builder-page__empty-canvas">
+            <mat-icon aria-hidden="true">add_box</mat-icon>
+            <strong>Пустая страница</strong>
+            <p>Добавьте хедер, hero, предложения или футер и соберите порядок как нужно.</p>
+          </section>
+        }
+      </div>
     </div>
   </section>
+
+  <aside class="builder-page__inspector" aria-label="Свойства выбранного блока">
+    @if (selectedBlock(); as block) {
+      <header class="builder-page__inspector-head">
+        <div>
+          <span class="builder-page__label">{{ getBlockTypeLabel(block.type) }}</span>
+          <h2>{{ getBlockLabel(block) }}</h2>
+        </div>
+        <mat-icon aria-hidden="true">{{ getBlockIcon(block.type) }}</mat-icon>
+      </header>
+
+      <section class="builder-page__panel" aria-label="Дизайн блока">
+        <div class="builder-page__section-head">
+          <span class="builder-page__label">Дизайн блока</span>
+          <mat-icon aria-hidden="true">tune</mat-icon>
+        </div>
+
+        <div class="builder-page__control">
+          <span>Цвет</span>
+          <div class="builder-page__swatches">
+            @for (option of accentOptions; track option.id) {
+              <button
+                class="builder-page__swatch"
+                type="button"
+                [class.is-selected]="selectedDesign().accentColor === option.id"
+                [style.--swatch-color]="getAccentValue(option.id)"
+                [attr.aria-label]="option.title"
+                (click)="updateBlockAccent(block.id, option.id)"
+              ></button>
+            }
+          </div>
+        </div>
+
+        <div class="builder-page__control">
+          <span>Шрифт</span>
+          <div class="builder-page__segments">
+            @for (option of fontOptions; track option.id) {
+              <button
+                type="button"
+                [class.is-selected]="selectedDesign().fontPairing === option.id"
+                (click)="updateBlockFont(block.id, option.id)"
+              >
+                <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                {{ option.title }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="builder-page__control">
+          <span>Плотность</span>
+          <div class="builder-page__segments">
+            @for (option of densityOptions; track option.id) {
+              <button
+                type="button"
+                [class.is-selected]="selectedDesign().density === option.id"
+                (click)="updateBlockDensity(block.id, option.id)"
+              >
+                <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                {{ option.title }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="builder-page__control">
+          <span>Стиль</span>
+          <div class="builder-page__segments">
+            @for (option of templateStyleOptions; track option.id) {
+              <button
+                type="button"
+                [class.is-selected]="selectedDesign().templateStyle === option.id"
+                (click)="updateBlockTemplateStyle(block.id, option.id)"
+              >
+                <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                {{ option.title }}
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="builder-page__panel" aria-label="Контент блока">
+        <div class="builder-page__section-head">
+          <span class="builder-page__label">Контент</span>
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        </div>
+
+        @switch (block.type) {
+          @case ('siteHeader') {
+            <label class="builder-page__field">
+              <span>Бренд</span>
+              <input
+                type="text"
+                [value]="block.brandName"
+                (input)="updateHeaderText(block.id, 'brandName', $event)"
+              />
+            </label>
+
+            <label class="builder-page__field">
+              <span>Навигация</span>
+              <input
+                type="text"
+                [value]="formatInlineList(block.navigationItems)"
+                (input)="updateHeaderNavigation(block.id, $event)"
+              />
+            </label>
+
+            <label class="builder-page__field">
+              <span>CTA</span>
+              <input
+                type="text"
+                [value]="block.ctaText"
+                (input)="updateHeaderText(block.id, 'ctaText', $event)"
+              />
+            </label>
+
+            <div class="builder-page__control">
+              <span>Вариант</span>
+              <div class="builder-page__segments">
+                @for (option of headerOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="block.variant === option.id"
+                    (click)="updateHeaderVariant(block.id, option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    {{ option.title }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @case ('hero') {
+            <label class="builder-page__field">
+              <span>Заголовок</span>
+              <textarea rows="3" [value]="block.title" (input)="updateHeroText(block.id, 'title', $event)"></textarea>
+            </label>
+
+            <label class="builder-page__field">
+              <span>Подзаголовок</span>
+              <textarea rows="4" [value]="block.subtitle" (input)="updateHeroText(block.id, 'subtitle', $event)"></textarea>
+            </label>
+
+            <label class="builder-page__field">
+              <span>Кнопка</span>
+              <input
+                type="text"
+                [value]="block.buttonText"
+                (input)="updateHeroText(block.id, 'buttonText', $event)"
+              />
+            </label>
+
+            <div class="builder-page__color-grid">
+              <label class="builder-page__color-field">
+                <span>Фон</span>
+                <input
+                  type="color"
+                  [value]="block.styles.backgroundColor"
+                  (input)="updateHeroColor(block.id, 'backgroundColor', $event)"
+                />
+              </label>
+              <label class="builder-page__color-field">
+                <span>Текст</span>
+                <input
+                  type="color"
+                  [value]="block.styles.textColor"
+                  (input)="updateHeroColor(block.id, 'textColor', $event)"
+                />
+              </label>
+              <label class="builder-page__color-field">
+                <span>CTA</span>
+                <input
+                  type="color"
+                  [value]="block.styles.buttonBackgroundColor"
+                  (input)="updateHeroColor(block.id, 'buttonBackgroundColor', $event)"
+                />
+              </label>
+              <label class="builder-page__color-field">
+                <span>CTA текст</span>
+                <input
+                  type="color"
+                  [value]="block.styles.buttonTextColor"
+                  (input)="updateHeroColor(block.id, 'buttonTextColor', $event)"
+                />
+              </label>
+            </div>
+
+            <label class="builder-page__field">
+              <span>Высота</span>
+              <input
+                type="text"
+                [value]="block.styles.minHeight"
+                (input)="updateHeroMinHeight(block.id, $event)"
+              />
+            </label>
+
+            <div class="builder-page__control">
+              <span>Выравнивание</span>
+              <div class="builder-page__segments">
+                @for (option of heroAlignmentOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="block.styles.alignment === option.id"
+                    (click)="updateHeroAlignment(block.id, option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    {{ option.label }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @case ('offerList') {
+            <label class="builder-page__field">
+              <span>Надзаголовок</span>
+              <input
+                type="text"
+                [value]="block.eyebrow"
+                (input)="updateOfferText(block.id, 'eyebrow', $event)"
+              />
+            </label>
+
+            <label class="builder-page__field">
+              <span>Заголовок</span>
+              <textarea rows="3" [value]="block.title" (input)="updateOfferText(block.id, 'title', $event)"></textarea>
+            </label>
+
+            <div class="builder-page__control">
+              <span>Вариант</span>
+              <div class="builder-page__segments">
+                @for (option of offerListOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="block.variant === option.id"
+                    (click)="updateOfferVariant(block.id, option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    {{ option.title }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="builder-page__items">
+              @for (item of block.items; track itemIndex; let itemIndex = $index) {
+                <section class="builder-page__item-editor">
+                  <span class="builder-page__item-index">{{ itemIndex + 1 }}</span>
+                  <label class="builder-page__field">
+                    <span>Название</span>
+                    <input
+                      type="text"
+                      [value]="item.title"
+                      (input)="updateOfferItemTitle(block.id, itemIndex, $event)"
+                    />
+                  </label>
+                  <label class="builder-page__field">
+                    <span>Мета</span>
+                    <input
+                      type="text"
+                      [value]="item.meta"
+                      (input)="updateOfferItemMeta(block.id, itemIndex, $event)"
+                    />
+                  </label>
+                  <label class="builder-page__field">
+                    <span>Описание</span>
+                    <textarea
+                      rows="3"
+                      [value]="item.description"
+                      (input)="updateOfferItemDescription(block.id, itemIndex, $event)"
+                    ></textarea>
+                  </label>
+                </section>
+              }
+            </div>
+          }
+
+          @case ('siteFooter') {
+            <label class="builder-page__field">
+              <span>Бренд</span>
+              <input
+                type="text"
+                [value]="block.brandName"
+                (input)="updateFooterText(block.id, 'brandName', $event)"
+              />
+            </label>
+
+            <label class="builder-page__field">
+              <span>CTA</span>
+              <input
+                type="text"
+                [value]="block.ctaText"
+                (input)="updateFooterText(block.id, 'ctaText', $event)"
+              />
+            </label>
+
+            <label class="builder-page__field">
+              <span>Контакты</span>
+              <textarea
+                rows="4"
+                [value]="formatMultilineList(block.contactLines)"
+                (input)="updateFooterContacts(block.id, $event)"
+              ></textarea>
+            </label>
+
+            <label class="builder-page__field">
+              <span>Ссылки</span>
+              <input
+                type="text"
+                [value]="formatInlineList(block.links)"
+                (input)="updateFooterLinks(block.id, $event)"
+              />
+            </label>
+
+            <div class="builder-page__control">
+              <span>Вариант</span>
+              <div class="builder-page__segments">
+                @for (option of footerOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="block.variant === option.id"
+                    (click)="updateFooterVariant(block.id, option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    {{ option.title }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        }
+      </section>
+    } @else {
+      <section class="builder-page__empty-inspector">
+        <mat-icon aria-hidden="true">ads_click</mat-icon>
+        <strong>Выберите блок</strong>
+        <p>Добавьте или выберите секцию на холсте, чтобы настроить контент, цвет и типографику.</p>
+      </section>
+    }
+  </aside>
+
+  @if (isPreviewOpen()) {
+    <section class="builder-page__preview-overlay" aria-modal="true" role="dialog" (click)="closePreview()">
+      <div class="builder-page__preview-dialog" (click)="$event.stopPropagation()">
+        <header class="builder-page__preview-head">
+          <div>
+            <span class="builder-page__label">Предпросмотр</span>
+            <strong>{{ activePage()?.title }}</strong>
+          </div>
+
+          <button mat-icon-button type="button" aria-label="Закрыть предпросмотр" (click)="closePreview()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <div class="builder-page__preview-body">
+          <app-block-renderer [blocks]="activeBlocks()" />
+        </div>
+      </div>
+    </section>
+  }
 </main>

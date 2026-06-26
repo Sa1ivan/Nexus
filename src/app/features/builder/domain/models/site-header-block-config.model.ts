@@ -7,3 +7,10 @@ export interface SiteHeaderBlockConfig extends BlockConfig<'siteHeader'> {
   readonly navigationItems: readonly string[];
   readonly ctaText: string;
 }
+
+export interface SiteHeaderBlockUpdate {
+  readonly variant?: LandingHeaderVariant;
+  readonly brandName?: string;
+  readonly navigationItems?: readonly string[];
+  readonly ctaText?: string;
+}

@@ -30,26 +30,26 @@ export const DEFAULT_LANDING_DESIGN_SETTINGS: LandingDesignSettings = {
 export function getLandingAccentValue(accentColor: LandingAccentColor): string {
   switch (accentColor) {
     case 'teal':
-      return '#0f766e';
+      return '#0a7f72';
     case 'blue':
-      return '#2563eb';
+      return '#007aff';
     case 'rose':
-      return '#be123c';
+      return '#ff375f';
     case 'violet':
-      return '#7c3aed';
+      return '#7d5fff';
     case 'amber':
-      return '#b45309';
+      return '#b87514';
   }
 }
 
 export function getLandingFontFamily(fontPairing: LandingFontPairing): string {
   switch (fontPairing) {
     case 'grotesk':
-      return "Roboto, 'Helvetica Neue', Arial, sans-serif";
+      return "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif";
     case 'serif':
-      return "Georgia, 'Times New Roman', serif";
+      return "'New York', Georgia, 'Times New Roman', serif";
     case 'rounded':
-      return "'Trebuchet MS', Roboto, Arial, sans-serif";
+      return "'SF Pro Rounded', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif";
   }
 }
 

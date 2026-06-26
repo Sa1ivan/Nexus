@@ -1,4 +1,5 @@
 <header
+  id="site-header"
   class="site-header"
   [class.site-header--centered]="block().variant === 'centeredHero'"
   [class.site-header--split]="block().variant === 'splitMedia'"
@@ -11,20 +12,22 @@
   [style.--landing-radius]="radiusValue()"
   [style.--landing-header-y]="headerPaddingY()"
 >
-  <div class="site-header__brand">{{ block().brandName }}</div>
+  <div class="site-header__shell">
+    <div class="site-header__brand">{{ block().brandName }}</div>
 
-  <nav class="site-header__nav" aria-label="Навигация лендинга">
-    @for (item of block().navigationItems; track item) {
-      <button class="site-header__link" type="button">{{ item }}</button>
+    <nav class="site-header__nav" aria-label="Навигация лендинга">
+      @for (item of block().navigationItems; track item) {
+        <a class="site-header__link" [href]="navigationHref($index)">{{ item }}</a>
+      }
+    </nav>
+
+    @if (block().variant === 'reservationBar') {
+      <div class="site-header__booking-bar" aria-label="Быстрое бронирование">
+        <span>Сегодня</span>
+        <span>2 гостя</span>
+      </div>
     }
-  </nav>
 
-  @if (block().variant === 'reservationBar') {
-    <div class="site-header__booking-bar" aria-label="Быстрое бронирование">
-      <span>Сегодня</span>
-      <span>2 гостя</span>
-    </div>
-  }
-
-  <button class="site-header__cta" type="button">{{ block().ctaText }}</button>
+    <a class="site-header__cta" [href]="ctaHref">{{ block().ctaText }}</a>
+  </div>
 </header>

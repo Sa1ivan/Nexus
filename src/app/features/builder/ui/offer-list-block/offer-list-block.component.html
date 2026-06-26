@@ -1,4 +1,5 @@
 <section
+  id="offers"
   class="offer-list"
   [class.offer-list--menu]="block().variant === 'menuGrid'"
   [class.offer-list--rooms]="block().variant === 'roomCards'"
@@ -16,7 +17,7 @@
     <h2 class="offer-list__title">{{ block().title }}</h2>
 
     <div class="offer-list__grid">
-      @for (item of block().items; track item.title) {
+      @for (item of block().items; track itemIndex; let itemIndex = $index) {
         <article class="offer-list__item">
           <span class="offer-list__meta">{{ item.meta }}</span>
           <h3>{{ item.title }}</h3>

@@ -13,3 +13,10 @@ export interface OfferListBlockConfig extends BlockConfig<'offerList'> {
   readonly title: string;
   readonly items: readonly OfferListItem[];
 }
+
+export interface OfferListBlockUpdate {
+  readonly variant?: LandingOfferListVariant;
+  readonly eyebrow?: string;
+  readonly title?: string;
+  readonly items?: readonly OfferListItem[];
+}

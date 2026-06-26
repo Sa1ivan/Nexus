@@ -249,10 +249,14 @@ function getHeroBackgroundColor(
 export function buildLandingDraft(selection: CompleteLandingWizardSelection): SiteConfig {
   const preset = INDUSTRY_PRESETS[selection.industry];
   const toneStyles = TONE_STYLES[selection.tone];
-  const accentColor = getLandingAccentValue(selection.design.accentColor);
+  const headerDesign = selection.stepDesigns?.header ?? selection.design;
+  const heroDesign = selection.stepDesigns?.tone ?? selection.stepDesigns?.industry ?? selection.design;
+  const offerListDesign = selection.stepDesigns?.offerList ?? selection.design;
+  const footerDesign = selection.stepDesigns?.footer ?? selection.design;
+  const accentColor = getLandingAccentValue(heroDesign.accentColor);
   const heroAlignment = getHeroAlignment(
     selection.header,
-    selection.design.templateStyle,
+    heroDesign.templateStyle,
     toneStyles.alignment,
   );
 
@@ -267,7 +271,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'header-main',
             type: 'siteHeader',
-            design: selection.design,
+            design: headerDesign,
             variant: selection.header,
             brandName: preset.brandName,
             navigationItems: preset.navigationItems,
@@ -276,7 +280,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'hero-main',
             type: 'hero',
-            design: selection.design,
+            design: heroDesign,
             title: preset.heroTitle,
             subtitle: preset.heroSubtitle,
             buttonText: preset.ctaText,
@@ -284,18 +288,18 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
               ...toneStyles,
               backgroundColor: getHeroBackgroundColor(
                 selection.tone,
-                selection.design.templateStyle,
+                heroDesign.templateStyle,
                 toneStyles.backgroundColor,
               ),
               buttonBackgroundColor: accentColor,
-              minHeight: getHeroMinHeight(selection.design.density),
+              minHeight: getHeroMinHeight(heroDesign.density),
               alignment: heroAlignment,
             },
           },
           {
             id: 'offers-main',
             type: 'offerList',
-            design: selection.design,
+            design: offerListDesign,
             variant: selection.offerList,
             eyebrow: preset.offerEyebrow,
             title: preset.offerTitle,
@@ -304,7 +308,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'footer-main',
             type: 'siteFooter',
-            design: selection.design,
+            design: footerDesign,
             variant: selection.footer,
             brandName: preset.brandName,
             ctaText: preset.ctaText,

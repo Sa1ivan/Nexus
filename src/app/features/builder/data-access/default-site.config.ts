@@ -1,3 +1,4 @@
+import { DEFAULT_LANDING_DESIGN_SETTINGS } from '../domain/models';
 import type { SiteConfig } from '../domain/models';
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
@@ -11,6 +12,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
         {
           id: 'hero-home',
           type: 'hero',
+          design: DEFAULT_LANDING_DESIGN_SETTINGS,
           title: 'Соберите сайт быстрее',
           subtitle: 'Чистая основа для визуального конструктора лендингов и сайтов.',
           buttonText: 'Начать сборку',

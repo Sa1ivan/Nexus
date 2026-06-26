@@ -58,6 +58,7 @@ export interface CompleteLandingWizardSelection {
   readonly offerList: LandingOfferListVariant;
   readonly footer: LandingFooterVariant;
   readonly design: LandingDesignSettings;
+  readonly stepDesigns?: Readonly<Partial<Record<LandingWizardStepId, LandingDesignSettings>>>;
 }
 
 export interface LandingBlueprintItem {

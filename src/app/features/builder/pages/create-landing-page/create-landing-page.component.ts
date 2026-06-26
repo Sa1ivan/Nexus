@@ -64,6 +64,19 @@ type LandingChoiceId =
   | LandingDensity
   | LandingTemplateStyle;
 
+type LandingDesignByStep = Readonly<Record<LandingWizardStepId, LandingDesignSettings>>;
+
+function createDesignByStep(design: LandingDesignSettings): LandingDesignByStep {
+  return {
+    industry: design,
+    tone: design,
+    header: design,
+    offerList: design,
+    footer: design,
+    summary: design,
+  };
+}
+
 @Component({
   selector: 'app-create-landing-page',
   standalone: true,
@@ -96,7 +109,9 @@ export class CreateLandingPageComponent {
 
   readonly currentStepIndex = signal<number>(0);
   readonly isPreviewOpen = signal<boolean>(false);
-  readonly design = signal<LandingDesignSettings>(DEFAULT_LANDING_DESIGN_SETTINGS);
+  readonly designByStep = signal<LandingDesignByStep>(
+    createDesignByStep(DEFAULT_LANDING_DESIGN_SETTINGS),
+  );
   readonly selection = signal<LandingWizardSelection>({
     industry: null,
     tone: null,
@@ -107,6 +122,9 @@ export class CreateLandingPageComponent {
 
   readonly currentStep = computed<LandingWizardStep>(
     () => this.stepDefinitions[this.currentStepIndex()] ?? this.stepDefinitions[0],
+  );
+  readonly design = computed<LandingDesignSettings>(
+    () => this.designByStep()[this.currentStep().id],
   );
   readonly currentIndustry = computed<LandingIndustry | null>(() => this.selection().industry);
   readonly industryRecommendation = computed(
@@ -271,6 +289,7 @@ export class CreateLandingPageComponent {
       offerList: selection.offerList ?? recommendation.offerList,
       footer: selection.footer ?? recommendation.footer,
       design: this.design(),
+      stepDesigns: this.designByStep(),
     };
   });
   readonly previewBrandName = computed<string>(() => {
@@ -304,7 +323,7 @@ export class CreateLandingPageComponent {
   selectIndustry(industry: LandingIndustry): void {
     const recommendation = LANDING_INDUSTRY_RECOMMENDATIONS[industry];
 
-    this.design.set(recommendation.design);
+    this.designByStep.set(createDesignByStep(recommendation.design));
     this.selection.update((selection) => ({
       ...selection,
       industry,
@@ -352,28 +371,28 @@ export class CreateLandingPageComponent {
   }
 
   selectAccentColor(accentColor: LandingAccentColor): void {
-    this.design.update((design) => ({
+    this.updateCurrentStepDesign((design) => ({
       ...design,
       accentColor,
     }));
   }
 
   selectFontPairing(fontPairing: LandingFontPairing): void {
-    this.design.update((design) => ({
+    this.updateCurrentStepDesign((design) => ({
       ...design,
       fontPairing,
     }));
   }
 
   selectDensity(density: LandingDensity): void {
-    this.design.update((design) => ({
+    this.updateCurrentStepDesign((design) => ({
       ...design,
       density,
     }));
   }
 
   selectTemplateStyle(templateStyle: LandingTemplateStyle): void {
-    this.design.update((design) => ({
+    this.updateCurrentStepDesign((design) => ({
       ...design,
       templateStyle,
     }));
@@ -481,7 +500,19 @@ export class CreateLandingPageComponent {
       offerList,
       footer,
       design: this.design(),
+      stepDesigns: this.designByStep(),
     };
+  }
+
+  private updateCurrentStepDesign(
+    updater: (design: LandingDesignSettings) => LandingDesignSettings,
+  ): void {
+    const stepId = this.currentStep().id;
+
+    this.designByStep.update((designByStep) => ({
+      ...designByStep,
+      [stepId]: updater(designByStep[stepId]),
+    }));
   }
 
   private getOptionsByIds<TValue extends string>(

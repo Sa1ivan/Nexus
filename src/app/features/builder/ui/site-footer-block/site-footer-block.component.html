@@ -1,4 +1,5 @@
 <footer
+  id="contact"
   class="site-footer"
   [class.site-footer--map]="block().variant === 'contactMap'"
   [class.site-footer--compact]="block().variant === 'compactLegal'"
@@ -14,7 +15,7 @@
   <div class="site-footer__main">
     <div>
       <strong class="site-footer__brand">{{ block().brandName }}</strong>
-      <button class="site-footer__cta" type="button">{{ block().ctaText }}</button>
+      <a class="site-footer__cta" [href]="ctaHref">{{ block().ctaText }}</a>
     </div>
 
     <address class="site-footer__contacts">
@@ -30,7 +31,7 @@
 
   <div class="site-footer__bottom">
     @for (link of block().links; track link) {
-      <button type="button">{{ link }}</button>
+      <a [href]="footerLinkHref($index)">{{ link }}</a>
     }
   </div>
 </footer>

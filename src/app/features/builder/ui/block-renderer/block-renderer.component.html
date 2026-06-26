@@ -1,13 +1,18 @@
 <div class="block-renderer">
   @for (block of blocks(); track block.id) {
-    @if (isSiteHeaderBlock(block)) {
-      <app-site-header-block [block]="block" />
-    } @else if (isHeroBlock(block)) {
-      <app-hero-block [block]="block" />
-    } @else if (isOfferListBlock(block)) {
-      <app-offer-list-block [block]="block" />
-    } @else if (isSiteFooterBlock(block)) {
-      <app-site-footer-block [block]="block" />
+    @switch (block.type) {
+      @case ('siteHeader') {
+        <app-site-header-block [block]="block" />
+      }
+      @case ('hero') {
+        <app-hero-block [block]="block" />
+      }
+      @case ('offerList') {
+        <app-offer-list-block [block]="block" />
+      }
+      @case ('siteFooter') {
+        <app-site-footer-block [block]="block" />
+      }
     }
   }
 </div>
