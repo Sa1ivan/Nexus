@@ -32,3 +32,122 @@ textarea,
 select {
   font: inherit;
 }
+
+.wizard__option-visual {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  min-height: 86px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+
+  span {
+    display: block;
+    border-radius: 6px;
+    background: #cbd5e1;
+  }
+
+  span:first-child {
+    grid-row: span 2;
+    background: #94a3b8;
+  }
+}
+
+.wizard__option-visual[data-option='restaurant'],
+.wizard__option-visual[data-option='menuGrid'],
+.wizard__option-visual[data-option='friendly'] {
+  background: #fff7ed;
+
+  span:first-child {
+    background: #f59e0b;
+  }
+}
+
+.wizard__option-visual[data-option='hotel'],
+.wizard__option-visual[data-option='roomCards'],
+.wizard__option-visual[data-option='premium'] {
+  background: #eef2ff;
+
+  span:first-child {
+    background: #2563eb;
+  }
+}
+
+.wizard__option-visual[data-option='beauty'],
+.wizard__option-visual[data-option='socialLead'] {
+  background: #fff1f2;
+
+  span:first-child {
+    background: #be123c;
+  }
+}
+
+.wizard__option-visual[data-option='product'],
+.wizard__option-visual[data-option='catalogGrid'],
+.wizard__option-visual[data-option='bold'] {
+  background: #f5f3ff;
+
+  span:first-child {
+    background: #7c3aed;
+  }
+}
+
+.wizard__option-visual[data-option='education'],
+.wizard__option-visual[data-option='editorial'],
+.wizard__option-visual[data-option='minimal'] {
+  background: #ecfeff;
+
+  span:first-child {
+    background: #0f766e;
+  }
+}
+
+.wizard__option-visual[data-option='centeredHero'] {
+  grid-template-columns: 1fr;
+  place-items: center;
+
+  span {
+    width: 72%;
+  }
+}
+
+.wizard__option-visual[data-option='splitMedia'] {
+  grid-template-columns: 1fr 0.9fr;
+}
+
+.wizard__option-visual[data-option='reservationBar'] {
+  grid-template-rows: 0.7fr 1fr;
+
+  span:last-child {
+    grid-column: span 2;
+  }
+}
+
+.wizard__option-visual[data-option='pricingTable'] {
+  grid-template-columns: repeat(3, 1fr);
+
+  span:first-child {
+    grid-row: auto;
+  }
+}
+
+.wizard__option-visual[data-option='contactMap'] {
+  grid-template-columns: 0.9fr 1.4fr;
+
+  span:last-child {
+    grid-row: span 2;
+  }
+}
+
+.wizard__option-visual[data-option='compactLegal'] {
+  min-height: 70px;
+  align-self: center;
+}
+
+.wizard__option-visual[data-option='bookingFooter'] {
+  span:first-child {
+    background: #111827;
+  }
+}

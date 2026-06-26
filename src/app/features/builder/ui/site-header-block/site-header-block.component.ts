@@ -1,5 +1,12 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
+import {
+  DEFAULT_LANDING_DESIGN_SETTINGS,
+  getLandingAccentValue,
+  getLandingFontFamily,
+  getLandingHeaderPaddingY,
+  getLandingRadiusValue,
+} from '../../domain/models';
 import type { SiteHeaderBlockConfig } from '../../domain/models';
 
 @Component({
@@ -11,4 +18,10 @@ import type { SiteHeaderBlockConfig } from '../../domain/models';
 })
 export class SiteHeaderBlockComponent {
   readonly block = input.required<SiteHeaderBlockConfig>();
+
+  readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
+  readonly accentColor = computed<string>(() => getLandingAccentValue(this.design().accentColor));
+  readonly fontFamily = computed<string>(() => getLandingFontFamily(this.design().fontPairing));
+  readonly radiusValue = computed<string>(() => getLandingRadiusValue(this.design().templateStyle));
+  readonly headerPaddingY = computed<string>(() => getLandingHeaderPaddingY(this.design().density));
 }

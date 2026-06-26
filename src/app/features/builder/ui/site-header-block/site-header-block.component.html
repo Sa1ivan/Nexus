@@ -4,6 +4,12 @@
   [class.site-header--split]="block().variant === 'splitMedia'"
   [class.site-header--booking]="block().variant === 'reservationBar'"
   [class.site-header--editorial]="block().variant === 'editorial'"
+  [class.site-header--design-editorial]="design().templateStyle === 'editorial'"
+  [class.site-header--design-conversion]="design().templateStyle === 'conversion'"
+  [style.--landing-accent]="accentColor()"
+  [style.--landing-font]="fontFamily()"
+  [style.--landing-radius]="radiusValue()"
+  [style.--landing-header-y]="headerPaddingY()"
 >
   <div class="site-header__brand">{{ block().brandName }}</div>
 

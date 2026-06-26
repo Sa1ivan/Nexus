@@ -4,6 +4,12 @@
   [class.site-footer--compact]="block().variant === 'compactLegal'"
   [class.site-footer--social]="block().variant === 'socialLead'"
   [class.site-footer--booking]="block().variant === 'bookingFooter'"
+  [class.site-footer--editorial]="design().templateStyle === 'editorial'"
+  [class.site-footer--conversion]="design().templateStyle === 'conversion'"
+  [style.--landing-accent]="accentColor()"
+  [style.--landing-font]="fontFamily()"
+  [style.--landing-radius]="radiusValue()"
+  [style.--landing-section-y]="sectionPaddingY()"
 >
   <div class="site-footer__main">
     <div>

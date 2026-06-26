@@ -4,6 +4,12 @@
   [class.offer-list--rooms]="block().variant === 'roomCards'"
   [class.offer-list--pricing]="block().variant === 'pricingTable'"
   [class.offer-list--catalog]="block().variant === 'catalogGrid'"
+  [class.offer-list--editorial]="design().templateStyle === 'editorial'"
+  [class.offer-list--conversion]="design().templateStyle === 'conversion'"
+  [style.--landing-accent]="accentColor()"
+  [style.--landing-font]="fontFamily()"
+  [style.--landing-radius]="radiusValue()"
+  [style.--landing-section-y]="sectionPaddingY()"
 >
   <div class="offer-list__inner">
     <p class="offer-list__eyebrow">{{ block().eyebrow }}</p>

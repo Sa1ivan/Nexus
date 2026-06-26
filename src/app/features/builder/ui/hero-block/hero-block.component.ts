@@ -1,5 +1,11 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
+import {
+  DEFAULT_LANDING_DESIGN_SETTINGS,
+  getLandingFontFamily,
+  getLandingRadiusValue,
+  getLandingSectionPaddingY,
+} from '../../domain/models';
 import type { HeroBlockConfig } from '../../domain/models';
 
 @Component({
@@ -11,4 +17,9 @@ import type { HeroBlockConfig } from '../../domain/models';
 })
 export class HeroBlockComponent {
   readonly block = input.required<HeroBlockConfig>();
+
+  readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
+  readonly fontFamily = computed<string>(() => getLandingFontFamily(this.design().fontPairing));
+  readonly radiusValue = computed<string>(() => getLandingRadiusValue(this.design().templateStyle));
+  readonly sectionPaddingY = computed<string>(() => getLandingSectionPaddingY(this.design().density));
 }

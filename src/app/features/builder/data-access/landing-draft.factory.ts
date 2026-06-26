@@ -1,7 +1,12 @@
+import { getLandingAccentValue } from '../domain/models';
 import type {
   CompleteLandingWizardSelection,
+  HeroContentAlignment,
   HeroBlockStyles,
+  LandingDensity,
+  LandingHeaderVariant,
   LandingIndustry,
+  LandingTemplateStyle,
   LandingTone,
   OfferListItem,
   SiteConfig,
@@ -198,10 +203,58 @@ const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   },
 } as const;
 
+function getHeroMinHeight(density: LandingDensity): string {
+  switch (density) {
+    case 'compact':
+      return '460px';
+    case 'balanced':
+      return '540px';
+    case 'spacious':
+      return '620px';
+  }
+}
+
+function getHeroAlignment(
+  header: LandingHeaderVariant,
+  templateStyle: LandingTemplateStyle,
+  fallback: HeroContentAlignment,
+): HeroContentAlignment {
+  if (header === 'splitMedia' || templateStyle === 'editorial') {
+    return 'left';
+  }
+
+  if (templateStyle === 'conversion') {
+    return 'center';
+  }
+
+  return fallback;
+}
+
+function getHeroBackgroundColor(
+  tone: LandingTone,
+  templateStyle: LandingTemplateStyle,
+  fallback: string,
+): string {
+  if (templateStyle === 'editorial') {
+    return tone === 'premium' ? '#111827' : '#fff7ed';
+  }
+
+  if (templateStyle === 'conversion' && tone !== 'minimal') {
+    return '#f8fafc';
+  }
+
+  return fallback;
+}
+
 export function buildLandingDraft(selection: CompleteLandingWizardSelection): SiteConfig {
   const preset = INDUSTRY_PRESETS[selection.industry];
   const toneStyles = TONE_STYLES[selection.tone];
-  const heroAlignment = selection.header === 'splitMedia' ? 'left' : toneStyles.alignment;
+  const accentColor = getLandingAccentValue(selection.design.accentColor);
+  const heroAlignment = getHeroAlignment(
+    selection.header,
+    selection.design.templateStyle,
+    toneStyles.alignment,
+  );
 
   return {
     id: `landing-${selection.industry}`,
@@ -214,6 +267,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'header-main',
             type: 'siteHeader',
+            design: selection.design,
             variant: selection.header,
             brandName: preset.brandName,
             navigationItems: preset.navigationItems,
@@ -222,17 +276,26 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'hero-main',
             type: 'hero',
+            design: selection.design,
             title: preset.heroTitle,
             subtitle: preset.heroSubtitle,
             buttonText: preset.ctaText,
             styles: {
               ...toneStyles,
+              backgroundColor: getHeroBackgroundColor(
+                selection.tone,
+                selection.design.templateStyle,
+                toneStyles.backgroundColor,
+              ),
+              buttonBackgroundColor: accentColor,
+              minHeight: getHeroMinHeight(selection.design.density),
               alignment: heroAlignment,
             },
           },
           {
             id: 'offers-main',
             type: 'offerList',
+            design: selection.design,
             variant: selection.offerList,
             eyebrow: preset.offerEyebrow,
             title: preset.offerTitle,
@@ -241,6 +304,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           {
             id: 'footer-main',
             type: 'siteFooter',
+            design: selection.design,
             variant: selection.footer,
             brandName: preset.brandName,
             ctaText: preset.ctaText,

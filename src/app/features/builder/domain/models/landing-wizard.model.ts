@@ -1,3 +1,5 @@
+import type { LandingDesignSettings } from './landing-design.model';
+
 export type LandingWizardStepId =
   | 'industry'
   | 'tone'
@@ -55,6 +57,7 @@ export interface CompleteLandingWizardSelection {
   readonly header: LandingHeaderVariant;
   readonly offerList: LandingOfferListVariant;
   readonly footer: LandingFooterVariant;
+  readonly design: LandingDesignSettings;
 }
 
 export interface LandingBlueprintItem {

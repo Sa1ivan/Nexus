@@ -11,9 +11,22 @@
       <p>Соберите основу страницы из ниши, подачи, хедера, списка предложений и футера.</p>
     </div>
 
-    <div class="wizard__progress" aria-label="Прогресс заполнения">
-      <strong>{{ progress() }}%</strong>
-      <mat-progress-bar mode="determinate" [value]="progress()" />
+    <div class="wizard__header-tools">
+      <button
+        mat-icon-button
+        class="wizard__preview-button"
+        type="button"
+        aria-label="Предпросмотр текущего этапа"
+        matTooltip="Предпросмотр"
+        (click)="openPreview()"
+      >
+        <mat-icon>visibility</mat-icon>
+      </button>
+
+      <div class="wizard__progress" aria-label="Прогресс заполнения">
+        <strong>{{ progress() }}%</strong>
+        <mat-progress-bar mode="determinate" [value]="progress()" />
+      </div>
     </div>
   </header>
 
@@ -58,12 +71,20 @@
                   [attr.aria-pressed]="selection().industry === option.id"
                   (click)="selectIndustry(option.id)"
                 >
-                  <span class="wizard__option-icon">
-                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </span>
-                  <span>
-                    <strong>{{ option.title }}</strong>
-                    <small>{{ option.description }}</small>
+
+                  <span class="wizard__option-content">
+                    <span class="wizard__option-icon">
+                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    </span>
+                    <span class="wizard__option-copy">
+                      <strong>{{ option.title }}</strong>
+                      <small>{{ option.description }}</small>
+                    </span>
                   </span>
                 </button>
               }
@@ -79,20 +100,32 @@
                   [attr.aria-pressed]="selection().tone === option.id"
                   (click)="selectTone(option.id)"
                 >
-                  <span class="wizard__option-icon">
-                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </span>
-                  <span>
-                    <strong>{{ option.title }}</strong>
-                    <small>{{ option.description }}</small>
+
+                  <span class="wizard__option-content">
+                    <span class="wizard__option-icon">
+                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    </span>
+                    <span class="wizard__option-copy">
+                      <strong>{{ option.title }}</strong>
+                      <small>{{ option.description }}</small>
+                    </span>
                   </span>
+
+                  @if (isRecommendedOption(option.id)) {
+                    <span class="wizard__option-badge">Подходит</span>
+                  }
                 </button>
               }
             </div>
           }
           @case ('header') {
             <div class="wizard__options wizard__options--two">
-              @for (option of headerOptions; track option.id) {
+              @for (option of headerOptionsForIndustry(); track option.id) {
                 <button
                   class="wizard__option"
                   type="button"
@@ -100,20 +133,32 @@
                   [attr.aria-pressed]="selection().header === option.id"
                   (click)="selectHeader(option.id)"
                 >
-                  <span class="wizard__option-icon">
-                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </span>
-                  <span>
-                    <strong>{{ option.title }}</strong>
-                    <small>{{ option.description }}</small>
+
+                  <span class="wizard__option-content">
+                    <span class="wizard__option-icon">
+                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    </span>
+                    <span class="wizard__option-copy">
+                      <strong>{{ option.title }}</strong>
+                      <small>{{ option.description }}</small>
+                    </span>
                   </span>
+
+                  @if (isRecommendedOption(option.id)) {
+                    <span class="wizard__option-badge">Подходит</span>
+                  }
                 </button>
               }
             </div>
           }
           @case ('offerList') {
             <div class="wizard__options wizard__options--two">
-              @for (option of offerListOptions; track option.id) {
+              @for (option of offerListOptionsForIndustry(); track option.id) {
                 <button
                   class="wizard__option"
                   type="button"
@@ -121,20 +166,32 @@
                   [attr.aria-pressed]="selection().offerList === option.id"
                   (click)="selectOfferList(option.id)"
                 >
-                  <span class="wizard__option-icon">
-                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </span>
-                  <span>
-                    <strong>{{ option.title }}</strong>
-                    <small>{{ option.description }}</small>
+
+                  <span class="wizard__option-content">
+                    <span class="wizard__option-icon">
+                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    </span>
+                    <span class="wizard__option-copy">
+                      <strong>{{ option.title }}</strong>
+                      <small>{{ option.description }}</small>
+                    </span>
                   </span>
+
+                  @if (isRecommendedOption(option.id)) {
+                    <span class="wizard__option-badge">Подходит</span>
+                  }
                 </button>
               }
             </div>
           }
           @case ('footer') {
             <div class="wizard__options wizard__options--two">
-              @for (option of footerOptions; track option.id) {
+              @for (option of footerOptionsForIndustry(); track option.id) {
                 <button
                   class="wizard__option"
                   type="button"
@@ -142,13 +199,25 @@
                   [attr.aria-pressed]="selection().footer === option.id"
                   (click)="selectFooter(option.id)"
                 >
-                  <span class="wizard__option-icon">
-                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </span>
-                  <span>
-                    <strong>{{ option.title }}</strong>
-                    <small>{{ option.description }}</small>
+
+                  <span class="wizard__option-content">
+                    <span class="wizard__option-icon">
+                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    </span>
+                    <span class="wizard__option-copy">
+                      <strong>{{ option.title }}</strong>
+                      <small>{{ option.description }}</small>
+                    </span>
                   </span>
+
+                  @if (isRecommendedOption(option.id)) {
+                    <span class="wizard__option-badge">Подходит</span>
+                  }
                 </button>
               }
             </div>
@@ -167,12 +236,98 @@
             </div>
           }
         }
+
+        <section class="wizard__editor" aria-label="Редактор текущего этапа">
+          <div class="wizard__editor-head">
+            <mat-icon aria-hidden="true">tune</mat-icon>
+            <div>
+              <span class="wizard__eyebrow">{{ editorLabel() }}</span>
+              <strong>Редактор этапа</strong>
+            </div>
+          </div>
+
+          <div class="wizard__editor-grid">
+            <div class="wizard__control wizard__control--swatches">
+              <span class="wizard__control-label">Цвет</span>
+              <div class="wizard__swatches">
+                @for (option of accentOptions; track option.id) {
+                  <button
+                    class="wizard__swatch"
+                    type="button"
+                    [class.is-selected]="design().accentColor === option.id"
+                    [attr.aria-label]="option.title"
+                    [attr.data-accent]="option.id"
+                    (click)="selectAccentColor(option.id)"
+                  ></button>
+                }
+              </div>
+            </div>
+
+            <div class="wizard__control">
+              <span class="wizard__control-label">Шрифт</span>
+              <div class="wizard__segments">
+                @for (option of fontOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="design().fontPairing === option.id"
+                    (click)="selectFontPairing(option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    <span>{{ option.title }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="wizard__control">
+              <span class="wizard__control-label">Тип</span>
+              <div class="wizard__segments">
+                @for (option of templateStyleOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="design().templateStyle === option.id"
+                    (click)="selectTemplateStyle(option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    <span>{{ option.title }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="wizard__control">
+              <span class="wizard__control-label">Плотность</span>
+              <div class="wizard__segments">
+                @for (option of densityOptions; track option.id) {
+                  <button
+                    type="button"
+                    [class.is-selected]="design().density === option.id"
+                    (click)="selectDensity(option.id)"
+                  >
+                    <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
+                    <span>{{ option.title }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <footer class="wizard__actions">
         <button mat-button type="button" [disabled]="currentStepIndex() === 0" (click)="previousStep()">
           <mat-icon aria-hidden="true">arrow_back</mat-icon>
           Назад
+        </button>
+
+        <button
+          mat-stroked-button
+          class="wizard__action-preview"
+          type="button"
+          (click)="openPreview()"
+        >
+          <mat-icon aria-hidden="true">visibility</mat-icon>
+          Просмотр
         </button>
 
         @if (currentStep().id === 'summary') {
@@ -199,9 +354,52 @@
       <app-landing-wizard-preview
         [brandName]="previewBrandName()"
         [offerName]="previewOfferName()"
-        [title]="currentQuestionCopy().title"
-        [tone]="selection().tone"
+        [title]="previewTitle()"
+        [stepLabel]="currentQuestionCopy().title"
+        [industry]="previewSelection().industry"
+        [tone]="previewSelection().tone"
+        [header]="previewSelection().header"
+        [offerList]="previewSelection().offerList"
+        [footer]="previewSelection().footer"
+        [design]="design()"
       />
     </aside>
   </section>
+
+  @if (isPreviewOpen()) {
+    <section class="wizard__preview-overlay" aria-modal="true" role="dialog" (click)="closePreview()">
+      <div class="wizard__preview-dialog" (click)="$event.stopPropagation()">
+        <header class="wizard__preview-dialog-head">
+          <div>
+            <span class="wizard__eyebrow">
+              Шаг {{ currentStepIndex() + 1 }} из {{ stepDefinitions.length }}
+            </span>
+            <strong>{{ currentQuestionCopy().title }}</strong>
+          </div>
+
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Закрыть предпросмотр"
+            (click)="closePreview()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <app-landing-wizard-preview
+          [brandName]="previewBrandName()"
+          [offerName]="previewOfferName()"
+          [title]="previewTitle()"
+          [stepLabel]="currentQuestionCopy().title"
+          [industry]="previewSelection().industry"
+          [tone]="previewSelection().tone"
+          [header]="previewSelection().header"
+          [offerList]="previewSelection().offerList"
+          [footer]="previewSelection().footer"
+          [design]="design()"
+        />
+      </div>
+    </section>
+  }
 </main>
