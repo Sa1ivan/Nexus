@@ -1,4 +1,4 @@
-import { getLandingAccentValue } from '../domain/models';
+import { getLandingAccentValue, SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
 import type {
   CompleteLandingWizardSelection,
   HeroContentAlignment,
@@ -249,8 +249,16 @@ function getHeroBackgroundColor(
 export function buildLandingDraft(selection: CompleteLandingWizardSelection): SiteConfig {
   const preset = INDUSTRY_PRESETS[selection.industry];
   const toneStyles = TONE_STYLES[selection.tone];
+  const brandName = normalizeBusinessValue(selection.brandName, preset.brandName);
+  const heroTitle = normalizeBusinessValue(selection.heroTitle, preset.heroTitle);
+  const heroSubtitle = normalizeBusinessValue(selection.heroSubtitle, preset.heroSubtitle);
+  const ctaText = normalizeBusinessValue(selection.ctaText, preset.ctaText);
+  const ctaDestination = normalizeBusinessValue(selection.ctaDestination, '#lead-form');
+  const contactEmail = normalizeBusinessValue(selection.contactEmail, preset.contactLines[0] ?? '');
+  const contactPhone = normalizeBusinessValue(selection.contactPhone, preset.contactLines[1] ?? '');
   const headerDesign = selection.stepDesigns?.header ?? selection.design;
-  const heroDesign = selection.stepDesigns?.tone ?? selection.stepDesigns?.industry ?? selection.design;
+  const heroDesign =
+    selection.stepDesigns?.tone ?? selection.stepDesigns?.industry ?? selection.design;
   const offerListDesign = selection.stepDesigns?.offerList ?? selection.design;
   const footerDesign = selection.stepDesigns?.footer ?? selection.design;
   const accentColor = getLandingAccentValue(heroDesign.accentColor);
@@ -262,28 +270,33 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
 
   return {
     id: `landing-${selection.industry}`,
-    name: preset.siteName,
+    schemaVersion: SITE_CONFIG_SCHEMA_VERSION,
+    name: brandName,
     pages: [
       {
+        id: 'page-home',
         slug: 'home',
         title: 'Главная',
         blocks: [
           {
             id: 'header-main',
+            anchor: 'header',
             type: 'siteHeader',
             design: headerDesign,
             variant: selection.header,
-            brandName: preset.brandName,
+            brandName,
             navigationItems: preset.navigationItems,
-            ctaText: preset.ctaText,
+            ctaText,
           },
           {
             id: 'hero-main',
+            anchor: 'hero',
             type: 'hero',
             design: heroDesign,
-            title: preset.heroTitle,
-            subtitle: preset.heroSubtitle,
-            buttonText: preset.ctaText,
+            title: heroTitle,
+            subtitle: heroSubtitle,
+            buttonText: ctaText,
+            buttonHref: ctaDestination,
             styles: {
               ...toneStyles,
               backgroundColor: getHeroBackgroundColor(
@@ -298,6 +311,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
           },
           {
             id: 'offers-main',
+            anchor: 'offers',
             type: 'offerList',
             design: offerListDesign,
             variant: selection.offerList,
@@ -306,17 +320,59 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             items: preset.offers,
           },
           {
+            id: 'lead-form-main',
+            anchor: 'lead-form',
+            type: 'leadForm',
+            design: selection.design,
+            title: `Получить предложение от ${brandName}`,
+            description: 'Оставьте контакты, и мы вернемся с деталями по вашему запросу.',
+            submitText: ctaText,
+            successMessage: 'Заявка сохранена. Мы скоро свяжемся с вами.',
+            fields: [
+              {
+                id: 'name',
+                label: 'Имя',
+                type: 'text',
+                placeholder: 'Как к вам обращаться',
+                required: true,
+              },
+              {
+                id: 'contact',
+                label: 'Телефон или email',
+                type: 'text',
+                placeholder: contactPhone || contactEmail || '+7 999 000-00-00',
+                required: true,
+              },
+              {
+                id: 'message',
+                label: 'Комментарий',
+                type: 'textarea',
+                placeholder: 'Расскажите, что вас интересует',
+                required: false,
+              },
+            ],
+          },
+          {
             id: 'footer-main',
+            anchor: 'contact',
             type: 'siteFooter',
             design: footerDesign,
             variant: selection.footer,
-            brandName: preset.brandName,
-            ctaText: preset.ctaText,
-            contactLines: preset.contactLines,
+            brandName,
+            ctaText,
+            contactLines: [
+              contactEmail,
+              contactPhone,
+              preset.contactLines[2] ?? 'Ответ в течение дня',
+            ].filter((line) => line.trim().length > 0),
             links: ['Условия', 'Контакты', 'Политика'],
           },
         ],
       },
     ],
   };
+}
+
+function normalizeBusinessValue(value: string, fallback: string): string {
+  return value.trim() || fallback;
 }

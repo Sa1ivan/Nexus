@@ -1,25 +1,4 @@
-<div
-  class="wizard-preview"
-  [class.is-premium]="tone() === 'premium'"
-  [class.is-friendly]="tone() === 'friendly'"
-  [class.is-minimal]="tone() === 'minimal'"
-  [class.is-bold]="tone() === 'bold'"
-  [class.is-header-split]="header() === 'splitMedia'"
-  [class.is-header-booking]="header() === 'reservationBar'"
-  [class.is-header-editorial]="header() === 'editorial'"
-  [class.is-offer-menu]="offerList() === 'menuGrid'"
-  [class.is-offer-rooms]="offerList() === 'roomCards'"
-  [class.is-offer-pricing]="offerList() === 'pricingTable'"
-  [class.is-offer-catalog]="offerList() === 'catalogGrid'"
-  [class.is-footer-map]="footer() === 'contactMap'"
-  [class.is-footer-social]="footer() === 'socialLead'"
-  [class.is-footer-booking]="footer() === 'bookingFooter'"
-  [class.is-template-editorial]="design().templateStyle === 'editorial'"
-  [class.is-template-conversion]="design().templateStyle === 'conversion'"
-  [style.--preview-accent]="accentColor()"
-  [style.--preview-font]="fontFamily()"
-  [style.--preview-radius]="radiusValue()"
->
+<div class="wizard-preview">
   <div class="wizard-preview__bar">
     <span></span>
     <span></span>
@@ -31,52 +10,7 @@
     <strong>{{ brandName() }}</strong>
   </div>
 
-  <div class="wizard-preview__site">
-    <header>
-      <strong>{{ brandName() }}</strong>
-      <nav aria-label="Мини-навигация">
-        <span></span>
-        <span></span>
-        <span></span>
-      </nav>
-
-      @if (header() === 'reservationBar') {
-        <div class="wizard-preview__booking">
-          <span></span>
-          <span></span>
-        </div>
-      }
-
-      <span class="wizard-preview__mock-button">{{ ctaText() }}</span>
-    </header>
-
-    <section class="wizard-preview__hero">
-      <div>
-        <span>{{ brandName() }}</span>
-        <h3>{{ title() }}</h3>
-        <p>{{ offerName() }}</p>
-        <span class="wizard-preview__mock-button">{{ ctaText() }}</span>
-      </div>
-
-      <div class="wizard-preview__media" aria-hidden="true">
-        <span></span>
-        <span></span>
-      </div>
-    </section>
-
-    <div class="wizard-preview__list">
-      @for (card of previewCards; track card) {
-        <span>
-          <i></i>
-          <b></b>
-        </span>
-      }
-    </div>
-
-    <footer>
-      <span></span>
-      <span></span>
-      <span></span>
-    </footer>
+  <div class="wizard-preview__body">
+    <app-block-renderer [blocks]="siteConfig().pages[0]?.blocks ?? []" />
   </div>
 </div>

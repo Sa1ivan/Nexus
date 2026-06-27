@@ -15,10 +15,7 @@ import {
   LANDING_OFFER_LIST_OPTIONS,
   LANDING_TEMPLATE_STYLE_OPTIONS,
 } from '../../data-access/landing-wizard-options';
-import {
-  DEFAULT_LANDING_DESIGN_SETTINGS,
-  getLandingAccentValue,
-} from '../../domain/models';
+import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../../domain/models';
 import type {
   BlockType,
   HeroBlockStyles,
@@ -33,7 +30,7 @@ import type {
   PageBlockConfig,
 } from '../../domain/models';
 import { BuilderStore } from '../../stores/builder.store';
-import { BlockRendererComponent } from '../../ui/block-renderer/block-renderer.component';
+import { BlockRendererComponent } from '../../../preview/ui/block-renderer/block-renderer.component';
 
 interface BlockPaletteItem {
   readonly type: BlockType;
@@ -48,15 +45,14 @@ interface HeroAlignmentOption {
   readonly icon: string;
 }
 
-type HeroTextField = 'title' | 'subtitle' | 'buttonText';
-type HeroColorField =
-  | 'backgroundColor'
-  | 'textColor'
-  | 'buttonBackgroundColor'
-  | 'buttonTextColor';
+type CanvasMode = 'edit' | 'preview';
+type CanvasViewport = 'desktop' | 'mobile';
+type HeroTextField = 'title' | 'subtitle' | 'buttonText' | 'buttonHref';
+type HeroColorField = 'backgroundColor' | 'textColor' | 'buttonBackgroundColor' | 'buttonTextColor';
 type HeaderTextField = 'brandName' | 'ctaText';
 type OfferTextField = 'eyebrow' | 'title';
 type FooterTextField = 'brandName' | 'ctaText';
+type LeadFormTextField = 'title' | 'description' | 'submitText' | 'successMessage';
 
 @Component({
   selector: 'app-builder-page',
@@ -85,10 +81,16 @@ export class BuilderPageComponent {
   readonly activeBlocks = this.builderStore.activeBlocks;
   readonly selectedBlock = this.builderStore.selectedBlock;
   readonly selectedBlockId = this.builderStore.selectedBlockId;
+  readonly currentProject = this.builderStore.currentProject;
+  readonly saveStatus = this.builderStore.saveStatus;
+  readonly projectError = this.builderStore.projectError;
+  readonly publishedUrl = this.builderStore.publishedUrl;
   readonly selectedDesign = computed(
     () => this.selectedBlock()?.design ?? DEFAULT_LANDING_DESIGN_SETTINGS,
   );
   readonly isPreviewOpen = signal<boolean>(false);
+  readonly canvasMode = signal<CanvasMode>('edit');
+  readonly canvasViewport = signal<CanvasViewport>('desktop');
 
   readonly blockPalette: readonly BlockPaletteItem[] = [
     {
@@ -114,6 +116,12 @@ export class BuilderPageComponent {
       label: 'Футер',
       description: 'Контакты и финальный CTA.',
       icon: 'call_to_action',
+    },
+    {
+      type: 'leadForm',
+      label: 'Форма',
+      description: 'Сбор заявки и контактов.',
+      icon: 'dynamic_form',
     },
   ] as const;
   readonly heroAlignmentOptions: readonly HeroAlignmentOption[] = [
@@ -151,6 +159,22 @@ export class BuilderPageComponent {
 
   addBlock(type: BlockType): void {
     this.builderStore.addBlock(type);
+  }
+
+  saveProject(): void {
+    this.builderStore.saveCurrentProject();
+  }
+
+  publishProject(): void {
+    this.builderStore.publishCurrentProject();
+  }
+
+  setCanvasMode(mode: CanvasMode): void {
+    this.canvasMode.set(mode);
+  }
+
+  setCanvasViewport(viewport: CanvasViewport): void {
+    this.canvasViewport.set(viewport);
   }
 
   duplicateBlock(blockId: string): void {
@@ -216,6 +240,9 @@ export class BuilderPageComponent {
         return;
       case 'buttonText':
         this.builderStore.updateHeroBlock(blockId, { buttonText: value });
+        return;
+      case 'buttonHref':
+        this.builderStore.updateHeroBlock(blockId, { buttonHref: value });
         return;
     }
   }
@@ -302,6 +329,14 @@ export class BuilderPageComponent {
     });
   }
 
+  addOfferItem(blockId: string): void {
+    this.builderStore.addOfferListItem(blockId);
+  }
+
+  removeOfferItem(blockId: string, itemIndex: number): void {
+    this.builderStore.removeOfferListItem(blockId, itemIndex);
+  }
+
   updateFooterText(blockId: string, field: FooterTextField, event: Event): void {
     const value = this.readInputValue(event);
 
@@ -331,6 +366,25 @@ export class BuilderPageComponent {
     this.builderStore.updateSiteFooterBlock(blockId, { variant });
   }
 
+  updateLeadFormText(blockId: string, field: LeadFormTextField, event: Event): void {
+    const value = this.readInputValue(event);
+
+    switch (field) {
+      case 'title':
+        this.builderStore.updateLeadFormBlock(blockId, { title: value });
+        return;
+      case 'description':
+        this.builderStore.updateLeadFormBlock(blockId, { description: value });
+        return;
+      case 'submitText':
+        this.builderStore.updateLeadFormBlock(blockId, { submitText: value });
+        return;
+      case 'successMessage':
+        this.builderStore.updateLeadFormBlock(blockId, { successMessage: value });
+        return;
+    }
+  }
+
   getBlockIcon(type: BlockType): string {
     switch (type) {
       case 'siteHeader':
@@ -341,6 +395,8 @@ export class BuilderPageComponent {
         return 'view_module';
       case 'siteFooter':
         return 'call_to_action';
+      case 'leadForm':
+        return 'dynamic_form';
     }
   }
 
@@ -354,6 +410,8 @@ export class BuilderPageComponent {
         return block.title;
       case 'siteFooter':
         return block.brandName;
+      case 'leadForm':
+        return block.title;
     }
   }
 
@@ -367,6 +425,8 @@ export class BuilderPageComponent {
         return 'Предложения';
       case 'siteFooter':
         return 'Футер';
+      case 'leadForm':
+        return 'Форма';
     }
   }
 
@@ -420,10 +480,7 @@ export class BuilderPageComponent {
       .filter((item) => item.length > 0);
   }
 
-  private createHeroColorUpdate(
-    field: HeroColorField,
-    value: string,
-  ): Partial<HeroBlockStyles> {
+  private createHeroColorUpdate(field: HeroColorField, value: string): Partial<HeroBlockStyles> {
     switch (field) {
       case 'backgroundColor':
         return { backgroundColor: value };

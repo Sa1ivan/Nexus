@@ -43,7 +43,9 @@
           (click)="goToStep(stepIndex)"
         >
           <span class="wizard__step-icon">
-            <mat-icon aria-hidden="true">{{ isStepComplete(step.id) ? 'check' : step.icon }}</mat-icon>
+            <mat-icon aria-hidden="true">{{
+              isStepComplete(step.id) ? 'check' : step.icon
+            }}</mat-icon>
           </span>
           <span>{{ step.label }}</span>
         </button>
@@ -71,7 +73,11 @@
                   [attr.aria-pressed]="selection().industry === option.id"
                   (click)="selectIndustry(option.id)"
                 >
-                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                  <span
+                    class="wizard__option-visual"
+                    [attr.data-option]="option.id"
+                    aria-hidden="true"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>
@@ -100,7 +106,11 @@
                   [attr.aria-pressed]="selection().tone === option.id"
                   (click)="selectTone(option.id)"
                 >
-                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                  <span
+                    class="wizard__option-visual"
+                    [attr.data-option]="option.id"
+                    aria-hidden="true"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>
@@ -133,7 +143,11 @@
                   [attr.aria-pressed]="selection().header === option.id"
                   (click)="selectHeader(option.id)"
                 >
-                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                  <span
+                    class="wizard__option-visual"
+                    [attr.data-option]="option.id"
+                    aria-hidden="true"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>
@@ -166,7 +180,11 @@
                   [attr.aria-pressed]="selection().offerList === option.id"
                   (click)="selectOfferList(option.id)"
                 >
-                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                  <span
+                    class="wizard__option-visual"
+                    [attr.data-option]="option.id"
+                    aria-hidden="true"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>
@@ -199,7 +217,11 @@
                   [attr.aria-pressed]="selection().footer === option.id"
                   (click)="selectFooter(option.id)"
                 >
-                  <span class="wizard__option-visual" [attr.data-option]="option.id" aria-hidden="true">
+                  <span
+                    class="wizard__option-visual"
+                    [attr.data-option]="option.id"
+                    aria-hidden="true"
+                  >
                     <span></span>
                     <span></span>
                     <span></span>
@@ -234,6 +256,72 @@
                 </div>
               }
             </div>
+
+            <section class="wizard__business" aria-label="Данные бизнеса">
+              <div class="wizard__editor-head">
+                <mat-icon aria-hidden="true">badge</mat-icon>
+                <div>
+                  <span class="wizard__eyebrow">Контент</span>
+                  <strong>Данные для лендинга</strong>
+                </div>
+              </div>
+
+              <div class="wizard__business-grid">
+                <label class="wizard__field">
+                  <span>Бренд</span>
+                  <input
+                    type="text"
+                    [value]="businessDetails().brandName"
+                    (input)="updateBusinessDetails('brandName', $event)"
+                  />
+                </label>
+
+                <label class="wizard__field">
+                  <span>Оффер</span>
+                  <textarea
+                    rows="3"
+                    [value]="businessDetails().heroTitle"
+                    (input)="updateBusinessDetails('heroTitle', $event)"
+                  ></textarea>
+                </label>
+
+                <label class="wizard__field">
+                  <span>Описание</span>
+                  <textarea
+                    rows="3"
+                    [value]="businessDetails().heroSubtitle"
+                    (input)="updateBusinessDetails('heroSubtitle', $event)"
+                  ></textarea>
+                </label>
+
+                <label class="wizard__field">
+                  <span>CTA</span>
+                  <input
+                    type="text"
+                    [value]="businessDetails().ctaText"
+                    (input)="updateBusinessDetails('ctaText', $event)"
+                  />
+                </label>
+
+                <label class="wizard__field">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    [value]="businessDetails().contactEmail"
+                    (input)="updateBusinessDetails('contactEmail', $event)"
+                  />
+                </label>
+
+                <label class="wizard__field">
+                  <span>Телефон</span>
+                  <input
+                    type="tel"
+                    [value]="businessDetails().contactPhone"
+                    (input)="updateBusinessDetails('contactPhone', $event)"
+                  />
+                </label>
+              </div>
+            </section>
           }
         }
 
@@ -315,7 +403,12 @@
       </div>
 
       <footer class="wizard__actions">
-        <button mat-button type="button" [disabled]="currentStepIndex() === 0" (click)="previousStep()">
+        <button
+          mat-button
+          type="button"
+          [disabled]="currentStepIndex() === 0"
+          (click)="previousStep()"
+        >
           <mat-icon aria-hidden="true">arrow_back</mat-icon>
           Назад
         </button>
@@ -331,7 +424,13 @@
         </button>
 
         @if (currentStep().id === 'summary') {
-          <button mat-flat-button color="primary" type="button" [disabled]="!canFinish()" (click)="createLanding()">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!canFinish()"
+            (click)="createLanding()"
+          >
             <mat-icon aria-hidden="true">auto_awesome</mat-icon>
             Собрать лендинг
           </button>
@@ -352,9 +451,9 @@
 
     <aside class="wizard__preview" aria-label="Предпросмотр лендинга">
       <app-landing-wizard-preview
-        [brandName]="previewBrandName()"
-        [offerName]="previewOfferName()"
-        [title]="previewTitle()"
+        [brandName]="businessDetails().brandName"
+        [offerName]="businessDetails().heroSubtitle"
+        [title]="businessDetails().heroTitle"
         [stepLabel]="currentQuestionCopy().title"
         [industry]="previewSelection().industry"
         [tone]="previewSelection().tone"
@@ -367,7 +466,12 @@
   </section>
 
   @if (isPreviewOpen()) {
-    <section class="wizard__preview-overlay" aria-modal="true" role="dialog" (click)="closePreview()">
+    <section
+      class="wizard__preview-overlay"
+      aria-modal="true"
+      role="dialog"
+      (click)="closePreview()"
+    >
       <div class="wizard__preview-dialog" (click)="$event.stopPropagation()">
         <header class="wizard__preview-dialog-head">
           <div>
@@ -388,9 +492,9 @@
         </header>
 
         <app-landing-wizard-preview
-          [brandName]="previewBrandName()"
-          [offerName]="previewOfferName()"
-          [title]="previewTitle()"
+          [brandName]="businessDetails().brandName"
+          [offerName]="businessDetails().heroSubtitle"
+          [title]="businessDetails().heroTitle"
           [stepLabel]="currentQuestionCopy().title"
           [industry]="previewSelection().industry"
           [tone]="previewSelection().tone"

@@ -1,4 +1,4 @@
-export type { BlockConfig } from './block-config.model';
+export type { BlockAnchor, BlockConfig, BlockId } from './block-config.model';
 export type { BlockType } from './block-type.model';
 export type { CompleteLandingWizardSelection } from './landing-wizard.model';
 export {
@@ -36,11 +36,26 @@ export type {
   LandingWizardStepId,
 } from './landing-wizard.model';
 export type {
+  LeadFormBlockConfig,
+  LeadFormBlockUpdate,
+  LeadFormFieldConfig,
+  LeadFormFieldType,
+} from './lead-form-block-config.model';
+export type {
   OfferListBlockConfig,
   OfferListBlockUpdate,
   OfferListItem,
 } from './offer-list-block-config.model';
-export type { PageBlockConfig, PageConfig } from './page-config.model';
+export type { PageBlockConfig, PageConfig, PageId } from './page-config.model';
+export type {
+  DraftRevision,
+  LeadSubmission,
+  LeadSubmissionRequest,
+  LeadSubmissionStatus,
+  Project,
+  ProjectSaveStatus,
+  PublishedRelease,
+} from './project.model';
 export type {
   SiteFooterBlockConfig,
   SiteFooterBlockUpdate,
@@ -49,4 +64,5 @@ export type {
   SiteHeaderBlockConfig,
   SiteHeaderBlockUpdate,
 } from './site-header-block-config.model';
+export { SITE_CONFIG_SCHEMA_VERSION } from './site-config.model';
 export type { SiteConfig } from './site-config.model';

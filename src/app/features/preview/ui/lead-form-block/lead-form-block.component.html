@@ -1,0 +1,50 @@
+<section
+  [id]="block().anchor"
+  class="lead-form"
+  [style.--landing-accent]="accentColor()"
+  [style.--landing-font]="fontFamily()"
+  [style.--landing-radius]="radiusValue()"
+  [style.--landing-section-y]="sectionPaddingY()"
+>
+  <div class="lead-form__inner">
+    <div class="lead-form__copy">
+      <p class="lead-form__eyebrow">Заявка</p>
+      <h2>{{ block().title }}</h2>
+      <p>{{ block().description }}</p>
+    </div>
+
+    <form class="lead-form__form" (submit)="submit($event)">
+      @for (field of block().fields; track field.id) {
+        <label class="lead-form__field">
+          <span>{{ field.label }}</span>
+
+          @if (field.type === 'textarea') {
+            <textarea
+              [name]="field.id"
+              [placeholder]="field.placeholder"
+              [required]="field.required"
+              rows="4"
+            ></textarea>
+          } @else {
+            <input
+              [name]="field.id"
+              [type]="field.type"
+              [placeholder]="field.placeholder"
+              [required]="field.required"
+            />
+          }
+        </label>
+      }
+
+      <button class="lead-form__submit" type="submit">{{ block().submitText }}</button>
+
+      @if (status() === 'success') {
+        <p class="lead-form__message lead-form__message--success">
+          {{ block().successMessage }}
+        </p>
+      } @else if (status() === 'error') {
+        <p class="lead-form__message lead-form__message--error">Заполните обязательные поля.</p>
+      }
+    </form>
+  </div>
+</section>

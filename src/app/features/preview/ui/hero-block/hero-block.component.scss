@@ -24,8 +24,7 @@
   z-index: 0;
   border: 1px solid color-mix(in srgb, currentColor, transparent 88%);
   border-radius: calc(var(--landing-radius, 8px) + 28px);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
   box-shadow: var(--hero-shadow);
   content: '';
   pointer-events: none;

@@ -6,10 +6,10 @@ import {
   getLandingFontFamily,
   getLandingRadiusValue,
   getLandingSectionPaddingY,
-} from '../../domain/models';
-import type { SiteFooterBlockConfig } from '../../domain/models';
+} from '../../../builder/domain/models';
+import type { SiteFooterBlockConfig } from '../../../builder/domain/models';
 
-const FOOTER_LINK_HREFS: readonly string[] = ['#site-header', '#hero', '#offers', '#contact'];
+const FOOTER_LINK_HREFS: readonly string[] = ['#header', '#hero', '#offers', '#lead-form'];
 
 @Component({
   selector: 'app-site-footer-block',
@@ -20,13 +20,15 @@ const FOOTER_LINK_HREFS: readonly string[] = ['#site-header', '#hero', '#offers'
 })
 export class SiteFooterBlockComponent {
   readonly block = input.required<SiteFooterBlockConfig>();
-  readonly ctaHref = '#contact';
+  readonly ctaHref = '#lead-form';
 
   readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
   readonly accentColor = computed<string>(() => getLandingAccentValue(this.design().accentColor));
   readonly fontFamily = computed<string>(() => getLandingFontFamily(this.design().fontPairing));
   readonly radiusValue = computed<string>(() => getLandingRadiusValue(this.design().templateStyle));
-  readonly sectionPaddingY = computed<string>(() => getLandingSectionPaddingY(this.design().density));
+  readonly sectionPaddingY = computed<string>(() =>
+    getLandingSectionPaddingY(this.design().density),
+  );
 
   footerLinkHref(index: number): string {
     return FOOTER_LINK_HREFS[index % FOOTER_LINK_HREFS.length];

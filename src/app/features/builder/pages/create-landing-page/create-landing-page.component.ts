@@ -49,9 +49,28 @@ interface LandingQuestionCopy {
   readonly description: string;
 }
 
+interface LandingBusinessDetails {
+  readonly brandName: string;
+  readonly heroTitle: string;
+  readonly heroSubtitle: string;
+  readonly ctaText: string;
+  readonly ctaDestination: string;
+  readonly contactEmail: string;
+  readonly contactPhone: string;
+}
+
 const REQUIRED_STEP_COUNT = 5;
 const UNSELECTED_LABEL = 'Не выбрано';
 const DEFAULT_PREVIEW_INDUSTRY: LandingIndustry = 'product';
+const DEFAULT_BUSINESS_DETAILS: LandingBusinessDetails = {
+  brandName: 'Nexus Studio',
+  heroTitle: 'Лендинг, который понятно объясняет ценность',
+  heroSubtitle: 'Соберите страницу, опубликуйте ссылку и принимайте заявки без лишних шагов.',
+  ctaText: 'Оставить заявку',
+  ctaDestination: '#lead-form',
+  contactEmail: 'hello@nexus.app',
+  contactPhone: '+7 999 000-00-00',
+};
 
 type LandingChoiceId =
   | LandingIndustry
@@ -63,6 +82,7 @@ type LandingChoiceId =
   | LandingFontPairing
   | LandingDensity
   | LandingTemplateStyle;
+type BusinessDetailsField = keyof LandingBusinessDetails;
 
 type LandingDesignByStep = Readonly<Record<LandingWizardStepId, LandingDesignSettings>>;
 
@@ -112,6 +132,7 @@ export class CreateLandingPageComponent {
   readonly designByStep = signal<LandingDesignByStep>(
     createDesignByStep(DEFAULT_LANDING_DESIGN_SETTINGS),
   );
+  readonly businessDetails = signal<LandingBusinessDetails>(DEFAULT_BUSINESS_DETAILS);
   readonly selection = signal<LandingWizardSelection>({
     industry: null,
     tone: null,
@@ -128,8 +149,7 @@ export class CreateLandingPageComponent {
   );
   readonly currentIndustry = computed<LandingIndustry | null>(() => this.selection().industry);
   readonly industryRecommendation = computed(
-    () =>
-      LANDING_INDUSTRY_RECOMMENDATIONS[this.currentIndustry() ?? DEFAULT_PREVIEW_INDUSTRY],
+    () => LANDING_INDUSTRY_RECOMMENDATIONS[this.currentIndustry() ?? DEFAULT_PREVIEW_INDUSTRY],
   );
   readonly headerOptionsForIndustry = computed<readonly LandingOption<LandingHeaderVariant>[]>(
     () => {
@@ -192,12 +212,12 @@ export class CreateLandingPageComponent {
     ];
     const firstIncompleteIndex = flags.findIndex((isComplete) => !isComplete);
 
-    return firstIncompleteIndex === -1
-      ? this.stepDefinitions.length - 1
-      : firstIncompleteIndex;
+    return firstIncompleteIndex === -1 ? this.stepDefinitions.length - 1 : firstIncompleteIndex;
   });
   readonly canFinish = computed<boolean>(() => this.completedStepCount() === REQUIRED_STEP_COUNT);
-  readonly currentStepCompleted = computed<boolean>(() => this.isStepComplete(this.currentStep().id));
+  readonly currentStepCompleted = computed<boolean>(() =>
+    this.isStepComplete(this.currentStep().id),
+  );
   readonly currentQuestionCopy = computed<LandingQuestionCopy>(() => {
     switch (this.currentStep().id) {
       case 'industry':
@@ -213,7 +233,8 @@ export class CreateLandingPageComponent {
       case 'header':
         return {
           title: 'Как должен работать хедер',
-          description: 'Выберите верхнюю часть страницы: от чистого первого экрана до быстрой брони.',
+          description:
+            'Выберите верхнюю часть страницы: от чистого первого экрана до быстрой брони.',
         };
       case 'offerList':
         return {
@@ -290,14 +311,19 @@ export class CreateLandingPageComponent {
       footer: selection.footer ?? recommendation.footer,
       design: this.design(),
       stepDesigns: this.designByStep(),
+      ...this.businessDetails(),
     };
   });
   readonly previewBrandName = computed<string>(() => {
     const industry = this.selection().industry;
 
-    return industry === null ? 'Новый лендинг' : this.getOptionTitle(this.industryOptions, industry);
+    return industry === null
+      ? 'Новый лендинг'
+      : this.getOptionTitle(this.industryOptions, industry);
   });
-  readonly previewTitle = computed<string>(() => this.getPreviewHeroTitle(this.previewSelection().industry));
+  readonly previewTitle = computed<string>(() =>
+    this.getPreviewHeroTitle(this.previewSelection().industry),
+  );
   readonly previewOfferName = computed<string>(() => {
     const offerList = this.previewSelection().offerList;
 
@@ -395,6 +421,15 @@ export class CreateLandingPageComponent {
     this.updateCurrentStepDesign((design) => ({
       ...design,
       templateStyle,
+    }));
+  }
+
+  updateBusinessDetails(field: BusinessDetailsField, event: Event): void {
+    const value = this.readInputValue(event);
+
+    this.businessDetails.update((details) => ({
+      ...details,
+      [field]: value,
     }));
   }
 
@@ -501,6 +536,7 @@ export class CreateLandingPageComponent {
       footer,
       design: this.design(),
       stepDesigns: this.designByStep(),
+      ...this.businessDetails(),
     };
   }
 
@@ -570,5 +606,15 @@ export class CreateLandingPageComponent {
       case 'education':
         return 'Курс с программой, практикой и заявкой';
     }
+  }
+
+  private readInputValue(event: Event): string {
+    const target = event.target;
+
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      return target.value;
+    }
+
+    return '';
   }
 }

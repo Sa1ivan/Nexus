@@ -1,21 +1,23 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
 import { buildLandingDraft } from '../data-access/landing-draft.factory';
-import {
-  DEFAULT_LANDING_DESIGN_SETTINGS,
-  getLandingAccentValue,
-} from '../domain/models';
+import { ProjectPersistenceService } from '../data-access/project-persistence.service';
+import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../domain/models';
+import { createBlockAnchor, createBlockId } from '../domain/utils/builder-ids';
 import type {
   BlockType,
   CompleteLandingWizardSelection,
   HeroBlockStyles,
   HeroBlockUpdate,
   LandingDesignSettings,
+  LeadFormBlockUpdate,
   OfferListBlockUpdate,
   OfferListItem,
   PageBlockConfig,
   PageConfig,
+  Project,
+  ProjectSaveStatus,
   SiteConfig,
   SiteFooterBlockUpdate,
   SiteHeaderBlockUpdate,
@@ -36,16 +38,33 @@ const DEFAULT_HERO_STYLES: HeroBlockStyles = {
   providedIn: 'root',
 })
 export class BuilderStore {
+  private readonly projectPersistence = inject(ProjectPersistenceService);
+
+  private readonly currentProjectSignal = signal<Project | null>(null);
   private readonly siteConfigSignal = signal<SiteConfig>(DEFAULT_SITE_CONFIG);
   private readonly activePageSlugSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.slug ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(
     DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
   );
+  private readonly saveStatusSignal = signal<ProjectSaveStatus>('idle');
+  private readonly projectErrorSignal = signal<string | null>(null);
 
+  readonly currentProject = computed<Project | null>(() => this.currentProjectSignal());
+  readonly saveStatus = computed<ProjectSaveStatus>(() => this.saveStatusSignal());
+  readonly projectError = computed<string | null>(() => this.projectErrorSignal());
   readonly siteConfig = computed<SiteConfig>(() => this.siteConfigSignal());
   readonly pages = computed<readonly PageConfig[]>(() => this.siteConfig().pages);
   readonly activePageSlug = computed<string>(() => this.activePageSlugSignal());
   readonly selectedBlockId = computed<string | null>(() => this.selectedBlockIdSignal());
+  readonly publishedUrl = computed<string | null>(() => {
+    const project = this.currentProject();
+
+    if (project?.publishedReleaseId === null || project === null) {
+      return null;
+    }
+
+    return `/p/${project.id}`;
+  });
   readonly activePage = computed<PageConfig | null>(() => {
     const activeSlug = this.activePageSlug();
 
@@ -60,6 +79,14 @@ export class BuilderStore {
 
     return blocks.find((block) => block.id === selectedBlockId) ?? blocks[0] ?? null;
   });
+
+  constructor() {
+    const activeProject = this.projectPersistence.getActiveProject();
+
+    if (activeProject !== null) {
+      this.hydrateProject(activeProject, 'saved');
+    }
+  }
 
   selectPage(slug: string): boolean {
     const page = this.pages().find((pageConfig) => pageConfig.slug === slug);
@@ -86,6 +113,65 @@ export class BuilderStore {
     return true;
   }
 
+  loadProject(projectId: string): boolean {
+    const project = this.projectPersistence.getProject(projectId);
+
+    if (project === null) {
+      this.projectErrorSignal.set('Проект не найден.');
+      return false;
+    }
+
+    this.hydrateProject(project, 'saved');
+    this.projectPersistence.setActiveProject(project.id);
+
+    return true;
+  }
+
+  saveCurrentProject(): boolean {
+    this.saveStatusSignal.set('saving');
+    this.projectErrorSignal.set(null);
+
+    try {
+      const currentProject = this.currentProject();
+      const savedProject =
+        currentProject === null
+          ? this.projectPersistence.createProject(this.siteConfig())
+          : this.projectPersistence.saveDraft(currentProject, this.siteConfig());
+
+      this.hydrateProject(savedProject, 'saved');
+
+      return true;
+    } catch (error) {
+      this.projectErrorSignal.set(this.readErrorMessage(error));
+      this.saveStatusSignal.set('error');
+
+      return false;
+    }
+  }
+
+  publishCurrentProject(): boolean {
+    this.saveStatusSignal.set('saving');
+    this.projectErrorSignal.set(null);
+
+    try {
+      const baseProject =
+        this.currentProject() ?? this.projectPersistence.createProject(this.siteConfig());
+      const publishedProject = this.projectPersistence.publishProject(
+        baseProject,
+        this.siteConfig(),
+      );
+
+      this.hydrateProject(publishedProject, 'saved');
+
+      return true;
+    } catch (error) {
+      this.projectErrorSignal.set(this.readErrorMessage(error));
+      this.saveStatusSignal.set('error');
+
+      return false;
+    }
+  }
+
   updateSiteName(name: string): boolean {
     const normalizedName = name.trim();
 
@@ -97,22 +183,25 @@ export class BuilderStore {
       ...siteConfig,
       name: normalizedName,
     }));
+    this.markDirty();
 
     return true;
   }
 
   createLandingDraft(selection: CompleteLandingWizardSelection): void {
     const siteConfig = buildLandingDraft(selection);
+    const project = this.projectPersistence.createProject(siteConfig);
 
-    this.siteConfigSignal.set(siteConfig);
-    this.activePageSlugSignal.set(siteConfig.pages[0]?.slug ?? '');
-    this.selectedBlockIdSignal.set(siteConfig.pages[0]?.blocks[0]?.id ?? null);
+    this.hydrateProject(project, 'saved');
   }
 
-  addBlock(type: BlockType, afterBlockId: string | null = this.selectedBlock()?.id ?? null): string | null {
+  addBlock(
+    type: BlockType,
+    afterBlockId: string | null = this.selectedBlock()?.id ?? null,
+  ): string | null {
     const activeSlug = this.activePageSlug();
-    const block = this.createDefaultBlock(type);
     let didInsert = false;
+    let insertedBlockId: string | null = null;
 
     this.siteConfigSignal.update((siteConfig) => ({
       ...siteConfig,
@@ -121,6 +210,7 @@ export class BuilderStore {
           return page;
         }
 
+        const block = this.createDefaultBlock(type, page.blocks);
         const insertIndex = this.getInsertIndex(page.blocks, afterBlockId);
         const nextBlocks = [
           ...page.blocks.slice(0, insertIndex),
@@ -129,6 +219,7 @@ export class BuilderStore {
         ];
 
         didInsert = true;
+        insertedBlockId = block.id;
 
         return {
           ...page,
@@ -137,13 +228,14 @@ export class BuilderStore {
       }),
     }));
 
-    if (!didInsert) {
+    if (!didInsert || insertedBlockId === null) {
       return null;
     }
 
-    this.selectedBlockIdSignal.set(block.id);
+    this.selectedBlockIdSignal.set(insertedBlockId);
+    this.markDirty();
 
-    return block.id;
+    return insertedBlockId;
   }
 
   duplicateBlock(blockId: string): string | null {
@@ -163,7 +255,7 @@ export class BuilderStore {
           return page;
         }
 
-        const duplicatedBlock = this.cloneBlock(page.blocks[blockIndex]);
+        const duplicatedBlock = this.cloneBlock(page.blocks[blockIndex], page.blocks);
         duplicatedBlockId = duplicatedBlock.id;
 
         return {
@@ -179,6 +271,7 @@ export class BuilderStore {
 
     if (duplicatedBlockId !== null) {
       this.selectedBlockIdSignal.set(duplicatedBlockId);
+      this.markDirty();
     }
 
     return duplicatedBlockId;
@@ -203,8 +296,7 @@ export class BuilderStore {
         }
 
         const nextBlocks = page.blocks.filter((block) => block.id !== blockId);
-        nextSelectedBlockId =
-          nextBlocks[Math.min(blockIndex, nextBlocks.length - 1)]?.id ?? null;
+        nextSelectedBlockId = nextBlocks[Math.min(blockIndex, nextBlocks.length - 1)]?.id ?? null;
         didRemove = true;
 
         return {
@@ -216,6 +308,7 @@ export class BuilderStore {
 
     if (didRemove) {
       this.selectedBlockIdSignal.set(nextSelectedBlockId);
+      this.markDirty();
     }
 
     return didRemove;
@@ -271,6 +364,10 @@ export class BuilderStore {
       }),
     }));
 
+    if (didReorder) {
+      this.markDirty();
+    }
+
     return didReorder;
   }
 
@@ -307,6 +404,7 @@ export class BuilderStore {
         title: update.title ?? block.title,
         subtitle: update.subtitle ?? block.subtitle,
         buttonText: update.buttonText ?? block.buttonText,
+        buttonHref: update.buttonHref ?? block.buttonHref,
         styles: this.mergeHeroStyles(block.styles, update.styles),
       };
     });
@@ -344,11 +442,7 @@ export class BuilderStore {
     });
   }
 
-  updateOfferListItem(
-    blockId: string,
-    itemIndex: number,
-    update: Partial<OfferListItem>,
-  ): boolean {
+  updateOfferListItem(blockId: string, itemIndex: number, update: Partial<OfferListItem>): boolean {
     return this.updateBlock(blockId, (block) => {
       if (block.type !== 'offerList' || itemIndex < 0 || itemIndex >= block.items.length) {
         return block;
@@ -370,6 +464,39 @@ export class BuilderStore {
     });
   }
 
+  addOfferListItem(blockId: string): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'offerList') {
+        return block;
+      }
+
+      return {
+        ...block,
+        items: [
+          ...block.items,
+          {
+            title: 'Новый пункт',
+            description: 'Опишите преимущество, услугу или пакет.',
+            meta: 'Новое',
+          },
+        ],
+      };
+    });
+  }
+
+  removeOfferListItem(blockId: string, itemIndex: number): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'offerList' || block.items.length <= 1) {
+        return block;
+      }
+
+      return {
+        ...block,
+        items: block.items.filter((_, index) => index !== itemIndex),
+      };
+    });
+  }
+
   updateSiteFooterBlock(blockId: string, update: SiteFooterBlockUpdate): boolean {
     return this.updateBlock(blockId, (block) => {
       if (block.type !== 'siteFooter') {
@@ -387,39 +514,75 @@ export class BuilderStore {
     });
   }
 
+  updateLeadFormBlock(blockId: string, update: LeadFormBlockUpdate): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'leadForm') {
+        return block;
+      }
+
+      return {
+        ...block,
+        title: update.title ?? block.title,
+        description: update.description ?? block.description,
+        submitText: update.submitText ?? block.submitText,
+        successMessage: update.successMessage ?? block.successMessage,
+        fields: update.fields ?? block.fields,
+      };
+    });
+  }
+
   private updateBlock(
     blockId: string,
     updater: (block: PageBlockConfig) => PageBlockConfig,
   ): boolean {
+    const activeSlug = this.activePageSlug();
     let didUpdate = false;
 
     this.siteConfigSignal.update((siteConfig) => ({
       ...siteConfig,
-      pages: siteConfig.pages.map((page) => ({
-        ...page,
-        blocks: page.blocks.map((block) => {
-          if (block.id !== blockId) {
-            return block;
-          }
+      pages: siteConfig.pages.map((page) => {
+        if (page.slug !== activeSlug) {
+          return page;
+        }
 
-          didUpdate = true;
+        return {
+          ...page,
+          blocks: page.blocks.map((block) => {
+            if (block.id !== blockId) {
+              return block;
+            }
 
-          return updater(block);
-        }),
-      })),
+            didUpdate = true;
+
+            return updater(block);
+          }),
+        };
+      }),
     }));
+
+    if (didUpdate) {
+      this.markDirty();
+    }
 
     return didUpdate;
   }
 
-  private createDefaultBlock(type: BlockType): PageBlockConfig {
-    const id = this.createBlockId(type);
+  private createDefaultBlock(
+    type: BlockType,
+    currentBlocks: readonly PageBlockConfig[],
+  ): PageBlockConfig {
+    const id = createBlockId(type);
+    const anchor = createBlockAnchor(
+      type,
+      currentBlocks.map((block) => block.anchor),
+    );
     const design = DEFAULT_LANDING_DESIGN_SETTINGS;
 
     switch (type) {
       case 'siteHeader':
         return {
           id,
+          anchor,
           type,
           design,
           variant: 'centeredHero',
@@ -430,16 +593,19 @@ export class BuilderStore {
       case 'hero':
         return {
           id,
+          anchor,
           type,
           design,
           title: 'Большой ясный оффер для нового блока',
           subtitle: 'Опишите ценность, сценарий и следующий шаг для посетителя.',
           buttonText: 'Начать',
+          buttonHref: '#lead-form',
           styles: DEFAULT_HERO_STYLES,
         };
       case 'offerList':
         return {
           id,
+          anchor,
           type,
           design,
           variant: 'catalogGrid',
@@ -466,6 +632,7 @@ export class BuilderStore {
       case 'siteFooter':
         return {
           id,
+          anchor,
           type,
           design,
           variant: 'bookingFooter',
@@ -474,23 +641,59 @@ export class BuilderStore {
           contactLines: ['hello@nexus.app', '+7 999 000-00-00', 'Ответ в течение дня'],
           links: ['Условия', 'Контакты', 'Политика'],
         };
+      case 'leadForm':
+        return {
+          id,
+          anchor,
+          type,
+          design,
+          title: 'Оставьте заявку',
+          description: 'Напишите, что нужно собрать, и мы вернемся с понятным следующим шагом.',
+          submitText: 'Отправить',
+          successMessage: 'Заявка сохранена. Мы скоро свяжемся с вами.',
+          fields: [
+            {
+              id: 'name',
+              label: 'Имя',
+              type: 'text',
+              placeholder: 'Как к вам обращаться',
+              required: true,
+            },
+            {
+              id: 'contact',
+              label: 'Телефон или email',
+              type: 'text',
+              placeholder: '+7 999 000-00-00',
+              required: true,
+            },
+          ],
+        };
     }
   }
 
-  private cloneBlock(block: PageBlockConfig): PageBlockConfig {
-    const id = this.createBlockId(block.type);
+  private cloneBlock(
+    block: PageBlockConfig,
+    currentBlocks: readonly PageBlockConfig[],
+  ): PageBlockConfig {
+    const id = createBlockId(block.type);
+    const anchor = createBlockAnchor(
+      block.type,
+      currentBlocks.map((currentBlock) => currentBlock.anchor),
+    );
 
     switch (block.type) {
       case 'siteHeader':
         return {
           ...block,
           id,
+          anchor,
           navigationItems: [...block.navigationItems],
         };
       case 'hero':
         return {
           ...block,
           id,
+          anchor,
           styles: {
             ...block.styles,
           },
@@ -499,26 +702,28 @@ export class BuilderStore {
         return {
           ...block,
           id,
+          anchor,
           items: block.items.map((item) => ({ ...item })),
         };
       case 'siteFooter':
         return {
           ...block,
           id,
+          anchor,
           contactLines: [...block.contactLines],
           links: [...block.links],
+        };
+      case 'leadForm':
+        return {
+          ...block,
+          id,
+          anchor,
+          fields: block.fields.map((field) => ({ ...field })),
         };
     }
   }
 
-  private createBlockId(type: BlockType): string {
-    return `${type}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  }
-
-  private getInsertIndex(
-    blocks: readonly PageBlockConfig[],
-    afterBlockId: string | null,
-  ): number {
+  private getInsertIndex(blocks: readonly PageBlockConfig[], afterBlockId: string | null): number {
     if (afterBlockId === null) {
       return blocks.length;
     }
@@ -556,5 +761,22 @@ export class BuilderStore {
       minHeight: update.minHeight ?? current.minHeight,
       alignment: update.alignment ?? current.alignment,
     };
+  }
+
+  private hydrateProject(project: Project, saveStatus: ProjectSaveStatus): void {
+    this.currentProjectSignal.set(project);
+    this.siteConfigSignal.set(project.draft);
+    this.activePageSlugSignal.set(project.draft.pages[0]?.slug ?? '');
+    this.selectedBlockIdSignal.set(project.draft.pages[0]?.blocks[0]?.id ?? null);
+    this.saveStatusSignal.set(saveStatus);
+    this.projectErrorSignal.set(null);
+  }
+
+  private markDirty(): void {
+    this.saveStatusSignal.set('dirty');
+  }
+
+  private readErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Не удалось выполнить действие.';
   }
 }

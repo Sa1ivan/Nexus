@@ -9,8 +9,7 @@
 
 .offer-list {
   padding: var(--landing-section-y, 72px) clamp(18px, 4vw, 40px);
-  background:
-    linear-gradient(180deg, #ffffff, #f5f5f7);
+  background: linear-gradient(180deg, #ffffff, #f5f5f7);
   color: #111827;
   font-family: var(--landing-font, inherit);
 }
@@ -118,8 +117,7 @@
 }
 
 .offer-list--menu {
-  background:
-    linear-gradient(180deg, #fffdf8, #f5f5f7);
+  background: linear-gradient(180deg, #fffdf8, #f5f5f7);
 
   .offer-list__grid {
     grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 0.9fr));
@@ -131,8 +129,7 @@
 }
 
 .offer-list--rooms {
-  background:
-    linear-gradient(180deg, #f5f7fb, #ffffff);
+  background: linear-gradient(180deg, #f5f7fb, #ffffff);
 
   .offer-list__item {
     padding-top: 126px;
@@ -143,8 +140,11 @@
       position: absolute;
       inset: 0 0 auto;
       height: 102px;
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--landing-accent, #2563eb), white 72%), #f8fafc);
+      background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--landing-accent, #2563eb), white 72%),
+        #f8fafc
+      );
       content: '';
     }
   }
@@ -169,8 +169,7 @@
 }
 
 .offer-list--catalog {
-  background:
-    linear-gradient(180deg, #f8fafc, #ffffff);
+  background: linear-gradient(180deg, #f8fafc, #ffffff);
 
   .offer-list__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

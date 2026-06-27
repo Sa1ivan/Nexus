@@ -15,6 +15,7 @@ export interface HeroBlockConfig extends BlockConfig<'hero'> {
   readonly title: string;
   readonly subtitle: string;
   readonly buttonText: string;
+  readonly buttonHref: string;
   readonly styles: HeroBlockStyles;
 }
 
@@ -22,5 +23,6 @@ export interface HeroBlockUpdate {
   readonly title?: string;
   readonly subtitle?: string;
   readonly buttonText?: string;
+  readonly buttonHref?: string;
   readonly styles?: Partial<HeroBlockStyles>;
 }

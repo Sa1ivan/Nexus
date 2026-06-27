@@ -12,23 +12,11 @@ export type LandingIndustry = 'restaurant' | 'hotel' | 'beauty' | 'product' | 'e
 
 export type LandingTone = 'premium' | 'friendly' | 'minimal' | 'bold';
 
-export type LandingHeaderVariant =
-  | 'centeredHero'
-  | 'splitMedia'
-  | 'reservationBar'
-  | 'editorial';
+export type LandingHeaderVariant = 'centeredHero' | 'splitMedia' | 'reservationBar' | 'editorial';
 
-export type LandingOfferListVariant =
-  | 'menuGrid'
-  | 'roomCards'
-  | 'pricingTable'
-  | 'catalogGrid';
+export type LandingOfferListVariant = 'menuGrid' | 'roomCards' | 'pricingTable' | 'catalogGrid';
 
-export type LandingFooterVariant =
-  | 'contactMap'
-  | 'compactLegal'
-  | 'socialLead'
-  | 'bookingFooter';
+export type LandingFooterVariant = 'contactMap' | 'compactLegal' | 'socialLead' | 'bookingFooter';
 
 export interface LandingOption<TValue extends string> {
   readonly id: TValue;
@@ -58,6 +46,13 @@ export interface CompleteLandingWizardSelection {
   readonly offerList: LandingOfferListVariant;
   readonly footer: LandingFooterVariant;
   readonly design: LandingDesignSettings;
+  readonly brandName: string;
+  readonly heroTitle: string;
+  readonly heroSubtitle: string;
+  readonly ctaText: string;
+  readonly ctaDestination: string;
+  readonly contactEmail: string;
+  readonly contactPhone: string;
   readonly stepDesigns?: Readonly<Partial<Record<LandingWizardStepId, LandingDesignSettings>>>;
 }
 

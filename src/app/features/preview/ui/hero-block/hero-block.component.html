@@ -1,5 +1,5 @@
 <section
-  id="hero"
+  [id]="block().anchor"
   class="hero-block"
   [class.hero-block--left]="block().styles.alignment === 'left'"
   [class.hero-block--center]="block().styles.alignment === 'center'"
@@ -16,7 +16,7 @@
     <p class="hero-block__subtitle">{{ block().subtitle }}</p>
     <a
       class="hero-block__button"
-      href="#offers"
+      [href]="block().buttonHref"
       [style.background-color]="block().styles.buttonBackgroundColor"
       [style.color]="block().styles.buttonTextColor"
     >

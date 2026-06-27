@@ -15,8 +15,7 @@
   --footer-surface: rgba(255, 255, 255, 0.06);
 
   padding: calc(var(--landing-section-y, 72px) * 0.58) clamp(18px, 4vw, 40px) 30px;
-  background:
-    linear-gradient(180deg, #1f2937, var(--footer-bg));
+  background: linear-gradient(180deg, #1f2937, var(--footer-bg));
   color: #f8fafc;
   font-family: var(--landing-font, inherit);
 }

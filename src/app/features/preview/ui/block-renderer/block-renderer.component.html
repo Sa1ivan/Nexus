@@ -13,6 +13,9 @@
       @case ('siteFooter') {
         <app-site-footer-block [block]="block" />
       }
+      @case ('leadForm') {
+        <app-lead-form-block [block]="block" (formSubmit)="handleLeadSubmit(block.id, $event)" />
+      }
     }
   }
 </div>
