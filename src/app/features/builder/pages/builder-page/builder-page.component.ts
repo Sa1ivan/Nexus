@@ -1,10 +1,17 @@
 import { CdkDrag, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import type { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import {
   LANDING_ACCENT_OPTIONS,
@@ -71,8 +78,9 @@ type LeadFormTextField = 'title' | 'description' | 'submitText' | 'successMessag
   styleUrl: './builder-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BuilderPageComponent {
+export class BuilderPageComponent implements OnInit {
   private readonly builderStore = inject(BuilderStore);
+  private readonly route = inject(ActivatedRoute);
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly pages = this.builderStore.pages;
@@ -148,6 +156,14 @@ export class BuilderPageComponent {
   readonly headerOptions = LANDING_HEADER_OPTIONS;
   readonly offerListOptions = LANDING_OFFER_LIST_OPTIONS;
   readonly footerOptions = LANDING_FOOTER_OPTIONS;
+
+  ngOnInit(): void {
+    const projectId = this.route.snapshot.paramMap.get('projectId');
+
+    if (projectId !== null) {
+      this.builderStore.loadProject(projectId);
+    }
+  }
 
   selectPage(slug: string): void {
     this.builderStore.selectPage(slug);

@@ -512,7 +512,7 @@ export class CreateLandingPageComponent {
     }
 
     this.builderStore.createLandingDraft(completeSelection);
-    void this.router.navigate(['/']);
+    void this.router.navigate(['/builder']);
   }
 
   private getCompleteSelection(): CompleteLandingWizardSelection | null {

@@ -1,0 +1,84 @@
+<main class="contacts-page">
+  <header class="contacts-page__head">
+    <span class="contacts-page__eyebrow">Контакты</span>
+    <h1>Связь с командой Nexus</h1>
+    <p>Каналы для вопросов по workspace, лендингам, публикациям и заявкам.</p>
+  </header>
+
+  <section class="contacts-page__channels" aria-label="Контактные каналы">
+    @for (channel of channels; track channel.title) {
+      <article class="contacts-page__channel">
+        <mat-icon aria-hidden="true">{{ channel.icon }}</mat-icon>
+        <span>{{ channel.title }}</span>
+        <strong>{{ channel.value }}</strong>
+        <p>{{ channel.description }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="contacts-page__layout">
+    <form class="contacts-page__form" (submit)="submitContactForm($event)">
+      <div class="contacts-page__section-head">
+        <span class="contacts-page__eyebrow">Сообщение</span>
+        <h2>Написать в поддержку</h2>
+      </div>
+
+      <label>
+        <span>Имя</span>
+        <input type="text" name="name" autocomplete="name" />
+      </label>
+      <label>
+        <span>Email</span>
+        <input type="email" name="email" autocomplete="email" />
+      </label>
+      <label>
+        <span>Тема</span>
+        <select name="topic">
+          <option>Проект</option>
+          <option>Публикация</option>
+          <option>Статистика</option>
+          <option>Профиль</option>
+        </select>
+      </label>
+      <label>
+        <span>Сообщение</span>
+        <textarea name="message" rows="5"></textarea>
+      </label>
+
+      <button mat-flat-button color="primary" type="submit">
+        <mat-icon aria-hidden="true">send</mat-icon>
+        Отправить
+      </button>
+
+      @if (formStatus() === 'sent') {
+        <p class="contacts-page__sent">Сообщение подготовлено. Команда увидит его в демо-центре.</p>
+      }
+    </form>
+
+    <aside class="contacts-page__details">
+      <div class="contacts-page__section-head">
+        <span class="contacts-page__eyebrow">Реквизиты</span>
+        <h2>Nexus Workspace</h2>
+      </div>
+
+      <dl>
+        <div>
+          <dt>Продукт</dt>
+          <dd>Конструктор лендингов</dd>
+        </div>
+        <div>
+          <dt>Поддержка</dt>
+          <dd>support@nexus.app</dd>
+        </div>
+        <div>
+          <dt>Документы</dt>
+          <dd>docs@nexus.app</dd>
+        </div>
+        <div>
+          <dt>Часы</dt>
+          <dd>10:00-19:00 MSK</dd>
+        </div>
+      </dl>
+    </aside>
+  </section>
+</main>

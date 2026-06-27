@@ -1,0 +1,113 @@
+<main class="projects-page">
+  <header class="projects-page__head">
+    <div>
+      <span class="projects-page__eyebrow">Проекты</span>
+      <h1>Мои проекты</h1>
+      <p>Лендинги, черновики, версии, публикации и заявки по каждому проекту.</p>
+    </div>
+
+    <a mat-flat-button color="primary" routerLink="/create">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Новый лендинг
+    </a>
+  </header>
+
+  @if (projects.length > 0) {
+    <section class="projects-page__summary" aria-label="Сводка проектов">
+      <div>
+        <strong>{{ metrics.totalProjects }}</strong>
+        <span>Всего проектов</span>
+      </div>
+      <div>
+        <strong>{{ metrics.publishedProjects }}</strong>
+        <span>Опубликовано</span>
+      </div>
+      <div>
+        <strong>{{ metrics.draftProjects }}</strong>
+        <span>Черновики</span>
+      </div>
+      <div>
+        <strong>{{ metrics.totalLeads }}</strong>
+        <span>Заявки</span>
+      </div>
+    </section>
+
+    <section class="projects-page__grid" aria-label="Список проектов">
+      @for (summary of projects; track summary.project.id) {
+        <article class="projects-page__card">
+          <header class="projects-page__card-head">
+            <span
+              class="projects-page__status"
+              [class.projects-page__status--published]="summary.status === 'published'"
+            >
+              {{ getStatusLabel(summary.status) }}
+            </span>
+            <span>{{ summary.updatedAtLabel }}</span>
+          </header>
+
+          <div class="projects-page__title">
+            <h2>{{ summary.project.name }}</h2>
+            <p>{{ summary.firstPageTitle }}</p>
+          </div>
+
+          <dl class="projects-page__facts">
+            <div>
+              <dt>Страницы</dt>
+              <dd>{{ summary.pageCount }}</dd>
+            </div>
+            <div>
+              <dt>Блоки</dt>
+              <dd>{{ summary.blockCount }}</dd>
+            </div>
+            <div>
+              <dt>Версия</dt>
+              <dd>{{ summary.project.draftVersion }}</dd>
+            </div>
+            <div>
+              <dt>Релизы</dt>
+              <dd>{{ summary.releaseCount }}</dd>
+            </div>
+            <div>
+              <dt>Заявки</dt>
+              <dd>{{ summary.leadCount }}</dd>
+            </div>
+            <div>
+              <dt>Создан</dt>
+              <dd>{{ summary.createdAtLabel }}</dd>
+            </div>
+          </dl>
+
+          <footer class="projects-page__actions">
+            <a mat-stroked-button [routerLink]="['/builder', summary.project.id]">
+              <mat-icon aria-hidden="true">edit</mat-icon>
+              Открыть
+            </a>
+
+            @if (summary.publicUrl !== null) {
+              <a mat-stroked-button [routerLink]="summary.publicUrl">
+                <mat-icon aria-hidden="true">open_in_new</mat-icon>
+                Публичная
+              </a>
+            }
+          </footer>
+        </article>
+      }
+    </section>
+  } @else {
+    <section class="projects-page__empty">
+      <mat-icon aria-hidden="true">folder_off</mat-icon>
+      <h2>Проектов пока нет</h2>
+      <p>Создайте первый лендинг через мастер или откройте конструктор для ручной сборки.</p>
+      <div>
+        <a mat-flat-button color="primary" routerLink="/create">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Новый лендинг
+        </a>
+        <a mat-stroked-button routerLink="/builder">
+          <mat-icon aria-hidden="true">edit</mat-icon>
+          Конструктор
+        </a>
+      </div>
+    </section>
+  }
+</main>

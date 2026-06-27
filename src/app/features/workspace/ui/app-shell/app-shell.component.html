@@ -1,0 +1,57 @@
+<main class="app-shell">
+  <aside class="app-shell__sidebar" aria-label="Основная навигация">
+    <a class="app-shell__brand" routerLink="/">
+      <span class="app-shell__brand-mark">
+        <mat-icon aria-hidden="true">hub</mat-icon>
+      </span>
+      <span>
+        <strong>Nexus</strong>
+        <small>Landing workspace</small>
+      </span>
+    </a>
+
+    <nav class="app-shell__nav">
+      @for (item of navItems; track item.path) {
+        <a
+          class="app-shell__nav-link"
+          [routerLink]="item.path"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: item.exact }"
+        >
+          <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <a class="app-shell__builder-link" routerLink="/builder">
+      <mat-icon aria-hidden="true">edit_square</mat-icon>
+      <span>
+        <strong>Конструктор</strong>
+        <small>Редактор лендинга</small>
+      </span>
+    </a>
+  </aside>
+
+  <section class="app-shell__main">
+    <header class="app-shell__topbar">
+      <div>
+        <span>Рабочее пространство</span>
+        <strong>Nexus</strong>
+      </div>
+
+      <div class="app-shell__actions">
+        <a mat-stroked-button routerLink="/builder">
+          <mat-icon aria-hidden="true">edit</mat-icon>
+          Конструктор
+        </a>
+        <a mat-flat-button color="primary" routerLink="/create">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Новый лендинг
+        </a>
+      </div>
+    </header>
+
+    <router-outlet />
+  </section>
+</main>

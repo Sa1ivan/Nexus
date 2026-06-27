@@ -1,0 +1,123 @@
+<main class="home-page">
+  <section class="home-page__hero">
+    <div class="home-page__hero-copy">
+      <span class="home-page__eyebrow">Nexus</span>
+      <h1>Рабочее место для лендингов, которые можно собрать, опубликовать и измерить.</h1>
+      <p>
+        Здесь начинается не редактор, а весь контур продукта: описание сервиса, проекты,
+        статистика, профиль и контакты команды.
+      </p>
+
+      <div class="home-page__actions">
+        <a mat-flat-button color="primary" routerLink="/create">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Новый лендинг
+        </a>
+        <a mat-stroked-button routerLink="/projects">
+          <mat-icon aria-hidden="true">folder_open</mat-icon>
+          Мои проекты
+        </a>
+      </div>
+    </div>
+
+    <aside class="home-page__snapshot" aria-label="Сводка workspace">
+      <div class="home-page__snapshot-head">
+        <span>Workspace</span>
+        <strong>{{ metrics.totalProjects }}</strong>
+      </div>
+      <div class="home-page__mini-grid">
+        <span>
+          <strong>{{ metrics.publishedProjects }}</strong>
+          Опубликовано
+        </span>
+        <span>
+          <strong>{{ metrics.totalLeads }}</strong>
+          Заявок
+        </span>
+        <span>
+          <strong>{{ metrics.totalBlocks }}</strong>
+          Блоков
+        </span>
+      </div>
+      <div class="home-page__screen">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="home-page__metrics" aria-label="Ключевые показатели">
+    <a class="home-page__metric" routerLink="/projects">
+      <mat-icon aria-hidden="true">folder</mat-icon>
+      <strong>{{ metrics.totalProjects }}</strong>
+      <span>Проекты</span>
+    </a>
+    <a class="home-page__metric" routerLink="/statistics">
+      <mat-icon aria-hidden="true">publish</mat-icon>
+      <strong>{{ metrics.publishedProjects }}</strong>
+      <span>Публикации</span>
+    </a>
+    <a class="home-page__metric" routerLink="/statistics">
+      <mat-icon aria-hidden="true">dynamic_form</mat-icon>
+      <strong>{{ metrics.totalLeads }}</strong>
+      <span>Заявки</span>
+    </a>
+    <a class="home-page__metric" routerLink="/statistics">
+      <mat-icon aria-hidden="true">view_week</mat-icon>
+      <strong>{{ metrics.averageBlocksPerProject }}</strong>
+      <span>Блоков в среднем</span>
+    </a>
+  </section>
+
+  <section class="home-page__content">
+    <section class="home-page__panel">
+      <div class="home-page__section-head">
+        <span class="home-page__eyebrow">Возможности</span>
+        <h2>Что есть в Nexus</h2>
+      </div>
+
+      <div class="home-page__capabilities">
+        @for (capability of capabilities; track capability.title) {
+          <article class="home-page__capability">
+            <mat-icon aria-hidden="true">{{ capability.icon }}</mat-icon>
+            <strong>{{ capability.title }}</strong>
+            <p>{{ capability.description }}</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="home-page__panel">
+      <div class="home-page__section-head">
+        <span class="home-page__eyebrow">Последнее</span>
+        <h2>Недавние проекты</h2>
+      </div>
+
+      @if (recentProjects.length > 0) {
+        <div class="home-page__project-list">
+          @for (summary of recentProjects; track summary.project.id) {
+            <a class="home-page__project" [routerLink]="['/builder', summary.project.id]">
+              <span>
+                <strong>{{ summary.project.name }}</strong>
+                <small>{{ summary.firstPageTitle }} · {{ summary.updatedAtLabel }}</small>
+              </span>
+              <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="home-page__empty">
+          <mat-icon aria-hidden="true">note_add</mat-icon>
+          <strong>Пока нет лендингов</strong>
+          <p>Создайте первый проект через мастер или откройте конструктор с чистым черновиком.</p>
+          <a mat-stroked-button routerLink="/create">
+            <mat-icon aria-hidden="true">add</mat-icon>
+            Создать лендинг
+          </a>
+        </div>
+      }
+    </section>
+  </section>
+</main>

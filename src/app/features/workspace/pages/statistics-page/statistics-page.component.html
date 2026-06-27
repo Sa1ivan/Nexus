@@ -1,0 +1,115 @@
+<main class="statistics-page">
+  <header class="statistics-page__head">
+    <div>
+      <span class="statistics-page__eyebrow">Аналитика</span>
+      <h1>Статистика лендингов</h1>
+      <p>Сводка по проектам, публикациям, структуре блоков и заявкам из опубликованных форм.</p>
+    </div>
+  </header>
+
+  <section class="statistics-page__kpis" aria-label="Ключевые показатели">
+    <article>
+      <mat-icon aria-hidden="true">folder_open</mat-icon>
+      <strong>{{ metrics.totalProjects }}</strong>
+      <span>Проекты</span>
+    </article>
+    <article>
+      <mat-icon aria-hidden="true">publish</mat-icon>
+      <strong>{{ metrics.publishedProjects }}</strong>
+      <span>Опубликовано</span>
+    </article>
+    <article>
+      <mat-icon aria-hidden="true">dynamic_form</mat-icon>
+      <strong>{{ metrics.totalLeads }}</strong>
+      <span>Заявки</span>
+    </article>
+    <article>
+      <mat-icon aria-hidden="true">history</mat-icon>
+      <strong>{{ metrics.totalRevisions }}</strong>
+      <span>Версии</span>
+    </article>
+  </section>
+
+  <section class="statistics-page__layout">
+    <section class="statistics-page__panel">
+      <div class="statistics-page__section-head">
+        <span class="statistics-page__eyebrow">Структура</span>
+        <h2>Блоки в проектах</h2>
+      </div>
+
+      <div class="statistics-page__bars">
+        @for (item of blockDistribution; track item.type) {
+          <div class="statistics-page__bar-row">
+            <div class="statistics-page__bar-label">
+              <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+            <div class="statistics-page__bar-track" aria-hidden="true">
+              <span [style.width.%]="item.percentage"></span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="statistics-page__panel">
+      <div class="statistics-page__section-head">
+        <span class="statistics-page__eyebrow">Заявки</span>
+        <h2>Активность проектов</h2>
+      </div>
+
+      @if (leadStats.length > 0) {
+        <div class="statistics-page__lead-list">
+          @for (item of leadStats; track item.summary.project.id) {
+            <a class="statistics-page__lead-row" [routerLink]="['/builder', item.summary.project.id]">
+              <span>
+                <strong>{{ item.summary.project.name }}</strong>
+                <small>{{ item.summary.releaseCount }} релизов · {{ item.summary.blockCount }} блоков</small>
+              </span>
+              <span class="statistics-page__lead-count">{{ item.summary.leadCount }}</span>
+              <span class="statistics-page__lead-track" aria-hidden="true">
+                <span [style.width.%]="item.percentage"></span>
+              </span>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="statistics-page__empty">
+          <mat-icon aria-hidden="true">query_stats</mat-icon>
+          <strong>Данных пока нет</strong>
+          <p>После создания и публикации лендингов здесь появится статистика по проектам.</p>
+        </div>
+      }
+    </section>
+  </section>
+
+  <section class="statistics-page__table" aria-label="Детализация по лендингам">
+    <div class="statistics-page__section-head">
+      <span class="statistics-page__eyebrow">Детализация</span>
+      <h2>По каждому лендингу</h2>
+    </div>
+
+    @if (metrics.projects.length > 0) {
+      <div class="statistics-page__rows">
+        @for (summary of metrics.projects; track summary.project.id) {
+          <a class="statistics-page__row" [routerLink]="['/builder', summary.project.id]">
+            <span>
+              <strong>{{ summary.project.name }}</strong>
+              <small>{{ summary.updatedAtLabel }}</small>
+            </span>
+            <span>{{ summary.pageCount }} стр.</span>
+            <span>{{ summary.blockCount }} блоков</span>
+            <span>{{ summary.releaseCount }} релизов</span>
+            <span>{{ summary.leadCount }} заявок</span>
+          </a>
+        }
+      </div>
+    } @else {
+      <div class="statistics-page__empty statistics-page__empty--compact">
+        <mat-icon aria-hidden="true">insights</mat-icon>
+        <strong>Нет проектов для анализа</strong>
+      </div>
+    }
+  </section>
+</main>

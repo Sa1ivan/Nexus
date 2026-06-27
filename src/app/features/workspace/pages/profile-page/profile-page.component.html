@@ -1,0 +1,79 @@
+<main class="profile-page">
+  <header class="profile-page__head">
+    <div>
+      <span class="profile-page__eyebrow">Профиль</span>
+      <h1>Профиль workspace</h1>
+      <p>Аккаунт, настройки хранения и состояние рабочей области Nexus.</p>
+    </div>
+    <a mat-stroked-button routerLink="/contacts">
+      <mat-icon aria-hidden="true">support_agent</mat-icon>
+      Контакты
+    </a>
+  </header>
+
+  <section class="profile-page__layout">
+    <section class="profile-page__identity">
+      <div class="profile-page__avatar" aria-hidden="true">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div>
+        <span class="profile-page__eyebrow">Аккаунт</span>
+        <h2>Nexus Owner</h2>
+        <p>Профиль для управления лендингами, публикациями и заявками.</p>
+      </div>
+    </section>
+
+    <section class="profile-page__stats" aria-label="Состояние workspace">
+      <div>
+        <strong>{{ metrics.totalProjects }}</strong>
+        <span>Проекты</span>
+      </div>
+      <div>
+        <strong>{{ metrics.publishedProjects }}</strong>
+        <span>Опубликовано</span>
+      </div>
+      <div>
+        <strong>{{ metrics.totalLeads }}</strong>
+        <span>Заявки</span>
+      </div>
+    </section>
+  </section>
+
+  <section class="profile-page__content">
+    <section class="profile-page__panel">
+      <div class="profile-page__section-head">
+        <span class="profile-page__eyebrow">Данные</span>
+        <h2>Информация профиля</h2>
+      </div>
+
+      <div class="profile-page__fields">
+        @for (field of profileFields; track field.label) {
+          <article class="profile-page__field">
+            <mat-icon aria-hidden="true">{{ field.icon }}</mat-icon>
+            <span>{{ field.label }}</span>
+            <strong>{{ field.value }}</strong>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="profile-page__panel">
+      <div class="profile-page__section-head">
+        <span class="profile-page__eyebrow">Настройки</span>
+        <h2>Рабочая область</h2>
+      </div>
+
+      <div class="profile-page__preferences">
+        @for (preference of preferences; track preference.title) {
+          <article class="profile-page__preference">
+            <mat-icon aria-hidden="true">{{ preference.icon }}</mat-icon>
+            <span>
+              <strong>{{ preference.title }}</strong>
+              <small>{{ preference.description }}</small>
+            </span>
+          </article>
+        }
+      </div>
+    </section>
+  </section>
+</main>
