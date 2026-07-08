@@ -1,6 +1,6 @@
 # Nexus
 
-Nexus — Angular-приложение для создания и предпросмотра страниц сайта на основе структурированной конфигурации. На текущем этапе проект содержит фундамент MVP: доменные модели сайта, страниц и блоков, локальное состояние на Angular Signals, renderer блоков и первый визуальный блок Hero.
+Nexus — Angular-приложение для сборки лендингов в формате конструктора сайтов. Проект хранит сайт как структурированную конфигурацию, позволяет проходить wizard, редактировать блоки в builder, смотреть desktop/mobile preview, сохранять локальные проекты, делать demo-публикацию и собирать заявки через опубликованный preview.
 
 ## Технологический стек
 
@@ -13,6 +13,8 @@ Nexus — Angular-приложение для создания и предпро
 - TypeScript в строгом режиме
 - ESLint
 - Prettier
+
+Публичные блоки рендерятся без Angular Material, чтобы пользовательская страница оставалась независимой от UI-shell конструктора.
 
 Планируемый backend-стек:
 
@@ -45,6 +47,12 @@ npm.cmd start
 http://localhost:4200
 ```
 
+Для запуска на другом порту:
+
+```bash
+npm.cmd start -- --port 3000
+```
+
 Если страница в браузере выглядит пустой, сначала проверь, что dev server действительно запущен, а вкладка открыта именно на `http://localhost:4200`. Также стоит полностью обновить вкладку браузера после перезапуска dev server.
 
 ## Команды
@@ -53,6 +61,8 @@ http://localhost:4200
 npm.cmd start
 npm.cmd run build
 npm.cmd run lint
+npm.cmd test
+npm.cmd run e2e
 npm.cmd run format
 npm.cmd run format:check
 npm.cmd audit
@@ -63,6 +73,8 @@ npm.cmd audit
 - `npm.cmd start` — запускает локальный dev server на `localhost:4200`.
 - `npm.cmd run build` — собирает production build.
 - `npm.cmd run lint` — запускает ESLint.
+- `npm.cmd test` — запускает lightweight unit/source-contract тесты.
+- `npm.cmd run e2e` — запускает smoke-проверки основных сценариев.
 - `npm.cmd run format` — форматирует файлы через Prettier.
 - `npm.cmd run format:check` — проверяет форматирование без изменения файлов.
 - `npm.cmd audit` — проверяет зависимости на известные уязвимости.
@@ -128,26 +140,55 @@ src/app/
 
 ## Builder
 
-Фича `builder` содержит фундамент конструктора.
+Фича `builder` содержит wizard, редактор структуры сайта, inspector, локальное сохранение проектов, demo-публикацию и сбор заявок.
 
 Доменные модели:
 
 - `SiteConfig`
 - `PageConfig`
 - `BlockConfig`
+- `LinkConfig`
+- `MediaAsset`
+- `SiteHeaderBlockConfig`
 - `HeroBlockConfig`
+- `OfferListBlockConfig`
+- `LeadFormBlockConfig`
+- `SiteFooterBlockConfig`
 
-UI-компоненты:
+Ключевые элементы:
 
-- `HeroBlockComponent`
-- `BlockRendererComponent`
+- `BlockRegistry` — metadata, варианты, default factory и clone для блоков.
 - `BuilderPageComponent`
+- `BlockRendererComponent`
+- preview-компоненты публичных блоков.
 
 State management:
 
 - `BuilderStore`
 - Angular Signals
 - computed-селекторы для конфигурации сайта, страниц, активной страницы и блоков.
+
+## Возможности конструктора
+
+- Wizard для быстрого создания лендинга по индустрии и стилю.
+- Palette блоков: header, hero, offers/products, lead form, footer.
+- Inspector с вкладками `Контент`, `Дизайн`, `Поведение`.
+- Редактирование ссылок, CTA, изображений, цен, карточек предложений, полей формы, карты и контактов.
+- Header variants: centered, split, reservation bar, editorial, burger, stretched nav.
+- Desktop/mobile preview внутри builder.
+- Container queries для preview-блоков: mobile preview адаптируется по ширине холста, а не только по ширине окна браузера.
+- Локальные Material Icons в `public/fonts`, чтобы builder не зависел от Google Fonts при разработке.
+
+## Хранение и публикация
+
+Сейчас проект работает без backend:
+
+- проекты, релизы, ревизии и заявки сохраняются в `localStorage`;
+- кнопка публикации создает локальную demo-публикацию;
+- публичный preview доступен по локальному route `/p/:projectId`;
+- persistence слой нормализует данные из storage и отбрасывает небезопасные ссылки вроде `javascript:` и `data:`.
+
+Для production-публикации нужен отдельный backend-репозиторий/порт `ProjectRepository`.
 
 ## Правила разработки
 
@@ -167,9 +208,11 @@ State management:
 1. Добавить новый тип блока в `features/builder/domain/models/block-type.model.ts`.
 2. Создать отдельный интерфейс конфигурации блока, расширяющий `BlockConfig<'block-type'>`.
 3. Добавить новую конфигурацию в union `PageBlockConfig`.
-4. Создать standalone-компонент блока в `features/builder/ui`.
-5. Добавить отображение блока в `BlockRendererComponent`.
-6. Добавить методы в `BuilderStore`, если блоку нужны изменения состояния.
+4. Добавить metadata, variants, default factory и clone в `features/builder/domain/registry/block-registry.ts`.
+5. Создать preview-компонент блока в `features/preview/ui`.
+6. Добавить отображение блока в `BlockRendererComponent`.
+7. Добавить inspector/store-методы, если блоку нужны изменения состояния.
+8. Добавить validation и smoke/source-contract тесты.
 
 ## Конфигурация генерации
 
@@ -210,6 +253,8 @@ Spec-файлы отключены по умолчанию через Angular sc
 
 ```bash
 npm.cmd run lint
+npm.cmd test
+npm.cmd run e2e
 npm.cmd run build
 npm.cmd run format:check
 npm.cmd audit
