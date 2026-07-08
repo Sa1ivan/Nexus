@@ -14,7 +14,7 @@
     </div>
 
     <form class="lead-form__form" (submit)="submit($event)">
-      @for (field of block().fields; track field.id) {
+      @for (field of orderedFields(); track field.id) {
         <label class="lead-form__field">
           <span>{{ field.label }}</span>
 
@@ -32,6 +32,9 @@
               [placeholder]="field.placeholder"
               [required]="field.required"
             />
+          }
+          @if (field.helpText) {
+            <small>{{ field.helpText }}</small>
           }
         </label>
       }

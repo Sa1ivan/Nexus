@@ -4,16 +4,28 @@ import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
 import { buildLandingDraft } from '../data-access/landing-draft.factory';
 import { ProjectPersistenceService } from '../data-access/project-persistence.service';
 import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../domain/models';
-import { createBlockAnchor, createBlockId } from '../domain/utils/builder-ids';
+import {
+  cloneRegisteredBlock,
+  createDefaultBlock as createRegisteredDefaultBlock,
+  createDefaultBooking,
+  createLink,
+  normalizeLinkTarget,
+} from '../domain/registry/block-registry';
 import type {
   BlockType,
   CompleteLandingWizardSelection,
+  HeaderBookingConfig,
   HeroBlockStyles,
   HeroBlockUpdate,
   LandingDesignSettings,
   LeadFormBlockUpdate,
+  LeadFormFieldConfig,
+  LinkConfig,
+  LinkConfigUpdate,
+  MediaAsset,
+  MediaAssetUpdate,
   OfferListBlockUpdate,
-  OfferListItem,
+  OfferListItemUpdate,
   PageBlockConfig,
   PageConfig,
   Project,
@@ -24,15 +36,6 @@ import type {
 } from '../domain/models';
 
 type MoveDirection = 'up' | 'down';
-
-const DEFAULT_HERO_STYLES: HeroBlockStyles = {
-  backgroundColor: '#f5f7fb',
-  textColor: '#111827',
-  buttonBackgroundColor: '#111827',
-  buttonTextColor: '#ffffff',
-  minHeight: '520px',
-  alignment: 'center',
-};
 
 @Injectable({
   providedIn: 'root',
@@ -405,6 +408,8 @@ export class BuilderStore {
         subtitle: update.subtitle ?? block.subtitle,
         buttonText: update.buttonText ?? block.buttonText,
         buttonHref: update.buttonHref ?? block.buttonHref,
+        media: this.mergeOptionalMedia(block.media, update.media),
+        secondaryButton: this.mergeOptionalLink(block.secondaryButton, update.secondaryButton),
         styles: this.mergeHeroStyles(block.styles, update.styles),
       };
     });
@@ -421,7 +426,11 @@ export class BuilderStore {
         variant: update.variant ?? block.variant,
         brandName: update.brandName ?? block.brandName,
         navigationItems: update.navigationItems ?? block.navigationItems,
-        ctaText: update.ctaText ?? block.ctaText,
+        cta: this.mergeLink(block.cta, update.cta),
+        booking:
+          update.booking === undefined
+            ? block.booking
+            : this.mergeBooking(block.booking ?? createDefaultBooking(), update.booking),
       };
     });
   }
@@ -442,7 +451,7 @@ export class BuilderStore {
     });
   }
 
-  updateOfferListItem(blockId: string, itemIndex: number, update: Partial<OfferListItem>): boolean {
+  updateOfferListItem(blockId: string, itemIndex: number, update: OfferListItemUpdate): boolean {
     return this.updateBlock(blockId, (block) => {
       if (block.type !== 'offerList' || itemIndex < 0 || itemIndex >= block.items.length) {
         return block;
@@ -457,6 +466,10 @@ export class BuilderStore {
                 title: update.title ?? item.title,
                 description: update.description ?? item.description,
                 meta: update.meta ?? item.meta,
+                price: update.price ?? item.price,
+                badge: update.badge ?? item.badge,
+                image: this.mergeOptionalMedia(item.image, update.image),
+                cta: this.mergeOptionalLink(item.cta, update.cta),
               }
             : item,
         ),
@@ -478,6 +491,13 @@ export class BuilderStore {
             title: 'Новый пункт',
             description: 'Опишите преимущество, услугу или пакет.',
             meta: 'Новое',
+            price: 'от 0 ₽',
+            badge: 'Новое',
+            image: {
+              src: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
+              alt: 'Новый пункт предложения',
+            },
+            cta: createLink('Подробнее', '#lead-form'),
           },
         ],
       };
@@ -507,9 +527,18 @@ export class BuilderStore {
         ...block,
         variant: update.variant ?? block.variant,
         brandName: update.brandName ?? block.brandName,
-        ctaText: update.ctaText ?? block.ctaText,
+        cta: this.mergeLink(block.cta, update.cta),
         contactLines: update.contactLines ?? block.contactLines,
         links: update.links ?? block.links,
+        socialLinks: update.socialLinks ?? block.socialLinks,
+        map:
+          update.map === undefined
+            ? block.map
+            : {
+                label: update.map.label ?? block.map?.label ?? 'Карта',
+                address: update.map.address ?? block.map?.address ?? '',
+                embedUrl: update.map.embedUrl ?? block.map?.embedUrl ?? '',
+              },
       };
     });
   }
@@ -527,6 +556,74 @@ export class BuilderStore {
         submitText: update.submitText ?? block.submitText,
         successMessage: update.successMessage ?? block.successMessage,
         fields: update.fields ?? block.fields,
+      };
+    });
+  }
+
+  updateLeadFormField(
+    blockId: string,
+    fieldId: string,
+    update: Partial<LeadFormFieldConfig>,
+  ): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'leadForm') {
+        return block;
+      }
+
+      return {
+        ...block,
+        fields: block.fields.map((field) =>
+          field.id === fieldId
+            ? {
+                ...field,
+                label: update.label ?? field.label,
+                type: update.type ?? field.type,
+                placeholder: update.placeholder ?? field.placeholder,
+                required: update.required ?? field.required,
+                helpText: update.helpText ?? field.helpText,
+                order: update.order ?? field.order,
+              }
+            : field,
+        ),
+      };
+    });
+  }
+
+  addLeadFormField(blockId: string): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'leadForm') {
+        return block;
+      }
+
+      const order = block.fields.length + 1;
+
+      return {
+        ...block,
+        fields: [
+          ...block.fields,
+          {
+            id: `field-${order}`,
+            label: 'Новое поле',
+            type: 'text',
+            placeholder: 'Введите значение',
+            required: false,
+            helpText: 'Подсказка для посетителя.',
+            order,
+          },
+        ],
+      };
+    });
+  }
+
+  removeLeadFormField(blockId: string, fieldId: string): boolean {
+    return this.updateBlock(blockId, (block) => {
+      if (block.type !== 'leadForm' || block.fields.length <= 1) {
+        return block;
+      }
+
+      return {
+        ...block,
+        fields: block.fields.filter((field) => field.id !== fieldId),
       };
     });
   }
@@ -552,9 +649,10 @@ export class BuilderStore {
               return block;
             }
 
-            didUpdate = true;
+            const nextBlock = updater(block);
+            didUpdate = didUpdate || nextBlock !== block;
 
-            return updater(block);
+            return nextBlock;
           }),
         };
       }),
@@ -571,156 +669,14 @@ export class BuilderStore {
     type: BlockType,
     currentBlocks: readonly PageBlockConfig[],
   ): PageBlockConfig {
-    const id = createBlockId(type);
-    const anchor = createBlockAnchor(
-      type,
-      currentBlocks.map((block) => block.anchor),
-    );
-    const design = DEFAULT_LANDING_DESIGN_SETTINGS;
-
-    switch (type) {
-      case 'siteHeader':
-        return {
-          id,
-          anchor,
-          type,
-          design,
-          variant: 'centeredHero',
-          brandName: 'Nexus Studio',
-          navigationItems: ['Оффер', 'Преимущества', 'Контакты'],
-          ctaText: 'Связаться',
-        };
-      case 'hero':
-        return {
-          id,
-          anchor,
-          type,
-          design,
-          title: 'Большой ясный оффер для нового блока',
-          subtitle: 'Опишите ценность, сценарий и следующий шаг для посетителя.',
-          buttonText: 'Начать',
-          buttonHref: '#lead-form',
-          styles: DEFAULT_HERO_STYLES,
-        };
-      case 'offerList':
-        return {
-          id,
-          anchor,
-          type,
-          design,
-          variant: 'catalogGrid',
-          eyebrow: 'Подборка',
-          title: 'Что можно показать в этом блоке',
-          items: [
-            {
-              title: 'Первый пункт',
-              description: 'Короткое описание пользы, услуги или продукта.',
-              meta: 'База',
-            },
-            {
-              title: 'Второй пункт',
-              description: 'Добавьте детали, цену, срок или формат работы.',
-              meta: 'Про',
-            },
-            {
-              title: 'Третий пункт',
-              description: 'Закройте список сильным аргументом для заявки.',
-              meta: 'Плюс',
-            },
-          ],
-        };
-      case 'siteFooter':
-        return {
-          id,
-          anchor,
-          type,
-          design,
-          variant: 'bookingFooter',
-          brandName: 'Nexus Studio',
-          ctaText: 'Оставить заявку',
-          contactLines: ['hello@nexus.app', '+7 999 000-00-00', 'Ответ в течение дня'],
-          links: ['Условия', 'Контакты', 'Политика'],
-        };
-      case 'leadForm':
-        return {
-          id,
-          anchor,
-          type,
-          design,
-          title: 'Оставьте заявку',
-          description: 'Напишите, что нужно собрать, и мы вернемся с понятным следующим шагом.',
-          submitText: 'Отправить',
-          successMessage: 'Заявка сохранена. Мы скоро свяжемся с вами.',
-          fields: [
-            {
-              id: 'name',
-              label: 'Имя',
-              type: 'text',
-              placeholder: 'Как к вам обращаться',
-              required: true,
-            },
-            {
-              id: 'contact',
-              label: 'Телефон или email',
-              type: 'text',
-              placeholder: '+7 999 000-00-00',
-              required: true,
-            },
-          ],
-        };
-    }
+    return createRegisteredDefaultBlock(type, currentBlocks);
   }
 
   private cloneBlock(
     block: PageBlockConfig,
     currentBlocks: readonly PageBlockConfig[],
   ): PageBlockConfig {
-    const id = createBlockId(block.type);
-    const anchor = createBlockAnchor(
-      block.type,
-      currentBlocks.map((currentBlock) => currentBlock.anchor),
-    );
-
-    switch (block.type) {
-      case 'siteHeader':
-        return {
-          ...block,
-          id,
-          anchor,
-          navigationItems: [...block.navigationItems],
-        };
-      case 'hero':
-        return {
-          ...block,
-          id,
-          anchor,
-          styles: {
-            ...block.styles,
-          },
-        };
-      case 'offerList':
-        return {
-          ...block,
-          id,
-          anchor,
-          items: block.items.map((item) => ({ ...item })),
-        };
-      case 'siteFooter':
-        return {
-          ...block,
-          id,
-          anchor,
-          contactLines: [...block.contactLines],
-          links: [...block.links],
-        };
-      case 'leadForm':
-        return {
-          ...block,
-          id,
-          anchor,
-          fields: block.fields.map((field) => ({ ...field })),
-        };
-    }
+    return cloneRegisteredBlock(block, currentBlocks);
   }
 
   private getInsertIndex(blocks: readonly PageBlockConfig[], afterBlockId: string | null): number {
@@ -731,6 +687,75 @@ export class BuilderStore {
     const blockIndex = blocks.findIndex((block) => block.id === afterBlockId);
 
     return blockIndex === -1 ? blocks.length : blockIndex + 1;
+  }
+
+  private mergeLink(current: LinkConfig, update?: LinkConfigUpdate): LinkConfig {
+    if (update === undefined) {
+      return current;
+    }
+
+    const target = normalizeLinkTarget(update.target ?? current.target);
+
+    return {
+      label: update.label ?? current.label,
+      target,
+      kind:
+        update.kind ??
+        (target.startsWith('#')
+          ? 'anchor'
+          : target.startsWith('mailto:')
+            ? 'email'
+            : target.startsWith('tel:')
+              ? 'phone'
+              : target.startsWith('https://')
+                ? 'external'
+                : 'internal'),
+    };
+  }
+
+  private mergeOptionalLink(
+    current: LinkConfig | undefined,
+    update: LinkConfigUpdate | null | undefined,
+  ): LinkConfig | undefined {
+    if (update === undefined) {
+      return current;
+    }
+
+    if (update === null) {
+      return undefined;
+    }
+
+    return this.mergeLink(current ?? createLink('Подробнее', '#lead-form'), update);
+  }
+
+  private mergeOptionalMedia(
+    current: MediaAsset | undefined,
+    update: MediaAssetUpdate | null | undefined,
+  ): MediaAsset | undefined {
+    if (update === undefined) {
+      return current;
+    }
+
+    if (update === null) {
+      return undefined;
+    }
+
+    return {
+      src: update.src ?? current?.src ?? '',
+      alt: update.alt ?? current?.alt ?? '',
+      focalPoint: update.focalPoint ?? current?.focalPoint,
+    };
+  }
+
+  private mergeBooking(
+    current: HeaderBookingConfig,
+    update: NonNullable<SiteHeaderBlockUpdate['booking']>,
+  ): HeaderBookingConfig {
+    return {
+      dateLabel: update.dateLabel ?? current.dateLabel,
+      partySizeLabel: update.partySizeLabel ?? current.partySizeLabel,
+      action: this.mergeLink(current.action, update.action),
+    };
   }
 
   private mergeDesign(

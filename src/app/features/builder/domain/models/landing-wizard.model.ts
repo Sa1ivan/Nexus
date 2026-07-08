@@ -12,7 +12,13 @@ export type LandingIndustry = 'restaurant' | 'hotel' | 'beauty' | 'product' | 'e
 
 export type LandingTone = 'premium' | 'friendly' | 'minimal' | 'bold';
 
-export type LandingHeaderVariant = 'centeredHero' | 'splitMedia' | 'reservationBar' | 'editorial';
+export type LandingHeaderVariant =
+  | 'centeredHero'
+  | 'splitMedia'
+  | 'reservationBar'
+  | 'editorial'
+  | 'burgerMenu'
+  | 'stretchedNav';
 
 export type LandingOfferListVariant = 'menuGrid' | 'roomCards' | 'pricingTable' | 'catalogGrid';
 

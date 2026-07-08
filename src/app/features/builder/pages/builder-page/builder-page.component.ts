@@ -23,6 +23,11 @@ import {
   LANDING_TEMPLATE_STYLE_OPTIONS,
 } from '../../data-access/landing-wizard-options';
 import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../../domain/models';
+import {
+  BLOCK_DEFINITIONS,
+  BLOCK_PALETTE,
+  createLinkFromText,
+} from '../../domain/registry/block-registry';
 import type {
   BlockType,
   HeroBlockStyles,
@@ -34,17 +39,11 @@ import type {
   LandingHeaderVariant,
   LandingOfferListVariant,
   LandingTemplateStyle,
+  LeadFormFieldType,
   PageBlockConfig,
 } from '../../domain/models';
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockRendererComponent } from '../../../preview/ui/block-renderer/block-renderer.component';
-
-interface BlockPaletteItem {
-  readonly type: BlockType;
-  readonly label: string;
-  readonly description: string;
-  readonly icon: string;
-}
 
 interface HeroAlignmentOption {
   readonly id: HeroContentAlignment;
@@ -54,12 +53,25 @@ interface HeroAlignmentOption {
 
 type CanvasMode = 'edit' | 'preview';
 type CanvasViewport = 'desktop' | 'mobile';
+type InspectorTab = 'content' | 'design' | 'behavior';
+type MobilePanel = 'blocks' | 'canvas' | 'settings';
 type HeroTextField = 'title' | 'subtitle' | 'buttonText' | 'buttonHref';
 type HeroColorField = 'backgroundColor' | 'textColor' | 'buttonBackgroundColor' | 'buttonTextColor';
-type HeaderTextField = 'brandName' | 'ctaText';
+type HeaderTextField = 'brandName';
 type OfferTextField = 'eyebrow' | 'title';
-type FooterTextField = 'brandName' | 'ctaText';
+type OfferItemTextField =
+  | 'title'
+  | 'meta'
+  | 'description'
+  | 'price'
+  | 'badge'
+  | 'imageSrc'
+  | 'imageAlt'
+  | 'ctaLabel'
+  | 'ctaTarget';
+type FooterTextField = 'brandName';
 type LeadFormTextField = 'title' | 'description' | 'submitText' | 'successMessage';
+type LeadFieldTextField = 'label' | 'placeholder' | 'helpText';
 
 @Component({
   selector: 'app-builder-page',
@@ -96,42 +108,12 @@ export class BuilderPageComponent implements OnInit {
   readonly selectedDesign = computed(
     () => this.selectedBlock()?.design ?? DEFAULT_LANDING_DESIGN_SETTINGS,
   );
-  readonly isPreviewOpen = signal<boolean>(false);
   readonly canvasMode = signal<CanvasMode>('edit');
   readonly canvasViewport = signal<CanvasViewport>('desktop');
+  readonly inspectorTab = signal<InspectorTab>('content');
+  readonly mobilePanel = signal<MobilePanel>('canvas');
 
-  readonly blockPalette: readonly BlockPaletteItem[] = [
-    {
-      type: 'siteHeader',
-      label: 'Хедер',
-      description: 'Логотип, меню и CTA.',
-      icon: 'web_asset',
-    },
-    {
-      type: 'hero',
-      label: 'Hero',
-      description: 'Первый экран и оффер.',
-      icon: 'auto_awesome',
-    },
-    {
-      type: 'offerList',
-      label: 'Предложения',
-      description: 'Карточки услуг или продуктов.',
-      icon: 'view_module',
-    },
-    {
-      type: 'siteFooter',
-      label: 'Футер',
-      description: 'Контакты и финальный CTA.',
-      icon: 'call_to_action',
-    },
-    {
-      type: 'leadForm',
-      label: 'Форма',
-      description: 'Сбор заявки и контактов.',
-      icon: 'dynamic_form',
-    },
-  ] as const;
+  readonly blockPalette = BLOCK_PALETTE;
   readonly heroAlignmentOptions: readonly HeroAlignmentOption[] = [
     {
       id: 'left',
@@ -193,6 +175,14 @@ export class BuilderPageComponent implements OnInit {
     this.canvasViewport.set(viewport);
   }
 
+  setInspectorTab(tab: InspectorTab): void {
+    this.inspectorTab.set(tab);
+  }
+
+  setMobilePanel(panel: MobilePanel): void {
+    this.mobilePanel.set(panel);
+  }
+
   duplicateBlock(blockId: string): void {
     this.builderStore.duplicateBlock(blockId);
   }
@@ -214,14 +204,6 @@ export class BuilderPageComponent implements OnInit {
     if (didReorder) {
       this.builderStore.selectBlock(event.item.data.id);
     }
-  }
-
-  openPreview(): void {
-    this.isPreviewOpen.set(true);
-  }
-
-  closePreview(): void {
-    this.isPreviewOpen.set(false);
   }
 
   updateSiteName(event: Event): void {
@@ -287,6 +269,22 @@ export class BuilderPageComponent implements OnInit {
     });
   }
 
+  updateHeroMedia(blockId: string, field: 'src' | 'alt', event: Event): void {
+    this.builderStore.updateHeroBlock(blockId, {
+      media: {
+        [field]: this.readInputValue(event),
+      },
+    });
+  }
+
+  updateHeroSecondaryButton(blockId: string, field: 'label' | 'target', event: Event): void {
+    this.builderStore.updateHeroBlock(blockId, {
+      secondaryButton: {
+        [field]: this.readInputValue(event),
+      },
+    });
+  }
+
   updateHeaderText(blockId: string, field: HeaderTextField, event: Event): void {
     const value = this.readInputValue(event);
 
@@ -294,15 +292,42 @@ export class BuilderPageComponent implements OnInit {
       case 'brandName':
         this.builderStore.updateSiteHeaderBlock(blockId, { brandName: value });
         return;
-      case 'ctaText':
-        this.builderStore.updateSiteHeaderBlock(blockId, { ctaText: value });
-        return;
     }
+  }
+
+  updateHeaderCta(blockId: string, field: 'label' | 'target', event: Event): void {
+    this.builderStore.updateSiteHeaderBlock(blockId, {
+      cta: {
+        [field]: this.readInputValue(event),
+      },
+    });
+  }
+
+  updateHeaderBooking(
+    blockId: string,
+    field: 'dateLabel' | 'partySizeLabel' | 'actionLabel' | 'actionTarget',
+    event: Event,
+  ): void {
+    const value = this.readInputValue(event);
+
+    if (field === 'actionLabel') {
+      this.builderStore.updateSiteHeaderBlock(blockId, { booking: { action: { label: value } } });
+      return;
+    }
+
+    if (field === 'actionTarget') {
+      this.builderStore.updateSiteHeaderBlock(blockId, { booking: { action: { target: value } } });
+      return;
+    }
+
+    this.builderStore.updateSiteHeaderBlock(blockId, { booking: { [field]: value } });
   }
 
   updateHeaderNavigation(blockId: string, event: Event): void {
     this.builderStore.updateSiteHeaderBlock(blockId, {
-      navigationItems: this.splitInlineList(this.readInputValue(event)),
+      navigationItems: this.splitInlineList(this.readInputValue(event)).map((label, index) =>
+        createLinkFromText(label, index),
+      ),
     });
   }
 
@@ -327,22 +352,35 @@ export class BuilderPageComponent implements OnInit {
     this.builderStore.updateOfferListBlock(blockId, { variant });
   }
 
-  updateOfferItemTitle(blockId: string, itemIndex: number, event: Event): void {
-    this.builderStore.updateOfferListItem(blockId, itemIndex, {
-      title: this.readInputValue(event),
-    });
-  }
+  updateOfferItemText(
+    blockId: string,
+    itemIndex: number,
+    field: OfferItemTextField,
+    event: Event,
+  ): void {
+    const value = this.readInputValue(event);
 
-  updateOfferItemMeta(blockId: string, itemIndex: number, event: Event): void {
-    this.builderStore.updateOfferListItem(blockId, itemIndex, {
-      meta: this.readInputValue(event),
-    });
-  }
-
-  updateOfferItemDescription(blockId: string, itemIndex: number, event: Event): void {
-    this.builderStore.updateOfferListItem(blockId, itemIndex, {
-      description: this.readInputValue(event),
-    });
+    switch (field) {
+      case 'title':
+      case 'meta':
+      case 'description':
+      case 'price':
+      case 'badge':
+        this.builderStore.updateOfferListItem(blockId, itemIndex, { [field]: value });
+        return;
+      case 'imageSrc':
+        this.builderStore.updateOfferListItem(blockId, itemIndex, { image: { src: value } });
+        return;
+      case 'imageAlt':
+        this.builderStore.updateOfferListItem(blockId, itemIndex, { image: { alt: value } });
+        return;
+      case 'ctaLabel':
+        this.builderStore.updateOfferListItem(blockId, itemIndex, { cta: { label: value } });
+        return;
+      case 'ctaTarget':
+        this.builderStore.updateOfferListItem(blockId, itemIndex, { cta: { target: value } });
+        return;
+    }
   }
 
   addOfferItem(blockId: string): void {
@@ -360,10 +398,15 @@ export class BuilderPageComponent implements OnInit {
       case 'brandName':
         this.builderStore.updateSiteFooterBlock(blockId, { brandName: value });
         return;
-      case 'ctaText':
-        this.builderStore.updateSiteFooterBlock(blockId, { ctaText: value });
-        return;
     }
+  }
+
+  updateFooterCta(blockId: string, field: 'label' | 'target', event: Event): void {
+    this.builderStore.updateSiteFooterBlock(blockId, {
+      cta: {
+        [field]: this.readInputValue(event),
+      },
+    });
   }
 
   updateFooterContacts(blockId: string, event: Event): void {
@@ -374,7 +417,17 @@ export class BuilderPageComponent implements OnInit {
 
   updateFooterLinks(blockId: string, event: Event): void {
     this.builderStore.updateSiteFooterBlock(blockId, {
-      links: this.splitInlineList(this.readInputValue(event)),
+      links: this.splitInlineList(this.readInputValue(event)).map((label, index) =>
+        createLinkFromText(label, index),
+      ),
+    });
+  }
+
+  updateFooterMap(blockId: string, field: 'label' | 'address' | 'embedUrl', event: Event): void {
+    this.builderStore.updateSiteFooterBlock(blockId, {
+      map: {
+        [field]: this.readInputValue(event),
+      },
     });
   }
 
@@ -401,19 +454,43 @@ export class BuilderPageComponent implements OnInit {
     }
   }
 
-  getBlockIcon(type: BlockType): string {
-    switch (type) {
-      case 'siteHeader':
-        return 'web_asset';
-      case 'hero':
-        return 'auto_awesome';
-      case 'offerList':
-        return 'view_module';
-      case 'siteFooter':
-        return 'call_to_action';
-      case 'leadForm':
-        return 'dynamic_form';
+  updateLeadFieldText(
+    blockId: string,
+    fieldId: string,
+    field: LeadFieldTextField,
+    event: Event,
+  ): void {
+    this.builderStore.updateLeadFormField(blockId, fieldId, {
+      [field]: this.readInputValue(event),
+    });
+  }
+
+  updateLeadFieldType(blockId: string, fieldId: string, event: Event): void {
+    this.builderStore.updateLeadFormField(blockId, fieldId, {
+      type: this.readInputValue(event) as LeadFormFieldType,
+    });
+  }
+
+  updateLeadFieldRequired(blockId: string, fieldId: string, event: Event): void {
+    const target = event.target;
+
+    if (target instanceof HTMLInputElement) {
+      this.builderStore.updateLeadFormField(blockId, fieldId, {
+        required: target.checked,
+      });
     }
+  }
+
+  addLeadField(blockId: string): void {
+    this.builderStore.addLeadFormField(blockId);
+  }
+
+  removeLeadField(blockId: string, fieldId: string): void {
+    this.builderStore.removeLeadFormField(blockId, fieldId);
+  }
+
+  getBlockIcon(type: BlockType): string {
+    return BLOCK_DEFINITIONS[type].icon;
   }
 
   getBlockLabel(block: PageBlockConfig): string {
@@ -432,18 +509,7 @@ export class BuilderPageComponent implements OnInit {
   }
 
   getBlockTypeLabel(type: BlockType): string {
-    switch (type) {
-      case 'siteHeader':
-        return 'Хедер';
-      case 'hero':
-        return 'Hero';
-      case 'offerList':
-        return 'Предложения';
-      case 'siteFooter':
-        return 'Футер';
-      case 'leadForm':
-        return 'Форма';
-    }
+    return BLOCK_DEFINITIONS[type].label;
   }
 
   getAccentValue(accentColor: LandingAccentColor): string {
@@ -460,8 +526,8 @@ export class BuilderPageComponent implements OnInit {
     return direction === 'up' ? index > 0 : index < this.activeBlocks().length - 1;
   }
 
-  formatInlineList(items: readonly string[]): string {
-    return items.join(', ');
+  formatLinkLabels(items: readonly { readonly label: string }[]): string {
+    return items.map((item) => item.label).join(', ');
   }
 
   formatMultilineList(items: readonly string[]): string {

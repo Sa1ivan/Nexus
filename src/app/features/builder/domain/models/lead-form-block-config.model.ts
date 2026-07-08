@@ -8,6 +8,8 @@ export interface LeadFormFieldConfig {
   readonly type: LeadFormFieldType;
   readonly placeholder: string;
   readonly required: boolean;
+  readonly helpText?: string;
+  readonly order: number;
 }
 
 export interface LeadFormBlockConfig extends BlockConfig<'leadForm'> {

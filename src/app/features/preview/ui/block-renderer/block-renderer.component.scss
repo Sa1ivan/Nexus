@@ -1,7 +1,10 @@
 :host {
   display: block;
+  min-width: 0;
 }
 
 .block-renderer {
   display: block;
+  min-width: 0;
+  container: site-preview / inline-size;
 }

@@ -1,5 +1,6 @@
 import { DEFAULT_LANDING_DESIGN_SETTINGS, SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
 import type { SiteConfig } from '../domain/models';
+import { createLink } from '../domain/registry/block-registry';
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   id: 'site-mvp',
@@ -20,6 +21,12 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           subtitle: 'Чистая основа для визуального конструктора лендингов и сайтов.',
           buttonText: 'Начать сборку',
           buttonHref: '#lead-form',
+          secondaryButton: createLink('Посмотреть блоки', '#lead-form'),
+          media: {
+            src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+            alt: 'Рабочая зона конструктора сайтов',
+            focalPoint: { x: 50, y: 50 },
+          },
           styles: {
             backgroundColor: '#f5f7fb',
             textColor: '#111827',
@@ -45,6 +52,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
               type: 'text',
               placeholder: 'Как к вам обращаться',
               required: true,
+              helpText: 'Имя для ответа на заявку.',
+              order: 1,
             },
             {
               id: 'contact',
@@ -52,6 +61,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
               type: 'text',
               placeholder: '+7 999 000-00-00',
               required: true,
+              helpText: 'Телефон или email для связи.',
+              order: 2,
             },
           ],
         },

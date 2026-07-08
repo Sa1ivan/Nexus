@@ -20,6 +20,14 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
   assert.match(builderTemplate, /saveProject\(\)/);
   assert.match(builderTemplate, /publishProject\(\)/);
   assert.match(builderTemplate, /publishedUrl\(\)/);
+  assert.match(builderTemplate, /Демо-публикация/);
+  assert.match(builderTemplate, /Локальная ссылка/);
+  assert.match(builderTemplate, /Контент/);
+  assert.match(builderTemplate, /Дизайн/);
+  assert.match(builderTemplate, /Поведение/);
+  assert.match(builderTemplate, /updateHeroMedia/);
+  assert.match(builderTemplate, /updateOfferItemText/);
+  assert.match(builderTemplate, /addLeadField/);
   assert.match(wizardTemplate, /updateBusinessDetails\('brandName'/);
   assert.match(wizardTemplate, /updateBusinessDetails\('heroTitle'/);
   assert.match(publicPreview, /getPublishedRelease/);

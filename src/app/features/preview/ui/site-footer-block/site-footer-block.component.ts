@@ -9,8 +9,6 @@ import {
 } from '../../../builder/domain/models';
 import type { SiteFooterBlockConfig } from '../../../builder/domain/models';
 
-const FOOTER_LINK_HREFS: readonly string[] = ['#header', '#hero', '#offers', '#lead-form'];
-
 @Component({
   selector: 'app-site-footer-block',
   standalone: true,
@@ -20,7 +18,6 @@ const FOOTER_LINK_HREFS: readonly string[] = ['#header', '#hero', '#offers', '#l
 })
 export class SiteFooterBlockComponent {
   readonly block = input.required<SiteFooterBlockConfig>();
-  readonly ctaHref = '#lead-form';
 
   readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
   readonly accentColor = computed<string>(() => getLandingAccentValue(this.design().accentColor));
@@ -29,8 +26,4 @@ export class SiteFooterBlockComponent {
   readonly sectionPaddingY = computed<string>(() =>
     getLandingSectionPaddingY(this.design().density),
   );
-
-  footerLinkHref(index: number): string {
-    return FOOTER_LINK_HREFS[index % FOOTER_LINK_HREFS.length];
-  }
 }

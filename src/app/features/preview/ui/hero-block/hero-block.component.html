@@ -11,16 +11,35 @@
   [style.--landing-radius]="radiusValue()"
   [style.--landing-section-y]="sectionPaddingY()"
 >
-  <div class="hero-block__content">
-    <h1 class="hero-block__title">{{ block().title }}</h1>
-    <p class="hero-block__subtitle">{{ block().subtitle }}</p>
-    <a
-      class="hero-block__button"
-      [href]="block().buttonHref"
-      [style.background-color]="block().styles.buttonBackgroundColor"
-      [style.color]="block().styles.buttonTextColor"
-    >
-      {{ block().buttonText }}
-    </a>
+  <div class="hero-block__layout">
+    <div class="hero-block__content">
+      <h1 class="hero-block__title">{{ block().title }}</h1>
+      <p class="hero-block__subtitle">{{ block().subtitle }}</p>
+      <div class="hero-block__actions">
+        <a
+          class="hero-block__button"
+          [href]="block().buttonHref"
+          [style.background-color]="block().styles.buttonBackgroundColor"
+          [style.color]="block().styles.buttonTextColor"
+        >
+          {{ block().buttonText }}
+        </a>
+
+        @if (block().secondaryButton; as secondaryButton) {
+          <a
+            class="hero-block__button hero-block__button--secondary"
+            [href]="secondaryButton.target"
+          >
+            {{ secondaryButton.label }}
+          </a>
+        }
+      </div>
+    </div>
+
+    @if (block().media; as media) {
+      <figure class="hero-block__media">
+        <img [src]="media.src" [alt]="media.alt" />
+      </figure>
+    }
   </div>
 </section>

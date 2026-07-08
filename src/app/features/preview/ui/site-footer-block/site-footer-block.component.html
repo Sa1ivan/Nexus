@@ -15,7 +15,7 @@
   <div class="site-footer__main">
     <div>
       <strong class="site-footer__brand">{{ block().brandName }}</strong>
-      <a class="site-footer__cta" [href]="ctaHref">{{ block().ctaText }}</a>
+      <a class="site-footer__cta" [href]="block().cta.target">{{ block().cta.label }}</a>
     </div>
 
     <address class="site-footer__contacts">
@@ -25,13 +25,18 @@
     </address>
 
     @if (block().variant === 'contactMap') {
-      <div class="site-footer__map">Карта</div>
+      @if (block().map; as map) {
+        <a class="site-footer__map" [href]="map.embedUrl" target="_blank" rel="noreferrer">
+          <span>{{ map.label }}</span>
+          <strong>{{ map.address }}</strong>
+        </a>
+      }
     }
   </div>
 
   <div class="site-footer__bottom">
     @for (link of block().links; track link) {
-      <a [href]="footerLinkHref($index)">{{ link }}</a>
+      <a [href]="link.target">{{ link.label }}</a>
     }
   </div>
 </footer>

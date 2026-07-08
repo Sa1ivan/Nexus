@@ -1,18 +1,35 @@
 import type { BlockConfig } from './block-config.model';
 import type { LandingFooterVariant } from './landing-wizard.model';
+import type { LinkConfig, LinkConfigUpdate } from './link-config.model';
+
+export interface FooterMapConfig {
+  readonly label: string;
+  readonly address: string;
+  readonly embedUrl: string;
+}
+
+export interface FooterMapUpdate {
+  readonly label?: string;
+  readonly address?: string;
+  readonly embedUrl?: string;
+}
 
 export interface SiteFooterBlockConfig extends BlockConfig<'siteFooter'> {
   readonly variant: LandingFooterVariant;
   readonly brandName: string;
-  readonly ctaText: string;
+  readonly cta: LinkConfig;
   readonly contactLines: readonly string[];
-  readonly links: readonly string[];
+  readonly links: readonly LinkConfig[];
+  readonly socialLinks?: readonly LinkConfig[];
+  readonly map?: FooterMapConfig;
 }
 
 export interface SiteFooterBlockUpdate {
   readonly variant?: LandingFooterVariant;
   readonly brandName?: string;
-  readonly ctaText?: string;
+  readonly cta?: LinkConfigUpdate;
   readonly contactLines?: readonly string[];
-  readonly links?: readonly string[];
+  readonly links?: readonly LinkConfig[];
+  readonly socialLinks?: readonly LinkConfig[];
+  readonly map?: FooterMapUpdate;
 }

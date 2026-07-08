@@ -140,6 +140,18 @@ export const LANDING_HEADER_OPTIONS: readonly LandingOption<LandingHeaderVariant
     description: 'Крупная типографика, короткое меню и спокойная премиальная подача.',
     icon: 'auto_stories',
   },
+  {
+    id: 'burgerMenu',
+    title: 'Бургер-меню',
+    description: 'Компактная верхняя панель с кнопкой меню и главным CTA.',
+    icon: 'menu',
+  },
+  {
+    id: 'stretchedNav',
+    title: 'Растянутые кнопки',
+    description: 'Навигация занимает ширину хедера и работает как набор быстрых действий.',
+    icon: 'width_full',
+  },
 ] as const;
 
 export const LANDING_OFFER_LIST_OPTIONS: readonly LandingOption<LandingOfferListVariant>[] = [
@@ -361,11 +373,11 @@ export const LANDING_INDUSTRY_RECOMMENDATIONS: Readonly<
 export const LANDING_HEADER_OPTIONS_BY_INDUSTRY: Readonly<
   Record<LandingIndustry, readonly LandingHeaderVariant[]>
 > = {
-  restaurant: ['reservationBar', 'centeredHero', 'editorial'],
-  hotel: ['splitMedia', 'reservationBar', 'editorial'],
-  beauty: ['centeredHero', 'splitMedia', 'reservationBar'],
-  product: ['splitMedia', 'centeredHero', 'editorial'],
-  education: ['editorial', 'splitMedia', 'centeredHero'],
+  restaurant: ['reservationBar', 'stretchedNav', 'centeredHero'],
+  hotel: ['splitMedia', 'reservationBar', 'burgerMenu'],
+  beauty: ['centeredHero', 'burgerMenu', 'reservationBar'],
+  product: ['splitMedia', 'stretchedNav', 'burgerMenu'],
+  education: ['editorial', 'burgerMenu', 'centeredHero'],
 } as const;
 
 export const LANDING_OFFER_LIST_OPTIONS_BY_INDUSTRY: Readonly<

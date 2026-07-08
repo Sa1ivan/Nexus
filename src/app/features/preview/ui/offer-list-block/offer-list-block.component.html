@@ -19,9 +19,27 @@
     <div class="offer-list__grid">
       @for (item of block().items; track itemIndex; let itemIndex = $index) {
         <article class="offer-list__item">
-          <span class="offer-list__meta">{{ item.meta }}</span>
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.description }}</p>
+          @if (item.image; as image) {
+            <div class="offer-list__media">
+              <img [src]="image.src" [alt]="image.alt" />
+            </div>
+          }
+          <div class="offer-list__item-copy">
+            <div class="offer-list__item-topline">
+              <span class="offer-list__meta">{{ item.meta }}</span>
+              @if (item.badge) {
+                <span class="offer-list__badge">{{ item.badge }}</span>
+              }
+            </div>
+            @if (item.price) {
+              <strong class="offer-list__price">{{ item.price }}</strong>
+            }
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+            @if (item.cta; as cta) {
+              <a class="offer-list__cta" [href]="cta.target">{{ cta.label }}</a>
+            }
+          </div>
         </article>
       }
     </div>

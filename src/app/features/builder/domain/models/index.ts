@@ -15,6 +15,7 @@ export type {
   HeroBlockUpdate,
   HeroContentAlignment,
 } from './hero-block-config.model';
+export type { LinkConfig, LinkConfigUpdate, LinkKind } from './link-config.model';
 export type {
   LandingAccentColor,
   LandingDensity,
@@ -41,10 +42,12 @@ export type {
   LeadFormFieldConfig,
   LeadFormFieldType,
 } from './lead-form-block-config.model';
+export type { MediaAsset, MediaAssetFocalPoint, MediaAssetUpdate } from './media-asset.model';
 export type {
   OfferListBlockConfig,
   OfferListBlockUpdate,
   OfferListItem,
+  OfferListItemUpdate,
 } from './offer-list-block-config.model';
 export type { PageBlockConfig, PageConfig, PageId } from './page-config.model';
 export type {
@@ -57,10 +60,14 @@ export type {
   PublishedRelease,
 } from './project.model';
 export type {
+  FooterMapConfig,
+  FooterMapUpdate,
   SiteFooterBlockConfig,
   SiteFooterBlockUpdate,
 } from './site-footer-block-config.model';
 export type {
+  HeaderBookingConfig,
+  HeaderBookingUpdate,
   SiteHeaderBlockConfig,
   SiteHeaderBlockUpdate,
 } from './site-header-block-config.model';

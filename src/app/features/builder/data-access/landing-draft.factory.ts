@@ -1,4 +1,9 @@
 import { getLandingAccentValue, SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
+import {
+  createDefaultBooking,
+  createLink,
+  createLinkFromText,
+} from '../domain/registry/block-registry';
 import type {
   CompleteLandingWizardSelection,
   HeroContentAlignment,
@@ -168,6 +173,34 @@ const INDUSTRY_PRESETS: Readonly<Record<LandingIndustry, LandingIndustryPreset>>
   },
 } as const;
 
+const OFFER_IMAGE_URLS: Readonly<Record<LandingIndustry, readonly string[]>> = {
+  restaurant: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80',
+  ],
+  hotel: [
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80',
+  ],
+  beauty: [
+    'https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=900&q=80',
+  ],
+  product: [
+    'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
+  ],
+  education: [
+    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80',
+  ],
+};
+
 const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   premium: {
     backgroundColor: '#111827',
@@ -285,8 +318,11 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             design: headerDesign,
             variant: selection.header,
             brandName,
-            navigationItems: preset.navigationItems,
-            ctaText,
+            navigationItems: preset.navigationItems.map((label, index) =>
+              createLinkFromText(label, index),
+            ),
+            cta: createLink(ctaText, ctaDestination),
+            booking: createDefaultBooking(),
           },
           {
             id: 'hero-main',
@@ -297,6 +333,12 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             subtitle: heroSubtitle,
             buttonText: ctaText,
             buttonHref: ctaDestination,
+            secondaryButton: createLink('Посмотреть предложения', '#offers'),
+            media: {
+              src: OFFER_IMAGE_URLS[selection.industry][0] ?? OFFER_IMAGE_URLS.product[0],
+              alt: `${brandName}: визуальный акцент первого экрана`,
+              focalPoint: { x: 50, y: 50 },
+            },
             styles: {
               ...toneStyles,
               backgroundColor: getHeroBackgroundColor(
@@ -317,7 +359,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             variant: selection.offerList,
             eyebrow: preset.offerEyebrow,
             title: preset.offerTitle,
-            items: preset.offers,
+            items: enrichOffers(selection.industry, preset.offers),
           },
           {
             id: 'lead-form-main',
@@ -335,6 +377,8 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
                 type: 'text',
                 placeholder: 'Как к вам обращаться',
                 required: true,
+                helpText: 'Имя для персонального ответа.',
+                order: 1,
               },
               {
                 id: 'contact',
@@ -342,6 +386,8 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
                 type: 'text',
                 placeholder: contactPhone || contactEmail || '+7 999 000-00-00',
                 required: true,
+                helpText: 'Можно оставить телефон или email.',
+                order: 2,
               },
               {
                 id: 'message',
@@ -349,6 +395,8 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
                 type: 'textarea',
                 placeholder: 'Расскажите, что вас интересует',
                 required: false,
+                helpText: 'Поможет подготовить точный ответ.',
+                order: 3,
               },
             ],
           },
@@ -359,13 +407,26 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             design: footerDesign,
             variant: selection.footer,
             brandName,
-            ctaText,
+            cta: createLink(ctaText, ctaDestination),
             contactLines: [
               contactEmail,
               contactPhone,
               preset.contactLines[2] ?? 'Ответ в течение дня',
             ].filter((line) => line.trim().length > 0),
-            links: ['Условия', 'Контакты', 'Политика'],
+            links: [
+              createLink('Условия', '#contact'),
+              createLink('Контакты', '#contact'),
+              createLink('Политика', '#contact'),
+            ],
+            socialLinks: [
+              createLink('Telegram', 'https://t.me/nexus'),
+              createLink('VK', 'https://vk.com/nexus'),
+            ],
+            map: {
+              label: 'Карта',
+              address: preset.contactLines[0] ?? '',
+              embedUrl: 'https://maps.example.com/nexus',
+            },
           },
         ],
       },
@@ -375,4 +436,23 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
 
 function normalizeBusinessValue(value: string, fallback: string): string {
   return value.trim() || fallback;
+}
+
+function enrichOffers(
+  industry: LandingIndustry,
+  offers: readonly OfferListItem[],
+): readonly OfferListItem[] {
+  return offers.map((offer, index) => ({
+    ...offer,
+    price: offer.meta.includes('₽') ? offer.meta : undefined,
+    badge: index === 0 ? 'Рекомендуем' : undefined,
+    image: {
+      src:
+        OFFER_IMAGE_URLS[industry][index] ??
+        OFFER_IMAGE_URLS.product[index] ??
+        OFFER_IMAGE_URLS.product[0],
+      alt: offer.title,
+    },
+    cta: createLink(index === 0 ? 'Выбрать' : 'Подробнее', '#lead-form'),
+  }));
 }

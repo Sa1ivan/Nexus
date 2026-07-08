@@ -24,10 +24,4 @@ export class SiteHeaderBlockComponent {
   readonly fontFamily = computed<string>(() => getLandingFontFamily(this.design().fontPairing));
   readonly radiusValue = computed<string>(() => getLandingRadiusValue(this.design().templateStyle));
   readonly headerPaddingY = computed<string>(() => getLandingHeaderPaddingY(this.design().density));
-
-  navigationHref(index: number): string {
-    const anchors = ['#hero', '#offers', '#lead-form', '#contact'];
-
-    return anchors[index % anchors.length];
-  }
 }

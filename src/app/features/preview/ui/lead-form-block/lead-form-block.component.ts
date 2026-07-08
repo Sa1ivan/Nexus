@@ -30,6 +30,9 @@ export class LeadFormBlockComponent {
   readonly sectionPaddingY = computed<string>(() =>
     getLandingSectionPaddingY(this.design().density),
   );
+  readonly orderedFields = computed<readonly LeadFormFieldConfig[]>(() =>
+    [...this.block().fields].sort((left, right) => left.order - right.order),
+  );
 
   submit(event: Event): void {
     event.preventDefault();
@@ -41,7 +44,7 @@ export class LeadFormBlockComponent {
       return;
     }
 
-    const fields = this.readFields(form, this.block().fields);
+    const fields = this.readFields(form, this.orderedFields());
 
     this.formSubmit.emit(fields);
     this.status.set('success');

@@ -1,4 +1,6 @@
 import type { BlockConfig } from './block-config.model';
+import type { LinkConfig, LinkConfigUpdate } from './link-config.model';
+import type { MediaAsset, MediaAssetUpdate } from './media-asset.model';
 
 export type HeroContentAlignment = 'left' | 'center' | 'right';
 
@@ -16,6 +18,8 @@ export interface HeroBlockConfig extends BlockConfig<'hero'> {
   readonly subtitle: string;
   readonly buttonText: string;
   readonly buttonHref: string;
+  readonly media?: MediaAsset;
+  readonly secondaryButton?: LinkConfig;
   readonly styles: HeroBlockStyles;
 }
 
@@ -24,5 +28,7 @@ export interface HeroBlockUpdate {
   readonly subtitle?: string;
   readonly buttonText?: string;
   readonly buttonHref?: string;
+  readonly media?: MediaAssetUpdate | null;
+  readonly secondaryButton?: LinkConfigUpdate | null;
   readonly styles?: Partial<HeroBlockStyles>;
 }
