@@ -29,9 +29,9 @@
         [attr.aria-controls]="menuId()"
         (click)="toggleMenu()"
       >
-        <span></span>
-        <span></span>
-        <span></span>
+        <span class="material-icons site-header__burger-icon" aria-hidden="true">
+          {{ menuOpen() ? 'close' : 'menu' }}
+        </span>
       </button>
     }
 
@@ -44,7 +44,7 @@
       @for (item of block().navigationItems; track item.id) {
         <a
           class="site-header__link"
-          [href]="item.target"
+          [appLandingLink]="item.target"
           [attr.target]="item.openInNewTab ? '_blank' : null"
           [attr.rel]="item.openInNewTab ? 'noopener noreferrer' : null"
           (click)="closeMenu()"
@@ -56,27 +56,41 @@
 
     @if (block().variant === 'reservationBar') {
       @if (block().booking; as booking) {
-        <div class="site-header__booking-bar" aria-label="Быстрое бронирование">
-          <input
-            type="date"
-            [attr.aria-label]="booking.dateLabel"
-            [attr.title]="booking.dateLabel"
-          />
-          <select [attr.aria-label]="booking.partySizeLabel" [attr.title]="booking.partySizeLabel">
-            <option value="">{{ booking.partySizeLabel }}</option>
-            <option value="1">1 гость</option>
-            <option value="2">2 гостя</option>
-            <option value="3">3 гостя</option>
-            <option value="4">4 гостя</option>
-            <option value="5">5 гостей</option>
-            <option value="6">6+ гостей</option>
-          </select>
+        <div class="site-header__booking-bar" role="group" aria-label="Быстрое бронирование">
+          <label class="site-header__booking-field">
+            <span>{{ booking.dateLabel }}</span>
+            <input
+              type="date"
+              [value]="bookingDate()"
+              [attr.aria-label]="booking.dateLabel"
+              required
+              (change)="updateBookingDate($event)"
+            />
+          </label>
+          <label class="site-header__booking-field site-header__booking-field--select">
+            <span>{{ booking.partySizeLabel }}</span>
+            <select
+              [value]="bookingPartySize()"
+              [attr.aria-label]="booking.partySizeLabel"
+              (change)="updateBookingPartySize($event)"
+            >
+              <option value="1">1 гость</option>
+              <option value="2">2 гостя</option>
+              <option value="3">3 гостя</option>
+              <option value="4">4 гостя</option>
+              <option value="5">5 гостей</option>
+              <option value="6">6+ гостей</option>
+            </select>
+          </label>
           <a
-            [href]="booking.action.target"
-            [attr.target]="booking.action.openInNewTab ? '_blank' : null"
-            [attr.rel]="booking.action.openInNewTab ? 'noopener noreferrer' : null"
+            class="site-header__booking-action"
+            [appLandingLink]="booking.action.target"
+            [attr.aria-disabled]="!bookingDate()"
+            [attr.tabindex]="!bookingDate() ? -1 : null"
+            (click)="captureBooking($event)"
           >
-            {{ booking.action.label }}
+            <span>{{ booking.action.label }}</span>
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
           </a>
         </div>
       }
@@ -84,7 +98,7 @@
 
     <a
       class="site-header__cta"
-      [href]="block().cta.target"
+      [appLandingLink]="block().cta.target"
       [attr.target]="block().cta.openInNewTab ? '_blank' : null"
       [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"
       (click)="closeMenu()"

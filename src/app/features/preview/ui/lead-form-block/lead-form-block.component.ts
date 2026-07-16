@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 
 import {
   DEFAULT_LANDING_DESIGN_SETTINGS,
@@ -8,6 +16,7 @@ import {
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
 import type { LeadFormBlockConfig, LeadFormFieldConfig } from '../../../builder/domain/models';
+import { BookingSelectionService } from '../../data-access/booking-selection.service';
 
 type LeadFormStatus = 'idle' | 'submitting' | 'success' | 'error' | 'unavailable';
 
@@ -24,10 +33,13 @@ export interface LeadFormSubmitEvent {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LeadFormBlockComponent {
+  private readonly bookingContext = inject(BookingSelectionService);
+
   readonly block = input.required<LeadFormBlockConfig>();
   readonly submissionEnabled = input(false);
   readonly formSubmit = output<LeadFormSubmitEvent>();
   readonly status = signal<LeadFormStatus>('idle');
+  readonly bookingSelection = this.bookingContext.selection;
 
   readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
   readonly accentColor = computed<string>(() => getLandingAccentValue(this.design().accentColor));
@@ -75,6 +87,7 @@ export class LeadFormBlockComponent {
 
       if (saved) {
         form.reset();
+        this.bookingContext.clear();
       }
     };
 
@@ -99,13 +112,24 @@ export class LeadFormBlockComponent {
     return `${this.fieldControlId(fieldId)}-help`;
   }
 
+  formatBookingDate(value: string): string {
+    const [year, month, day] = value.split('-');
+    return year && month && day ? `${day}.${month}.${year}` : 'Дата не выбрана';
+  }
+
+  formatPartySize(value: string): string {
+    if (value === '1') return '1 гость';
+    if (value === '2' || value === '3' || value === '4') return `${value} гостя`;
+    return value ? `${value} гостей` : 'Количество гостей не выбрано';
+  }
+
   private readFields(
     form: HTMLFormElement,
     fields: readonly LeadFormFieldConfig[],
   ): Readonly<Record<string, string>> {
     const formData = new FormData(form);
 
-    return fields.reduce<Record<string, string>>((result, field) => {
+    const submittedFields = fields.reduce<Record<string, string>>((result, field) => {
       const value = formData.get(field.id);
 
       return {
@@ -113,6 +137,15 @@ export class LeadFormBlockComponent {
         [field.id]: typeof value === 'string' ? value.trim() : '',
       };
     }, {});
+    const booking = this.bookingSelection();
+
+    return booking === null
+      ? submittedFields
+      : {
+          ...submittedFields,
+          bookingDate: booking.date,
+          bookingPartySize: booking.partySize,
+        };
   }
 
   private hasRequiredValues(

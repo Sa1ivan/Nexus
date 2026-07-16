@@ -62,7 +62,7 @@
         aria-label="Закрыть"
         (click)="close()"
       >
-        ×
+        <span class="material-icons gallery-dialog__control-icon" aria-hidden="true">close</span>
       </button>
       <img
         [src]="item.image.src"
@@ -79,7 +79,9 @@
           aria-label="Предыдущее изображение"
           (click)="navigate(-1)"
         >
-          ‹
+          <span class="material-icons gallery-dialog__control-icon" aria-hidden="true">
+            chevron_left
+          </span>
         </button>
         <button
           type="button"
@@ -87,7 +89,9 @@
           aria-label="Следующее изображение"
           (click)="navigate(1)"
         >
-          ›
+          <span class="material-icons gallery-dialog__control-icon" aria-hidden="true">
+            chevron_right
+          </span>
         </button>
       }
     </section>

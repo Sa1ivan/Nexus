@@ -45,3 +45,23 @@ export function normalizeLinkTarget(target: string): string {
   const trimmedTarget = target.trim();
   return isSafeLinkTarget(trimmedTarget) ? trimmedTarget : '#';
 }
+
+export function resolveLandingHref(
+  target: string,
+  currentPath: string,
+  currentSearch: string,
+  basePath: string,
+): string {
+  const safeTarget = normalizeLinkTarget(target);
+
+  if (safeTarget.startsWith('#')) {
+    return `${currentPath}${currentSearch}${safeTarget}`;
+  }
+
+  if (safeTarget.startsWith('/')) {
+    const normalizedBasePath = basePath === '/' ? '' : basePath.replace(/\/$/u, '');
+    return `${normalizedBasePath}${safeTarget}`;
+  }
+
+  return safeTarget;
+}

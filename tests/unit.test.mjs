@@ -1,9 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import ts from 'typescript';
 
 async function source(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+}
+
+async function importTypeScriptModule(path) {
+  const compiled = ts.transpileModule(await source(path), {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+
+  return import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
 }
 
 test('domain model includes publishable MVP contracts', async () => {
@@ -381,4 +393,99 @@ test('local Material Icons font remains deployable from a GitHub Pages subpath',
 
   assert.match(globalStyles, /url\(['"]\.\.\/public\/fonts\/material-icons\.woff2['"]\)/);
   assert.doesNotMatch(globalStyles, /url\(['"]\/fonts\/material-icons\.woff2['"]\)/);
+});
+
+test('landing fragment links keep the current published route', async () => {
+  const directive = await source(
+    'src/app/features/preview/ui/landing-link/landing-link.directive.ts',
+  );
+  const { resolveLandingHref } = await importTypeScriptModule(
+    'src/app/features/builder/domain/utils/link-target.ts',
+  );
+  const linkedTemplates = await Promise.all(
+    [
+      'site-header-block',
+      'hero-block',
+      'content-media-block',
+      'feature-grid-block',
+      'offer-list-block',
+      'call-to-action-block',
+      'site-footer-block',
+    ].map((name) =>
+      source(`src/app/features/preview/ui/${name}/${name}.component.html`),
+    ),
+  );
+
+  assert.equal(
+    resolveLandingHref('#offers', '/p/project-1', '?preview=1', '/'),
+    '/p/project-1?preview=1#offers',
+  );
+  assert.equal(
+    resolveLandingHref('#offers', '/Nexus/p/project-1', '', '/Nexus/'),
+    '/Nexus/p/project-1#offers',
+  );
+  assert.equal(
+    resolveLandingHref('/pricing', '/Nexus/p/project-1', '', '/Nexus/'),
+    '/Nexus/pricing',
+  );
+  assert.equal(
+    resolveLandingHref('https://example.com', '/Nexus/p/project-1', '', '/Nexus/'),
+    'https://example.com',
+  );
+  assert.equal(
+    resolveLandingHref('//evil.example', '/Nexus/p/project-1', '', '/Nexus/'),
+    '/Nexus/p/project-1#',
+  );
+  assert.equal(
+    resolveLandingHref('javascript:alert(1)', '/Nexus/p/project-1', '', '/Nexus/'),
+    '/Nexus/p/project-1#',
+  );
+  assert.match(directive, /get resolvedHref\(\)/);
+  assert.doesNotMatch(directive, /computed\(/);
+  linkedTemplates.forEach((template) => assert.match(template, /\[appLandingLink\]=/));
+});
+
+test('public landing controls use compact icon buttons and structured booking fields', async () => {
+  const header = await source(
+    'src/app/features/preview/ui/site-header-block/site-header-block.component.html',
+  );
+  const headerStyles = await source(
+    'src/app/features/preview/ui/site-header-block/site-header-block.component.scss',
+  );
+  const gallery = await source(
+    'src/app/features/preview/ui/gallery-block/gallery-block.component.html',
+  );
+  const leadForm = await source(
+    'src/app/features/preview/ui/lead-form-block/lead-form-block.component.ts',
+  );
+
+  assert.match(header, /site-header__booking-field/);
+  assert.match(header, /role="group"/);
+  assert.match(header, /\(click\)="captureBooking\(\$event\)"/);
+  assert.match(header, /\[attr\.aria-disabled\]="!bookingDate\(\)"/);
+  assert.match(header, /type="date"[\s\S]*required/u);
+  assert.match(header, /material-icons site-header__burger-icon/);
+  assert.match(headerStyles, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) auto/);
+  assert.match(
+    headerStyles,
+    /site-header--burger\.site-header--menu-open \.site-header__cta/u,
+  );
+  assert.match(gallery, /material-icons gallery-dialog__control-icon/);
+  assert.doesNotMatch(gallery, />\s*[‹›×]\s*</u);
+  assert.match(leadForm, /bookingDate/);
+  assert.match(leadForm, /bookingPartySize/);
+});
+
+test('workspace chrome uses one font system and container-aware topbar controls', async () => {
+  const globalStyles = await source('src/styles.scss');
+  const builderStyles = await source(
+    'src/app/features/builder/pages/builder-page/builder-page.component.scss',
+  );
+
+  assert.match(globalStyles, /\$nexus-ui-font:/);
+  assert.match(globalStyles, /plain-family: \$nexus-ui-font/);
+  assert.match(globalStyles, /brand-family: \$nexus-ui-font/);
+  assert.doesNotMatch(globalStyles, /typography: Roboto/);
+  assert.match(builderStyles, /@container builder-workspace \(max-width: 1400px\)/);
+  assert.match(builderStyles, /\.builder-page__action-button/);
 });

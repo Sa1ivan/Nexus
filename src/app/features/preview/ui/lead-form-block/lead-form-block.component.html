@@ -7,6 +7,16 @@
     </div>
 
     <form class="lead-form__form" novalidate (submit)="submit($event)" (input)="resetStatus()">
+      @if (bookingSelection(); as booking) {
+        <div class="lead-form__booking-summary" role="status">
+          <span class="material-icons" aria-hidden="true">event_available</span>
+          <span>
+            <strong>Параметры бронирования</strong>
+            {{ formatBookingDate(booking.date) }} · {{ formatPartySize(booking.partySize) }}
+          </span>
+        </div>
+      }
+
       @for (field of orderedFields(); track field.id) {
         <label class="lead-form__field" [for]="fieldControlId(field.id)">
           <span>{{ field.label }}</span>

@@ -17,7 +17,7 @@
       <div class="hero-block__actions">
         <a
           class="hero-block__button"
-          [href]="block().buttonHref"
+          [appLandingLink]="block().buttonHref"
           [style.background-color]="block().styles.buttonBackgroundColor"
           [style.color]="block().styles.buttonTextColor"
         >
@@ -27,7 +27,7 @@
         @if (block().secondaryButton; as secondaryButton) {
           <a
             class="hero-block__button hero-block__button--secondary"
-            [href]="secondaryButton.target"
+            [appLandingLink]="secondaryButton.target"
             [attr.target]="secondaryButton.openInNewTab ? '_blank' : null"
             [attr.rel]="secondaryButton.openInNewTab ? 'noopener noreferrer' : null"
           >

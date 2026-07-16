@@ -18,7 +18,7 @@
       </div>
       <a
         class="site-footer__cta"
-        [href]="block().cta.target"
+        [appLandingLink]="block().cta.target"
         [attr.target]="block().cta.openInNewTab ? '_blank' : null"
         [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"
       >
@@ -30,7 +30,7 @@
           <nav class="site-footer__socials" aria-label="Социальные сети">
             @for (link of socialLinks; track link.id) {
               <a
-                [href]="link.target"
+                [appLandingLink]="link.target"
                 [attr.target]="link.openInNewTab ? '_blank' : null"
                 [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
               >
@@ -67,7 +67,7 @@
   <div class="site-footer__bottom">
     @for (link of block().links; track link.id) {
       <a
-        [href]="link.target"
+        [appLandingLink]="link.target"
         [attr.target]="link.openInNewTab ? '_blank' : null"
         [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
       >

@@ -30,7 +30,7 @@
             <p>{{ item.description }}</p>
             @if (item.link; as link) {
               <a
-                [href]="link.target"
+                [appLandingLink]="link.target"
                 [attr.target]="link.openInNewTab ? '_blank' : null"
                 [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
                 >{{ link.label }}</a

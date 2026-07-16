@@ -8,10 +8,12 @@ import {
   getLandingRadiusValue,
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
+import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-offer-list-block',
   standalone: true,
+  imports: [LandingLinkDirective],
   templateUrl: './offer-list-block.component.html',
   styleUrl: './offer-list-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

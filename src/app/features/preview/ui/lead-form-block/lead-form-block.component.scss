@@ -71,6 +71,37 @@
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
 }
 
+.lead-form__booking-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--landing-accent, #0f766e), white 76%);
+  border-radius: min(calc(var(--landing-radius, 8px) + 3px), 13px);
+  background: color-mix(in srgb, var(--landing-accent, #0f766e), white 93%);
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.45;
+
+  .material-icons {
+    flex: 0 0 auto;
+    color: var(--landing-accent, #0f766e);
+    font-size: 20px;
+  }
+
+  span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  strong {
+    display: block;
+    color: #111827;
+    font-size: 12px;
+  }
+}
+
 .lead-form__field {
   display: grid;
   gap: 8px;

@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import type { ContentMediaBlockConfig, MediaAsset } from '../../../builder/domain/models';
+import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-content-media-block',
   standalone: true,
+  imports: [LandingLinkDirective],
   templateUrl: './content-media-block.component.html',
   styleUrl: './content-media-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

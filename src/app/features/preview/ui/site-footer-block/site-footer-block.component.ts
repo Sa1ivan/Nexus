@@ -8,10 +8,12 @@ import {
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
 import type { SiteFooterBlockConfig } from '../../../builder/domain/models';
+import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-site-footer-block',
   standalone: true,
+  imports: [LandingLinkDirective],
   templateUrl: './site-footer-block.component.html',
   styleUrl: './site-footer-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

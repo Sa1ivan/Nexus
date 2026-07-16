@@ -13,7 +13,7 @@
       @if (block().cta; as cta) {
         <a
           class="content-media__cta"
-          [href]="cta.target"
+          [appLandingLink]="cta.target"
           [attr.target]="cta.openInNewTab ? '_blank' : null"
           [attr.rel]="cta.openInNewTab ? 'noopener noreferrer' : null"
           >{{ cta.label }}</a

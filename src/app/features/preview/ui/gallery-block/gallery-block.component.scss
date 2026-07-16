@@ -112,17 +112,16 @@ figcaption {
   position: absolute;
   z-index: 1;
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.36);
-  border-radius: 7px;
-  background: rgba(17, 24, 39, 0.72);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  color: #111827;
   font: inherit;
-  font-size: 22px;
   line-height: 1;
   backdrop-filter: blur(10px);
   cursor: pointer;
@@ -136,7 +135,8 @@ figcaption {
   content: '';
 }
 .gallery-dialog button:hover {
-  background: rgba(17, 24, 39, 0.9);
+  background: #ffffff;
+  transform: scale(1.04);
 }
 .gallery-dialog button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--block-accent), white 34%);
@@ -148,13 +148,21 @@ figcaption {
 }
 .gallery-dialog__prev {
   top: 50%;
-  left: 8px;
+  left: 10px;
   transform: translateY(-50%);
 }
 .gallery-dialog__next {
   top: 50%;
-  right: 8px;
+  right: 10px;
   transform: translateY(-50%);
+}
+.gallery-dialog__prev:hover,
+.gallery-dialog__next:hover {
+  transform: translateY(-50%) scale(1.04);
+}
+.gallery-dialog__control-icon {
+  font-size: 22px;
+  line-height: 1;
 }
 @media (max-width: 700px) {
   .gallery__items {
@@ -187,10 +195,9 @@ figcaption {
     font-size: 13px;
   }
   .gallery-dialog button {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    font-size: 20px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
   }
   .gallery-dialog__close {
     top: 6px;
@@ -201,5 +208,8 @@ figcaption {
   }
   .gallery-dialog__next {
     right: 6px;
+  }
+  .gallery-dialog__control-icon {
+    font-size: 20px;
   }
 }

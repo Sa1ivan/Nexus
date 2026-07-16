@@ -3,6 +3,7 @@ import {
   Component,
   HostListener,
   computed,
+  inject,
   input,
   signal,
   viewChild,
@@ -17,17 +18,24 @@ import {
   getLandingRadiusValue,
 } from '../../../builder/domain/models';
 import type { SiteHeaderBlockConfig } from '../../../builder/domain/models';
+import { BookingSelectionService } from '../../data-access/booking-selection.service';
+import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-site-header-block',
   standalone: true,
+  imports: [LandingLinkDirective],
   templateUrl: './site-header-block.component.html',
   styleUrl: './site-header-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SiteHeaderBlockComponent {
+  private readonly bookingSelection = inject(BookingSelectionService);
+
   readonly block = input.required<SiteHeaderBlockConfig>();
   readonly menuOpen = signal(false);
+  readonly bookingDate = signal('');
+  readonly bookingPartySize = signal('2');
   readonly burgerButton = viewChild<ElementRef<HTMLButtonElement>>('burgerButton');
 
   readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
@@ -46,11 +54,38 @@ export class SiteHeaderBlockComponent {
     this.menuOpen.set(false);
   }
 
+  updateBookingDate(event: Event): void {
+    this.bookingDate.set(this.controlValue(event));
+  }
+
+  updateBookingPartySize(event: Event): void {
+    this.bookingPartySize.set(this.controlValue(event));
+  }
+
+  captureBooking(event: MouseEvent): void {
+    if (!this.bookingDate()) {
+      event.preventDefault();
+      return;
+    }
+
+    this.bookingSelection.set({
+      date: this.bookingDate(),
+      partySize: this.bookingPartySize(),
+    });
+  }
+
   @HostListener('document:keydown.escape')
   handleEscape(): void {
     if (this.menuOpen()) {
       this.closeMenu();
       this.burgerButton()?.nativeElement.focus();
     }
+  }
+
+  private controlValue(event: Event): string {
+    const target = event.target;
+    return target instanceof HTMLInputElement || target instanceof HTMLSelectElement
+      ? target.value
+      : '';
   }
 }

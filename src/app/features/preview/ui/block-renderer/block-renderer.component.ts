@@ -21,6 +21,7 @@ import type {
   SiteThemeConfig,
   TestimonialsBlockConfig,
 } from '../../../builder/domain/models';
+import { BookingSelectionService } from '../../data-access/booking-selection.service';
 import { CallToActionBlockComponent } from '../call-to-action-block/call-to-action-block.component';
 import { ContentMediaBlockComponent } from '../content-media-block/content-media-block.component';
 import { FaqBlockComponent } from '../faq-block/faq-block.component';
@@ -55,6 +56,7 @@ export interface LeadSubmissionEvent {
     SiteHeaderBlockComponent,
     TestimonialsBlockComponent,
   ],
+  providers: [BookingSelectionService],
   templateUrl: './block-renderer.component.html',
   styleUrl: './block-renderer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
