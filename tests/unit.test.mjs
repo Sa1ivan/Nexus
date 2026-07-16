@@ -375,3 +375,10 @@ test('published pages apply SEO and insights cover every registered block', asyn
   assert.match(insights, /BLOCK_PALETTE\.map/);
   assert.doesNotMatch(insights, /const BLOCK_TYPE_META: readonly BlockTypeMeta\[\] = \[/);
 });
+
+test('local Material Icons font remains deployable from a GitHub Pages subpath', async () => {
+  const globalStyles = await source('src/styles.scss');
+
+  assert.match(globalStyles, /url\(['"]\.\.\/public\/fonts\/material-icons\.woff2['"]\)/);
+  assert.doesNotMatch(globalStyles, /url\(['"]\/fonts\/material-icons\.woff2['"]\)/);
+});
