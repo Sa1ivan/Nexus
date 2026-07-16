@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
 import { ProjectPersistenceService } from '../../builder/data-access/project-persistence.service';
+import { BLOCK_PALETTE } from '../../builder/domain/registry/block-registry';
 import type { BlockType, Project } from '../../builder/domain/models';
 
 export type ProjectPublicationStatus = 'draft' | 'published';
@@ -48,33 +49,11 @@ export interface ProjectLeadStats {
   readonly percentage: number;
 }
 
-const BLOCK_TYPE_META: readonly BlockTypeMeta[] = [
-  {
-    type: 'siteHeader',
-    label: 'Хедеры',
-    icon: 'web_asset',
-  },
-  {
-    type: 'hero',
-    label: 'Hero',
-    icon: 'auto_awesome',
-  },
-  {
-    type: 'offerList',
-    label: 'Предложения',
-    icon: 'view_module',
-  },
-  {
-    type: 'leadForm',
-    label: 'Формы',
-    icon: 'dynamic_form',
-  },
-  {
-    type: 'siteFooter',
-    label: 'Футеры',
-    icon: 'call_to_action',
-  },
-] as const;
+const BLOCK_TYPE_META: readonly BlockTypeMeta[] = BLOCK_PALETTE.map((definition) => ({
+  type: definition.type,
+  label: definition.label,
+  icon: definition.icon,
+}));
 
 @Injectable({
   providedIn: 'root',

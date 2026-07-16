@@ -1,0 +1,39 @@
+<section
+  [id]="block().anchor"
+  class="cta"
+  [class.cta--split]="block().variant === 'split'"
+  [class.cta--cover]="block().variant === 'cover'"
+>
+  @if (block().media; as media) {
+    <img
+      class="cta__media"
+      [src]="media.src"
+      [alt]="media.alt"
+      [style.object-position]="objectPosition(media)"
+    />
+  }
+  <div class="cta__inner">
+    <div class="cta__copy">
+      <p>{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+      <span>{{ block().text }}</span>
+    </div>
+    <div class="cta__actions">
+      <a
+        [href]="block().primaryAction.target"
+        [attr.target]="block().primaryAction.openInNewTab ? '_blank' : null"
+        [attr.rel]="block().primaryAction.openInNewTab ? 'noopener noreferrer' : null"
+        >{{ block().primaryAction.label }}</a
+      >
+      @if (block().secondaryAction; as action) {
+        <a
+          class="cta__secondary"
+          [href]="action.target"
+          [attr.target]="action.openInNewTab ? '_blank' : null"
+          [attr.rel]="action.openInNewTab ? 'noopener noreferrer' : null"
+          >{{ action.label }}</a
+        >
+      }
+    </div>
+  </div>
+</section>

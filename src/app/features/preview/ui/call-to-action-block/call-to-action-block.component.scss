@@ -1,0 +1,147 @@
+:host {
+  display: block;
+}
+.cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: var(--block-section-spacing);
+  background: var(--block-background);
+  color: var(--block-text);
+}
+.cta__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 36px;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, var(--block-content-width));
+  margin: auto;
+}
+.cta__copy {
+  max-width: 680px;
+}
+.cta__copy p {
+  margin: 0 0 10px;
+  color: var(--block-accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.cta h2 {
+  margin: 0 0 14px;
+  font-size: 42px;
+  line-height: 1.08;
+}
+.cta__copy span {
+  color: var(--site-muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+.cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cta__actions a {
+  display: inline-flex;
+  padding: 14px 20px;
+  border: 1px solid var(--block-accent);
+  border-radius: var(--site-button-radius);
+  background: var(--block-accent);
+  color: #fff;
+  font-weight: 750;
+  text-decoration: none;
+}
+.cta__actions .cta__secondary {
+  background: transparent;
+  color: inherit;
+}
+.cta__media {
+  display: none;
+}
+.cta--split .cta__inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.cta--split .cta__media {
+  display: block;
+  width: calc(50% - 24px);
+  height: calc(100% - 48px);
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  border-radius: var(--block-radius);
+  object-fit: cover;
+}
+.cta--split .cta__copy,
+.cta--split .cta__actions {
+  grid-column: 1;
+}
+.cta--cover {
+  min-height: 480px;
+  display: grid;
+  align-items: end;
+  color: #fff;
+}
+.cta--cover::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0.52);
+  content: '';
+}
+.cta--cover .cta__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cta--cover .cta__copy p,
+.cta--cover .cta__copy span {
+  color: inherit;
+}
+@media (max-width: 760px) {
+  .cta__inner,
+  .cta--split .cta__inner {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .cta--split .cta__media {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    height: 260px;
+    margin-bottom: 24px;
+  }
+  .cta h2 {
+    font-size: 34px;
+  }
+}
+@container site-preview (max-width: 520px) {
+  .cta__inner,
+  .cta--split .cta__inner {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .cta--split .cta__media {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    height: 240px;
+    margin-bottom: 20px;
+  }
+  .cta__actions a {
+    width: 100%;
+    justify-content: center;
+  }
+  .cta h2 {
+    font-size: 32px;
+  }
+}

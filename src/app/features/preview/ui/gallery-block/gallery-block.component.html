@@ -1,0 +1,95 @@
+<section
+  [id]="block().anchor"
+  class="gallery"
+  [class.gallery--collage]="block().variant === 'collage'"
+  [class.gallery--strip]="block().variant === 'strip'"
+>
+  <div class="gallery__inner">
+    <header>
+      <p>{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+      <span>{{ block().description }}</span>
+    </header>
+    <div class="gallery__items">
+      @for (item of block().items; track item.id; let index = $index) {
+        @if (block().lightboxEnabled) {
+          <button
+            type="button"
+            class="gallery__item"
+            (click)="open(index, $event)"
+            [attr.aria-label]="'Открыть: ' + (item.caption || item.image.alt)"
+          >
+            <img
+              [src]="item.image.src"
+              [alt]="item.image.alt"
+              [style.object-position]="objectPosition(item.image)"
+            />
+            @if (item.caption) {
+              <span>{{ item.caption }}</span>
+            }
+          </button>
+        } @else {
+          <figure class="gallery__item">
+            <img
+              [src]="item.image.src"
+              [alt]="item.image.alt"
+              [style.object-position]="objectPosition(item.image)"
+            />
+            @if (item.caption) {
+              <figcaption>{{ item.caption }}</figcaption>
+            }
+          </figure>
+        }
+      }
+    </div>
+  </div>
+</section>
+
+@if (activeItem(); as item) {
+  <div class="gallery-dialog__backdrop" (click)="close()">
+    <section
+      #dialog
+      class="gallery-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="item.caption || item.image.alt"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        #closeButton
+        type="button"
+        class="gallery-dialog__close"
+        aria-label="Закрыть"
+        (click)="close()"
+      >
+        ×
+      </button>
+      <img
+        [src]="item.image.src"
+        [alt]="item.image.alt"
+        [style.object-position]="objectPosition(item.image)"
+      />
+      @if (item.caption) {
+        <p>{{ item.caption }}</p>
+      }
+      @if (block().items.length > 1) {
+        <button
+          type="button"
+          class="gallery-dialog__prev"
+          aria-label="Предыдущее изображение"
+          (click)="navigate(-1)"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          class="gallery-dialog__next"
+          aria-label="Следующее изображение"
+          (click)="navigate(1)"
+        >
+          ›
+        </button>
+      }
+    </section>
+  </div>
+}

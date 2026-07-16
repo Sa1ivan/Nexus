@@ -4,12 +4,11 @@
   [class.hero-block--left]="block().styles.alignment === 'left'"
   [class.hero-block--center]="block().styles.alignment === 'center'"
   [class.hero-block--right]="block().styles.alignment === 'right'"
-  [style.background-color]="block().styles.backgroundColor"
-  [style.color]="block().styles.textColor"
-  [style.font-family]="fontFamily()"
+  [class.hero-block--cover]="layoutVariant() === 'cover'"
+  [class.hero-block--minimal]="layoutVariant() === 'minimal'"
+  [class.hero-block--split]="layoutVariant() === 'split'"
   [style.min-height]="block().styles.minHeight"
-  [style.--landing-radius]="radiusValue()"
-  [style.--landing-section-y]="sectionPaddingY()"
+  [style.--hero-cover-overlay]="coverOverlay()"
 >
   <div class="hero-block__layout">
     <div class="hero-block__content">
@@ -29,6 +28,8 @@
           <a
             class="hero-block__button hero-block__button--secondary"
             [href]="secondaryButton.target"
+            [attr.target]="secondaryButton.openInNewTab ? '_blank' : null"
+            [attr.rel]="secondaryButton.openInNewTab ? 'noopener noreferrer' : null"
           >
             {{ secondaryButton.label }}
           </a>
@@ -38,7 +39,7 @@
 
     @if (block().media; as media) {
       <figure class="hero-block__media">
-        <img [src]="media.src" [alt]="media.alt" />
+        <img [src]="media.src" [alt]="media.alt" [style.object-position]="mediaObjectPosition()" />
       </figure>
     }
   </div>

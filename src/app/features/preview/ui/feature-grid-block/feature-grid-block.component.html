@@ -1,0 +1,44 @@
+<section
+  [id]="block().anchor"
+  class="feature-grid"
+  [class.feature-grid--cards]="block().variant === 'cards'"
+  [class.feature-grid--list]="block().variant === 'editorialList'"
+  [class.feature-grid--steps]="block().variant === 'numberedSteps'"
+>
+  <div class="feature-grid__inner">
+    <header>
+      <p class="feature-grid__eyebrow">{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+      <p>{{ block().description }}</p>
+    </header>
+    <div class="feature-grid__items">
+      @for (item of block().items; track item.id; let index = $index) {
+        <article class="feature-grid__item">
+          @if (item.image; as image) {
+            <img
+              [src]="image.src"
+              [alt]="image.alt"
+              [style.object-position]="objectPosition(image)"
+            />
+          } @else {
+            <span class="feature-grid__marker" aria-hidden="true">
+              {{ block().variant === 'numberedSteps' ? index + 1 : (item.icon ?? index + 1) }}
+            </span>
+          }
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+            @if (item.link; as link) {
+              <a
+                [href]="link.target"
+                [attr.target]="link.openInNewTab ? '_blank' : null"
+                [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
+                >{{ link.label }}</a
+              >
+            }
+          </div>
+        </article>
+      }
+    </div>
+  </div>
+</section>

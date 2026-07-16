@@ -1,11 +1,4 @@
-<section
-  [id]="block().anchor"
-  class="lead-form"
-  [style.--landing-accent]="accentColor()"
-  [style.--landing-font]="fontFamily()"
-  [style.--landing-radius]="radiusValue()"
-  [style.--landing-section-y]="sectionPaddingY()"
->
+<section [id]="block().anchor" class="lead-form">
   <div class="lead-form__inner">
     <div class="lead-form__copy">
       <p class="lead-form__eyebrow">Заявка</p>
@@ -13,41 +6,53 @@
       <p>{{ block().description }}</p>
     </div>
 
-    <form class="lead-form__form" (submit)="submit($event)">
+    <form class="lead-form__form" novalidate (submit)="submit($event)" (input)="resetStatus()">
       @for (field of orderedFields(); track field.id) {
-        <label class="lead-form__field">
+        <label class="lead-form__field" [for]="fieldControlId(field.id)">
           <span>{{ field.label }}</span>
 
           @if (field.type === 'textarea') {
             <textarea
+              [id]="fieldControlId(field.id)"
               [name]="field.id"
               [placeholder]="field.placeholder"
               [required]="field.required"
+              [attr.aria-describedby]="field.helpText ? fieldHelpId(field.id) : null"
               rows="4"
             ></textarea>
           } @else {
             <input
+              [id]="fieldControlId(field.id)"
               [name]="field.id"
               [type]="field.type"
               [placeholder]="field.placeholder"
               [required]="field.required"
+              [attr.aria-describedby]="field.helpText ? fieldHelpId(field.id) : null"
             />
           }
           @if (field.helpText) {
-            <small>{{ field.helpText }}</small>
+            <small [id]="fieldHelpId(field.id)">{{ field.helpText }}</small>
           }
         </label>
       }
 
-      <button class="lead-form__submit" type="submit">{{ block().submitText }}</button>
+      <button class="lead-form__submit" type="submit" [disabled]="status() === 'submitting'">
+        {{ status() === 'submitting' ? 'Сохраняем...' : block().submitText }}
+      </button>
 
-      @if (status() === 'success') {
-        <p class="lead-form__message lead-form__message--success">
-          {{ block().successMessage }}
-        </p>
-      } @else if (status() === 'error') {
-        <p class="lead-form__message lead-form__message--error">Заполните обязательные поля.</p>
-      }
+      <div class="lead-form__status" aria-live="polite" aria-atomic="true">
+        @if (status() === 'success') {
+          <p class="lead-form__message lead-form__message--success">
+            {{ block().successMessage }}
+          </p>
+        } @else if (status() === 'error') {
+          <p class="lead-form__message lead-form__message--error">
+            Не удалось сохранить заявку. Проверьте данные и повторите.
+          </p>
+        } @else if (status() === 'unavailable') {
+          <p class="lead-form__message">Форма станет активной после публикации проекта.</p>
+        }
+      </div>
     </form>
   </div>
 </section>

@@ -1,8 +1,15 @@
-import { getLandingAccentValue, SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
+import {
+  DEFAULT_BLOCK_APPEARANCE,
+  DEFAULT_SITE_SEO,
+  DEFAULT_SITE_THEME,
+  getLandingAccentValue,
+  SITE_CONFIG_SCHEMA_VERSION,
+} from '../domain/models';
 import {
   createDefaultBooking,
+  createExternalLink,
   createLink,
-  createLinkFromText,
+  createMapSearchUrl,
 } from '../domain/registry/block-registry';
 import type {
   CompleteLandingWizardSelection,
@@ -14,8 +21,11 @@ import type {
   LandingTemplateStyle,
   LandingTone,
   OfferListItem,
+  SiteBusinessConfig,
   SiteConfig,
 } from '../domain/models';
+
+type LandingOfferPreset = Omit<OfferListItem, 'id'>;
 
 interface LandingIndustryPreset {
   readonly brandName: string;
@@ -26,7 +36,7 @@ interface LandingIndustryPreset {
   readonly offerEyebrow: string;
   readonly offerTitle: string;
   readonly navigationItems: readonly string[];
-  readonly offers: readonly OfferListItem[];
+  readonly offers: readonly LandingOfferPreset[];
   readonly contactLines: readonly string[];
 }
 
@@ -173,6 +183,14 @@ const INDUSTRY_PRESETS: Readonly<Record<LandingIndustry, LandingIndustryPreset>>
   },
 } as const;
 
+const NAVIGATION_TARGETS: Readonly<Record<LandingIndustry, readonly string[]>> = {
+  restaurant: ['#offers', '#gallery', '#testimonials'],
+  hotel: ['#offers', '#features', '#contact'],
+  beauty: ['#offers', '#about', '#lead-form'],
+  product: ['#features', '#offers', '#testimonials'],
+  education: ['#offers', '#about', '#testimonials'],
+};
+
 const OFFER_IMAGE_URLS: Readonly<Record<LandingIndustry, readonly string[]>> = {
   restaurant: [
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80',
@@ -300,11 +318,44 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
     heroDesign.templateStyle,
     toneStyles.alignment,
   );
+  const messengers = [createExternalLink('Telegram', 'https://t.me/nexus')];
+  const socialLinks = [createExternalLink('VK', 'https://vk.com/nexus')];
+  const address = preset.contactLines[0]?.includes('@') ? '' : (preset.contactLines[0] ?? '');
+  const business: SiteBusinessConfig = {
+    brandName,
+    logo: null,
+    phone: contactPhone,
+    email: contactEmail,
+    address,
+    hours: preset.contactLines[2] ?? '',
+    messengers,
+    socialLinks,
+  };
+  const businessContactLines = [business.phone, business.email, business.address, business.hours]
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  const businessSocialLinks = [...business.socialLinks, ...business.messengers].map((link) => ({
+    ...link,
+  }));
 
   return {
     id: `landing-${selection.industry}`,
     schemaVersion: SITE_CONFIG_SCHEMA_VERSION,
     name: brandName,
+    theme: {
+      ...DEFAULT_SITE_THEME,
+      accentColor,
+      fontPairing: selection.design.fontPairing,
+      sectionSpacing: selection.design.density,
+      typeScale: selection.design.templateStyle === 'editorial' ? 'display' : 'balanced',
+      radius: selection.design.templateStyle === 'editorial' ? 2 : 8,
+    },
+    business,
+    seo: {
+      ...DEFAULT_SITE_SEO,
+      title: `${brandName} - ${preset.siteName}`,
+      description: heroSubtitle,
+    },
     pages: [
       {
         id: 'page-home',
@@ -315,11 +366,15 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'header-main',
             anchor: 'header',
             type: 'siteHeader',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
             design: headerDesign,
+            inheritBusiness: true,
             variant: selection.header,
-            brandName,
+            brandName: business.brandName,
+            logo: undefined,
             navigationItems: preset.navigationItems.map((label, index) =>
-              createLinkFromText(label, index),
+              createLink(label, NAVIGATION_TARGETS[selection.industry][index] ?? '#lead-form'),
             ),
             cta: createLink(ctaText, ctaDestination),
             booking: createDefaultBooking(),
@@ -328,6 +383,8 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'hero-main',
             anchor: 'hero',
             type: 'hero',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
             design: heroDesign,
             title: heroTitle,
             subtitle: heroSubtitle,
@@ -352,9 +409,48 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             },
           },
           {
+            id: 'content-main',
+            anchor: 'about',
+            type: 'contentMedia',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: 'mediaRight',
+            eyebrow: 'О проекте',
+            title: `${brandName}: подход, который понятен до первого обращения`,
+            body: `${heroSubtitle} Здесь можно раскрыть процесс, опыт команды и детали, которые помогают посетителю принять решение.`,
+            cta: createLink('Обсудить задачу', ctaDestination),
+            media: {
+              src: OFFER_IMAGE_URLS[selection.industry][1] ?? OFFER_IMAGE_URLS.product[1],
+              alt: `${brandName}: команда и рабочий процесс`,
+              focalPoint: { x: 50, y: 50 },
+            },
+          },
+          {
+            id: 'features-main',
+            anchor: 'features',
+            type: 'featureGrid',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: selection.design.templateStyle === 'editorial' ? 'editorialList' : 'cards',
+            eyebrow: 'Преимущества',
+            title: 'Что получает клиент',
+            description: 'Ключевые аргументы собраны в короткую и понятную структуру.',
+            items: preset.offers.slice(0, 3).map((offer, index) => ({
+              id: `feature-${selection.industry}-${index + 1}`,
+              icon: `${index + 1}`,
+              title: offer.title,
+              description: offer.description,
+              link: createLink('Подробнее', '#offers'),
+            })),
+          },
+          {
             id: 'offers-main',
             anchor: 'offers',
             type: 'offerList',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
             design: offerListDesign,
             variant: selection.offerList,
             eyebrow: preset.offerEyebrow,
@@ -362,9 +458,120 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             items: enrichOffers(selection.industry, preset.offers),
           },
           {
+            id: 'gallery-main',
+            anchor: 'gallery',
+            type: 'gallery',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: selection.design.templateStyle === 'editorial' ? 'collage' : 'uniformGrid',
+            eyebrow: 'Галерея',
+            title: `${brandName} в деталях`,
+            description: 'Реальные кадры продукта, пространства или процесса.',
+            items: OFFER_IMAGE_URLS[selection.industry].slice(0, 3).map((src, index) => ({
+              id: `gallery-${selection.industry}-${index + 1}`,
+              image: {
+                src,
+                alt: `${brandName}: ${preset.offers[index]?.title ?? `кадр ${index + 1}`}`,
+                focalPoint: { x: 50, y: 50 },
+              },
+              caption: preset.offers[index]?.title,
+            })),
+            lightboxEnabled: true,
+          },
+          {
+            id: 'testimonials-main',
+            anchor: 'testimonials',
+            type: 'testimonials',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: selection.design.templateStyle === 'conversion' ? 'featuredQuote' : 'cards',
+            eyebrow: 'Отзывы',
+            title: 'Опыт клиентов',
+            items: [
+              {
+                id: `testimonial-${selection.industry}-1`,
+                quote: `В ${brandName} все объяснили заранее и помогли выбрать подходящий формат.`,
+                author: 'Анна Крылова',
+                role: 'Клиент',
+                rating: 5,
+              },
+              {
+                id: `testimonial-${selection.industry}-2`,
+                quote: 'Понравились ясный процесс, внимание к деталям и предсказуемый результат.',
+                author: 'Илья Соколов',
+                role: 'Постоянный клиент',
+                rating: 5,
+              },
+              {
+                id: `testimonial-${selection.industry}-3`,
+                quote: 'Получили именно то, что ожидали, и готовы рекомендовать дальше.',
+                author: 'Мария Белова',
+                role: 'Клиент',
+                rating: 5,
+              },
+            ],
+          },
+          {
+            id: 'faq-main',
+            anchor: 'faq',
+            type: 'faq',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: 'borderedAccordion',
+            eyebrow: 'FAQ',
+            title: 'Частые вопросы',
+            description: 'Важные детали до заявки.',
+            allowMultipleOpen: false,
+            items: [
+              {
+                id: `faq-${selection.industry}-1`,
+                question: 'Как начать?',
+                answer: `Оставьте заявку, и команда ${brandName} уточнит задачу и предложит следующий шаг.`,
+                initiallyOpen: true,
+              },
+              {
+                id: `faq-${selection.industry}-2`,
+                question: 'Когда вы ответите?',
+                answer: 'Мы свяжемся по указанному контакту в течение рабочего дня.',
+                initiallyOpen: false,
+              },
+              {
+                id: `faq-${selection.industry}-3`,
+                question: 'Можно ли обсудить индивидуальные условия?',
+                answer:
+                  'Да, детали, состав и формат предложения можно адаптировать под вашу задачу.',
+                initiallyOpen: false,
+              },
+            ],
+          },
+          {
+            id: 'cta-main',
+            anchor: 'cta',
+            type: 'callToAction',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
+            design: selection.design,
+            variant: selection.design.templateStyle === 'conversion' ? 'cover' : 'banner',
+            eyebrow: 'Следующий шаг',
+            title: `${ctaText} в ${brandName}`,
+            text: 'Оставьте контакты, чтобы получить детали и подходящий вариант без лишних звонков.',
+            primaryAction: createLink(ctaText, ctaDestination),
+            secondaryAction: createLink('Посмотреть предложения', '#offers'),
+            media: {
+              src: OFFER_IMAGE_URLS[selection.industry][2] ?? OFFER_IMAGE_URLS.product[2],
+              alt: `${brandName}: финальный призыв к действию`,
+              focalPoint: { x: 50, y: 50 },
+            },
+          },
+          {
             id: 'lead-form-main',
             anchor: 'lead-form',
             type: 'leadForm',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
             design: selection.design,
             title: `Получить предложение от ${brandName}`,
             description: 'Оставьте контакты, и мы вернемся с деталями по вашему запросу.',
@@ -404,28 +611,25 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'footer-main',
             anchor: 'contact',
             type: 'siteFooter',
+            appearance: DEFAULT_BLOCK_APPEARANCE,
+            hidden: false,
             design: footerDesign,
+            inheritBusiness: true,
             variant: selection.footer,
-            brandName,
+            brandName: business.brandName,
+            logo: undefined,
             cta: createLink(ctaText, ctaDestination),
-            contactLines: [
-              contactEmail,
-              contactPhone,
-              preset.contactLines[2] ?? 'Ответ в течение дня',
-            ].filter((line) => line.trim().length > 0),
+            contactLines: businessContactLines,
             links: [
               createLink('Условия', '#contact'),
               createLink('Контакты', '#contact'),
               createLink('Политика', '#contact'),
             ],
-            socialLinks: [
-              createLink('Telegram', 'https://t.me/nexus'),
-              createLink('VK', 'https://vk.com/nexus'),
-            ],
+            socialLinks: businessSocialLinks,
             map: {
-              label: 'Карта',
-              address: preset.contactLines[0] ?? '',
-              embedUrl: 'https://maps.example.com/nexus',
+              label: 'Открыть карту',
+              address: business.address,
+              embedUrl: createMapSearchUrl(business.address),
             },
           },
         ],
@@ -440,10 +644,11 @@ function normalizeBusinessValue(value: string, fallback: string): string {
 
 function enrichOffers(
   industry: LandingIndustry,
-  offers: readonly OfferListItem[],
+  offers: readonly LandingOfferPreset[],
 ): readonly OfferListItem[] {
   return offers.map((offer, index) => ({
     ...offer,
+    id: `offer-${industry}-${index + 1}`,
     price: offer.meta.includes('₽') ? offer.meta : undefined,
     badge: index === 0 ? 'Рекомендуем' : undefined,
     image: {

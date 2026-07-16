@@ -1,0 +1,205 @@
+:host {
+  display: block;
+}
+.gallery {
+  padding: var(--block-section-spacing);
+  background: var(--block-background);
+  color: var(--block-text);
+}
+.gallery__inner {
+  width: min(100%, var(--block-content-width));
+  margin: 0 auto;
+}
+header p {
+  margin: 0 0 10px;
+  color: var(--block-accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+h2 {
+  margin: 0 0 12px;
+  font-size: 44px;
+  line-height: 1.08;
+}
+header span {
+  color: var(--site-muted);
+}
+.gallery__items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 32px;
+}
+.gallery__item {
+  position: relative;
+  overflow: hidden;
+  min-height: 240px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--block-radius);
+  background: var(--site-surface);
+  color: inherit;
+  cursor: pointer;
+}
+.gallery__item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+}
+.gallery__item span,
+figcaption {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  text-align: left;
+}
+.gallery--collage .gallery__item:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.gallery--strip .gallery__items {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+.gallery--strip .gallery__item {
+  flex: 0 0 min(72%, 560px);
+  scroll-snap-align: start;
+}
+.gallery-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: clamp(8px, 3vw, 24px);
+  overscroll-behavior: contain;
+  background: rgba(8, 10, 14, 0.88);
+}
+.gallery-dialog {
+  position: relative;
+  width: min(100%, 1040px);
+  max-height: calc(100svh - 2 * clamp(8px, 3vw, 24px));
+  color: #fff;
+}
+.gallery-dialog img {
+  display: block;
+  width: 100%;
+  max-height: 80svh;
+  border-radius: min(var(--block-radius), 8px);
+  object-fit: contain;
+}
+.gallery-dialog p {
+  display: -webkit-box;
+  margin: 10px 42px 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.gallery-dialog button {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 7px;
+  background: rgba(17, 24, 39, 0.72);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+.gallery-dialog button::after {
+  position: absolute;
+  inset: -6px;
+  content: '';
+}
+.gallery-dialog button:hover {
+  background: rgba(17, 24, 39, 0.9);
+}
+.gallery-dialog button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--block-accent), white 34%);
+  outline-offset: 2px;
+}
+.gallery-dialog__close {
+  top: 8px;
+  right: 8px;
+}
+.gallery-dialog__prev {
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+}
+.gallery-dialog__next {
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+@media (max-width: 700px) {
+  .gallery__items {
+    grid-template-columns: 1fr 1fr;
+  }
+  .gallery--collage .gallery__item:first-child {
+    grid-column: span 2;
+    grid-row: auto;
+  }
+  h2 {
+    font-size: 34px;
+  }
+}
+@container site-preview (max-width: 520px) {
+  .gallery__items {
+    grid-template-columns: 1fr;
+  }
+  .gallery--collage .gallery__item:first-child {
+    grid-column: auto;
+  }
+  h2 {
+    font-size: 32px;
+  }
+  .gallery-dialog img {
+    max-height: 76svh;
+    border-radius: 6px;
+  }
+  .gallery-dialog p {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .gallery-dialog button {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 20px;
+  }
+  .gallery-dialog__close {
+    top: 6px;
+    right: 6px;
+  }
+  .gallery-dialog__prev {
+    left: 6px;
+  }
+  .gallery-dialog__next {
+    right: 6px;
+  }
+}

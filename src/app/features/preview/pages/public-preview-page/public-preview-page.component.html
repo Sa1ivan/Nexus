@@ -2,6 +2,7 @@
   <main class="public-preview">
     <app-block-renderer
       [blocks]="publishedRelease.siteConfig.pages[0]?.blocks ?? []"
+      [theme]="publishedRelease.siteConfig.theme"
       [projectId]="projectId()"
       (leadSubmit)="submitLead($event)"
     />

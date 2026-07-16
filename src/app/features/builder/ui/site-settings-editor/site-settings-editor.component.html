@@ -1,0 +1,358 @@
+<div class="site-editor">
+  <div class="site-editor__tabs" role="tablist" aria-label="Настройки сайта">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'theme'"
+      [class.is-active]="activeTab() === 'theme'"
+      (click)="setTab('theme')"
+    >
+      Тема
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'business'"
+      [class.is-active]="activeTab() === 'business'"
+      (click)="setTab('business')"
+    >
+      Бизнес
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'seo'"
+      [class.is-active]="activeTab() === 'seo'"
+      (click)="setTab('seo')"
+    >
+      SEO
+    </button>
+  </div>
+
+  @switch (activeTab()) {
+    @case ('theme') {
+      <section class="site-editor__section" aria-label="Глобальная тема">
+        <label class="site-editor__field">
+          <span>Название сайта</span>
+          <input type="text" [value]="siteConfig().name" (change)="updateSiteName($event)" />
+        </label>
+
+        <div class="site-editor__color-grid">
+          <label class="site-editor__color">
+            <span>Фон страницы</span>
+            <input
+              type="color"
+              [value]="siteConfig().theme.pageBackground"
+              (input)="updateThemeColor('pageBackground', $event)"
+            />
+          </label>
+          <label class="site-editor__color">
+            <span>Поверхности</span>
+            <input
+              type="color"
+              [value]="siteConfig().theme.surfaceColor"
+              (input)="updateThemeColor('surfaceColor', $event)"
+            />
+          </label>
+          <label class="site-editor__color">
+            <span>Текст</span>
+            <input
+              type="color"
+              [value]="siteConfig().theme.textColor"
+              (input)="updateThemeColor('textColor', $event)"
+            />
+          </label>
+          <label class="site-editor__color">
+            <span>Вторичный текст</span>
+            <input
+              type="color"
+              [value]="siteConfig().theme.mutedTextColor"
+              (input)="updateThemeColor('mutedTextColor', $event)"
+            />
+          </label>
+          <label class="site-editor__color">
+            <span>Акцент</span>
+            <input
+              type="color"
+              [value]="siteConfig().theme.accentColor"
+              (input)="updateThemeColor('accentColor', $event)"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="site-editor__section" aria-label="Типографика и ритм">
+        <div class="site-editor__grid">
+          <label class="site-editor__field">
+            <span>Шрифтовая пара</span>
+            <select [value]="siteConfig().theme.fontPairing" (change)="updateThemeFont($event)">
+              <option value="grotesk">Гротеск</option>
+              <option value="serif">Антиква</option>
+              <option value="rounded">Округлый</option>
+            </select>
+          </label>
+          <label class="site-editor__field">
+            <span>Масштаб текста</span>
+            <select [value]="siteConfig().theme.typeScale" (change)="updateThemeScale($event)">
+              <option value="compact">Компактный</option>
+              <option value="balanced">Сбалансированный</option>
+              <option value="display">Выразительный</option>
+            </select>
+          </label>
+          <label class="site-editor__field">
+            <span>Ширина контента</span>
+            <select [value]="siteConfig().theme.contentWidth" (change)="updateThemeWidth($event)">
+              <option value="narrow">Узкая</option>
+              <option value="wide">Широкая</option>
+              <option value="full">На всю ширину</option>
+            </select>
+          </label>
+          <label class="site-editor__field">
+            <span>Интервалы секций</span>
+            <select
+              [value]="siteConfig().theme.sectionSpacing"
+              (change)="updateThemeSpacing($event)"
+            >
+              <option value="compact">Компактные</option>
+              <option value="balanced">Средние</option>
+              <option value="spacious">Просторные</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="site-editor__field">
+          <span>Форма кнопок</span>
+          <div class="site-editor__segments">
+            <button
+              type="button"
+              [class.is-active]="siteConfig().theme.buttonShape === 'square'"
+              (click)="updateThemeButtonShape('square')"
+            >
+              Прямая
+            </button>
+            <button
+              type="button"
+              [class.is-active]="siteConfig().theme.buttonShape === 'rounded'"
+              (click)="updateThemeButtonShape('rounded')"
+            >
+              Скругленная
+            </button>
+            <button
+              type="button"
+              [class.is-active]="siteConfig().theme.buttonShape === 'pill'"
+              (click)="updateThemeButtonShape('pill')"
+            >
+              Капсула
+            </button>
+          </div>
+        </div>
+
+        <label class="site-editor__field">
+          <span>Радиус: {{ siteConfig().theme.radius }} px</span>
+          <input
+            type="range"
+            min="0"
+            max="32"
+            step="1"
+            [value]="siteConfig().theme.radius"
+            (input)="updateThemeRadius($event)"
+          />
+        </label>
+      </section>
+    }
+
+    @case ('business') {
+      <section class="site-editor__section" aria-label="Данные бизнеса">
+        <label class="site-editor__field">
+          <span>Название бренда</span>
+          <input
+            type="text"
+            [value]="siteConfig().business.brandName"
+            (input)="updateBusinessText('brandName', $event)"
+          />
+        </label>
+        <div class="site-editor__grid">
+          <label class="site-editor__field">
+            <span>Телефон</span>
+            <input
+              type="tel"
+              [value]="siteConfig().business.phone"
+              (input)="updateBusinessText('phone', $event)"
+            />
+          </label>
+          <label class="site-editor__field">
+            <span>Email</span>
+            <input
+              type="email"
+              [value]="siteConfig().business.email"
+              (input)="updateBusinessText('email', $event)"
+            />
+          </label>
+        </div>
+        <label class="site-editor__field">
+          <span>Адрес</span>
+          <textarea
+            rows="2"
+            [value]="siteConfig().business.address"
+            (input)="updateBusinessText('address', $event)"
+          ></textarea>
+        </label>
+        <label class="site-editor__field">
+          <span>Часы работы</span>
+          <input
+            type="text"
+            [value]="siteConfig().business.hours"
+            (input)="updateBusinessText('hours', $event)"
+          />
+        </label>
+        <app-media-input
+          label="Логотип"
+          [src]="siteConfig().business.logo?.src ?? ''"
+          [alt]="siteConfig().business.logo?.alt ?? ''"
+          (srcChange)="updateBusinessLogo('src', $event)"
+          (altChange)="updateBusinessLogo('alt', $event)"
+        />
+      </section>
+
+      <section class="site-editor__section" aria-label="Мессенджеры">
+        <div class="site-editor__section-head">
+          <strong>Мессенджеры</strong>
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Добавить мессенджер"
+            (click)="addBusinessLink('messengers')"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+        @for (link of siteConfig().business.messengers; track link.id; let index = $index) {
+          <details class="site-editor__item">
+            <summary>{{ link.label || 'Мессенджер' }}</summary>
+            <div class="site-editor__item-body">
+              <app-block-item-actions
+                [canMoveUp]="index > 0"
+                [canMoveDown]="index < siteConfig().business.messengers.length - 1"
+                (moveUp)="moveBusinessLink('messengers', link.id, 'up')"
+                (moveDown)="moveBusinessLink('messengers', link.id, 'down')"
+                (duplicateItem)="duplicateBusinessLink('messengers', link.id)"
+                (removeItem)="removeBusinessLink('messengers', link.id)"
+              />
+              <label class="site-editor__field">
+                <span>Подпись</span>
+                <input
+                  type="text"
+                  [value]="link.label"
+                  (input)="updateBusinessLink('messengers', link.id, 'label', $event)"
+                />
+              </label>
+              <label class="site-editor__field">
+                <span>Ссылка</span>
+                <input
+                  type="url"
+                  [value]="link.target"
+                  (input)="updateBusinessLink('messengers', link.id, 'target', $event)"
+                />
+              </label>
+            </div>
+          </details>
+        }
+      </section>
+
+      <section class="site-editor__section" aria-label="Социальные сети">
+        <div class="site-editor__section-head">
+          <strong>Социальные сети</strong>
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Добавить соцсеть"
+            (click)="addBusinessLink('socialLinks')"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+        @for (link of siteConfig().business.socialLinks; track link.id; let index = $index) {
+          <details class="site-editor__item">
+            <summary>{{ link.label || 'Соцсеть' }}</summary>
+            <div class="site-editor__item-body">
+              <app-block-item-actions
+                [canMoveUp]="index > 0"
+                [canMoveDown]="index < siteConfig().business.socialLinks.length - 1"
+                (moveUp)="moveBusinessLink('socialLinks', link.id, 'up')"
+                (moveDown)="moveBusinessLink('socialLinks', link.id, 'down')"
+                (duplicateItem)="duplicateBusinessLink('socialLinks', link.id)"
+                (removeItem)="removeBusinessLink('socialLinks', link.id)"
+              />
+              <label class="site-editor__field">
+                <span>Подпись</span>
+                <input
+                  type="text"
+                  [value]="link.label"
+                  (input)="updateBusinessLink('socialLinks', link.id, 'label', $event)"
+                />
+              </label>
+              <label class="site-editor__field">
+                <span>Ссылка</span>
+                <input
+                  type="url"
+                  [value]="link.target"
+                  (input)="updateBusinessLink('socialLinks', link.id, 'target', $event)"
+                />
+              </label>
+              <label class="site-editor__check">
+                <input
+                  type="checkbox"
+                  [checked]="link.openInNewTab"
+                  (change)="toggleBusinessLinkTarget('socialLinks', link.id, $event)"
+                />
+                <span>Открывать в новой вкладке</span>
+              </label>
+            </div>
+          </details>
+        }
+      </section>
+    }
+
+    @case ('seo') {
+      <section class="site-editor__section" aria-label="SEO настройки">
+        <label class="site-editor__field">
+          <span>Заголовок страницы</span>
+          <input
+            type="text"
+            [value]="siteConfig().seo.title"
+            (input)="updateSeoText('title', $event)"
+          />
+        </label>
+        <label class="site-editor__field">
+          <span>Описание</span>
+          <textarea
+            rows="4"
+            [value]="siteConfig().seo.description"
+            (input)="updateSeoText('description', $event)"
+          ></textarea>
+        </label>
+        <label class="site-editor__field">
+          <span>Язык</span>
+          <select [value]="siteConfig().seo.language" (change)="updateSeoText('language', $event)">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <app-media-input
+          label="Изображение для соцсетей"
+          [src]="siteConfig().seo.socialImage?.src ?? ''"
+          [alt]="siteConfig().seo.socialImage?.alt ?? ''"
+          (srcChange)="updateSeoMedia('socialImage', 'src', $event)"
+          (altChange)="updateSeoMedia('socialImage', 'alt', $event)"
+        />
+        <app-media-input
+          label="Favicon"
+          [src]="siteConfig().seo.favicon?.src ?? ''"
+          [alt]="siteConfig().seo.favicon?.alt ?? ''"
+          [showAlt]="false"
+          (srcChange)="updateSeoMedia('favicon', 'src', $event)"
+        />
+      </section>
+    }
+  }
+</div>

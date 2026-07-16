@@ -8,7 +8,7 @@
     <div class="wizard__headline">
       <span class="wizard__eyebrow">Новый лендинг</span>
       <h1>Мастер создания лендинга</h1>
-      <p>Соберите основу страницы из ниши, подачи, хедера, списка предложений и футера.</p>
+      <p>Соберите готовую страницу с контентом, доверием, предложениями и заявкой.</p>
     </div>
 
     <div class="wizard__header-tools">
@@ -470,20 +470,27 @@
       class="wizard__preview-overlay"
       aria-modal="true"
       role="dialog"
+      aria-labelledby="wizard-preview-title"
       (click)="closePreview()"
     >
-      <div class="wizard__preview-dialog" (click)="$event.stopPropagation()">
+      <div
+        class="wizard__preview-dialog"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        (click)="$event.stopPropagation()"
+      >
         <header class="wizard__preview-dialog-head">
           <div>
             <span class="wizard__eyebrow">
               Шаг {{ currentStepIndex() + 1 }} из {{ stepDefinitions.length }}
             </span>
-            <strong>{{ currentQuestionCopy().title }}</strong>
+            <strong id="wizard-preview-title">{{ currentQuestionCopy().title }}</strong>
           </div>
 
           <button
             mat-icon-button
             type="button"
+            cdkFocusInitial
             aria-label="Закрыть предпросмотр"
             (click)="closePreview()"
           >

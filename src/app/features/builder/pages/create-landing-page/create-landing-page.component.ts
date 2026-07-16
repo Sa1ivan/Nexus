@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -42,6 +52,7 @@ import type {
 } from '../../domain/models';
 import { DEFAULT_LANDING_DESIGN_SETTINGS } from '../../domain/models';
 import { BuilderStore } from '../../stores/builder.store';
+import { lockDocumentScroll } from '../../../../shared/utils/document-scroll-lock';
 import { LandingWizardPreviewComponent } from './landing-wizard-preview/landing-wizard-preview.component';
 
 interface LandingQuestionCopy {
@@ -101,6 +112,7 @@ function createDesignByStep(design: LandingDesignSettings): LandingDesignByStep 
   selector: 'app-create-landing-page',
   standalone: true,
   imports: [
+    A11yModule,
     LandingWizardPreviewComponent,
     MatButtonModule,
     MatIconModule,
@@ -115,6 +127,7 @@ function createDesignByStep(design: LandingDesignSettings): LandingDesignByStep 
 export class CreateLandingPageComponent {
   private readonly builderStore = inject(BuilderStore);
   private readonly router = inject(Router);
+  private readonly documentRef = inject(DOCUMENT);
 
   readonly stepDefinitions = LANDING_WIZARD_STEPS;
   readonly industryOptions = LANDING_INDUSTRY_OPTIONS;
@@ -129,6 +142,7 @@ export class CreateLandingPageComponent {
 
   readonly currentStepIndex = signal<number>(0);
   readonly isPreviewOpen = signal<boolean>(false);
+  private previewTrigger: HTMLElement | null = null;
   readonly designByStep = signal<LandingDesignByStep>(
     createDesignByStep(DEFAULT_LANDING_DESIGN_SETTINGS),
   );
@@ -140,6 +154,16 @@ export class CreateLandingPageComponent {
     offerList: null,
     footer: null,
   });
+
+  constructor() {
+    effect((onCleanup) => {
+      if (!this.isPreviewOpen()) {
+        return;
+      }
+
+      onCleanup(lockDocumentScroll(this.documentRef));
+    });
+  }
 
   readonly currentStep = computed<LandingWizardStep>(
     () => this.stepDefinitions[this.currentStepIndex()] ?? this.stepDefinitions[0],
@@ -434,11 +458,29 @@ export class CreateLandingPageComponent {
   }
 
   openPreview(): void {
+    this.previewTrigger =
+      this.documentRef.activeElement instanceof HTMLElement ? this.documentRef.activeElement : null;
     this.isPreviewOpen.set(true);
   }
 
   closePreview(): void {
     this.isPreviewOpen.set(false);
+    const trigger = this.previewTrigger;
+    this.previewTrigger = null;
+    queueMicrotask(() => trigger?.focus());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  handlePreviewKeydown(event: KeyboardEvent): void {
+    if (!this.isPreviewOpen()) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closePreview();
+      return;
+    }
   }
 
   isRecommendedOption(optionId: LandingChoiceId): boolean {

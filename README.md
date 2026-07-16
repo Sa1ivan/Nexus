@@ -142,16 +142,25 @@ src/app/
 
 Фича `builder` содержит wizard, редактор структуры сайта, inspector, локальное сохранение проектов, demo-публикацию и сбор заявок.
 
-Доменные модели:
+Основные доменные модели:
 
 - `SiteConfig`
 - `PageConfig`
 - `BlockConfig`
 - `LinkConfig`
 - `MediaAsset`
+- `SiteThemeConfig`
+- `SiteBusinessConfig`
+- `SiteSeoConfig`
 - `SiteHeaderBlockConfig`
 - `HeroBlockConfig`
+- `ContentMediaBlockConfig`
+- `FeatureGridBlockConfig`
 - `OfferListBlockConfig`
+- `GalleryBlockConfig`
+- `TestimonialsBlockConfig`
+- `FaqBlockConfig`
+- `CallToActionBlockConfig`
 - `LeadFormBlockConfig`
 - `SiteFooterBlockConfig`
 
@@ -170,11 +179,16 @@ State management:
 
 ## Возможности конструктора
 
-- Wizard для быстрого создания лендинга по индустрии и стилю.
-- Palette блоков: header, hero, offers/products, lead form, footer.
-- Inspector с вкладками `Контент`, `Дизайн`, `Поведение`.
-- Редактирование ссылок, CTA, изображений, цен, карточек предложений, полей формы, карты и контактов.
-- Header variants: centered, split, reservation bar, editorial, burger, stretched nav.
+- Wizard для создания полного отраслевого лендинга по индустрии, тону и визуальному стилю.
+- 11 типов секций: header, hero, content + media, features, offers/products, gallery, testimonials, FAQ, CTA, lead form и footer.
+- Панели `Добавить`, `Слои` и `Тема`, а также inspector с вкладками `Контент`, `Дизайн`, `Поведение`.
+- Глобальная тема сайта: палитра, типографика, ширина контента, плотность секций, форма кнопок и радиусы.
+- Локальные настройки секции поверх темы: фон, текст, акцент, ширина, отступы и радиус.
+- Редактирование отдельных ссылок, CTA, изображений и focal point, цен, карточек, полей формы, FAQ, отзывов, карты, соцсетей и контактов.
+- Функциональные варианты компоновки, включая раскрываемое меню, разные hero-композиции, каталог, прайс, галерею и FAQ.
+- Настройки бренда, общих контактов и SEO-метаданных.
+- Управление видимостью и якорем секции, дублирование, сортировка и удаление элементов.
+- Ограниченная история undo/redo для изменений конфигурации сайта.
 - Desktop/mobile preview внутри builder.
 - Container queries для preview-блоков: mobile preview адаптируется по ширине холста, а не только по ширине окна браузера.
 - Локальные Material Icons в `public/fonts`, чтобы builder не зависел от Google Fonts при разработке.
@@ -187,6 +201,8 @@ State management:
 - кнопка публикации создает локальную demo-публикацию;
 - публичный preview доступен по локальному route `/p/:projectId`;
 - persistence слой нормализует данные из storage и отбрасывает небезопасные ссылки вроде `javascript:` и `data:`.
+
+Это локальный demo-режим: ссылка публикации работает только в том же браузере и профиле, где сохранен `localStorage`. Для публичного хостинга, совместного редактирования, загрузки медиа в облако и надежного приема заявок нужен backend.
 
 Для production-публикации нужен отдельный backend-репозиторий/порт `ProjectRepository`.
 

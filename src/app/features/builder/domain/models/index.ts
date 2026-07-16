@@ -1,5 +1,38 @@
 export type { BlockAnchor, BlockConfig, BlockId } from './block-config.model';
+export { DEFAULT_BLOCK_APPEARANCE, resolveBlockAppearance } from './block-appearance.model';
+export type { BlockAppearanceOverrides, ResolvedBlockAppearance } from './block-appearance.model';
 export type { BlockType } from './block-type.model';
+export type {
+  CallToActionBlockConfig,
+  CallToActionBlockUpdate,
+  CallToActionVariant,
+} from './call-to-action-block-config.model';
+export type {
+  ContentMediaBlockConfig,
+  ContentMediaBlockUpdate,
+  ContentMediaVariant,
+} from './content-media-block-config.model';
+export type {
+  FaqBlockConfig,
+  FaqBlockUpdate,
+  FaqItem,
+  FaqItemUpdate,
+  FaqVariant,
+} from './faq-block-config.model';
+export type {
+  FeatureGridBlockConfig,
+  FeatureGridBlockUpdate,
+  FeatureGridItem,
+  FeatureGridItemUpdate,
+  FeatureGridVariant,
+} from './feature-grid-block-config.model';
+export type {
+  GalleryBlockConfig,
+  GalleryBlockUpdate,
+  GalleryItem,
+  GalleryItemUpdate,
+  GalleryVariant,
+} from './gallery-block-config.model';
 export type { CompleteLandingWizardSelection } from './landing-wizard.model';
 export {
   DEFAULT_LANDING_DESIGN_SETTINGS,
@@ -71,5 +104,24 @@ export type {
   SiteHeaderBlockConfig,
   SiteHeaderBlockUpdate,
 } from './site-header-block-config.model';
+export type {
+  TestimonialItem,
+  TestimonialItemUpdate,
+  TestimonialsBlockConfig,
+  TestimonialsBlockUpdate,
+  TestimonialsVariant,
+} from './testimonials-block-config.model';
 export { SITE_CONFIG_SCHEMA_VERSION } from './site-config.model';
 export type { SiteConfig } from './site-config.model';
+export { DEFAULT_SITE_BUSINESS } from './site-business.model';
+export type { SiteBusinessConfig } from './site-business.model';
+export { DEFAULT_SITE_SEO } from './site-seo.model';
+export type { SiteSeoConfig } from './site-seo.model';
+export { DEFAULT_SITE_THEME } from './site-theme.model';
+export type {
+  ButtonShape,
+  ContentWidth,
+  SectionSpacing,
+  SiteThemeConfig,
+  TypeScale,
+} from './site-theme.model';

@@ -6,5 +6,20 @@
 .block-renderer {
   display: block;
   min-width: 0;
+  min-height: 100%;
   container: site-preview / inline-size;
+  background: var(--site-page-background);
+  color: var(--site-text);
+  font-family: var(--site-font);
+}
+
+.block-renderer__block {
+  min-width: 0;
+  font-family: var(--block-font, var(--site-font));
+}
+.block-renderer--type-compact {
+  font-size: 15px;
+}
+.block-renderer--type-display {
+  font-size: 17px;
 }

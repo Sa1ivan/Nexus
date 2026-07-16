@@ -1,4 +1,11 @@
-import { DEFAULT_LANDING_DESIGN_SETTINGS, SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
+import {
+  DEFAULT_BLOCK_APPEARANCE,
+  DEFAULT_LANDING_DESIGN_SETTINGS,
+  DEFAULT_SITE_BUSINESS,
+  DEFAULT_SITE_SEO,
+  DEFAULT_SITE_THEME,
+  SITE_CONFIG_SCHEMA_VERSION,
+} from '../domain/models';
 import type { SiteConfig } from '../domain/models';
 import { createLink } from '../domain/registry/block-registry';
 
@@ -6,6 +13,18 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   id: 'site-mvp',
   schemaVersion: SITE_CONFIG_SCHEMA_VERSION,
   name: 'MVP-сайт',
+  theme: DEFAULT_SITE_THEME,
+  business: {
+    ...DEFAULT_SITE_BUSINESS,
+    brandName: 'Nexus Studio',
+    phone: '+7 999 000-00-00',
+    email: 'hello@nexus.app',
+  },
+  seo: {
+    ...DEFAULT_SITE_SEO,
+    title: 'Nexus Studio',
+    description: 'Лендинг, собранный в Nexus.',
+  },
   pages: [
     {
       id: 'page-home',
@@ -16,6 +35,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           id: 'hero-home',
           anchor: 'hero',
           type: 'hero',
+          appearance: DEFAULT_BLOCK_APPEARANCE,
+          hidden: false,
           design: DEFAULT_LANDING_DESIGN_SETTINGS,
           title: 'Соберите сайт быстрее',
           subtitle: 'Чистая основа для визуального конструктора лендингов и сайтов.',
@@ -40,6 +61,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           id: 'lead-form-home',
           anchor: 'lead-form',
           type: 'leadForm',
+          appearance: DEFAULT_BLOCK_APPEARANCE,
+          hidden: false,
           design: DEFAULT_LANDING_DESIGN_SETTINGS,
           title: 'Оставьте заявку',
           description: 'Расскажите, какой лендинг нужен, и мы сохраним обращение в проекте.',

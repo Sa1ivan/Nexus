@@ -2,125 +2,229 @@
   <nav class="builder-page__mobile-tabs" aria-label="Мобильные разделы конструктора">
     <button
       type="button"
-      [class.is-selected]="mobilePanel() === 'blocks'"
+      [class.is-active]="mobilePanel() === 'blocks'"
       (click)="setMobilePanel('blocks')"
     >
-      <mat-icon aria-hidden="true">view_sidebar</mat-icon>
-      Блоки
+      <mat-icon aria-hidden="true">dashboard_customize</mat-icon><span>Блоки</span>
     </button>
     <button
       type="button"
-      [class.is-selected]="mobilePanel() === 'canvas'"
+      [class.is-active]="mobilePanel() === 'canvas'"
       (click)="setMobilePanel('canvas')"
     >
-      <mat-icon aria-hidden="true">web</mat-icon>
-      Холст
+      <mat-icon aria-hidden="true">web</mat-icon><span>Холст</span>
     </button>
     <button
       type="button"
-      [class.is-selected]="mobilePanel() === 'settings'"
+      [class.is-active]="mobilePanel() === 'settings'"
       (click)="setMobilePanel('settings')"
     >
-      <mat-icon aria-hidden="true">tune</mat-icon>
-      Настройки
+      <mat-icon aria-hidden="true">tune</mat-icon><span>Настройки</span>
     </button>
   </nav>
 
   <aside
     class="builder-page__sidebar"
     [class.is-mobile-active]="mobilePanel() === 'blocks'"
-    aria-label="Структура сайта"
+    aria-label="Панель блоков"
   >
     <header class="builder-page__brand">
-      <span class="builder-page__brand-mark">
-        <mat-icon aria-hidden="true">dashboard</mat-icon>
-      </span>
+      <span class="builder-page__brand-mark"
+        ><mat-icon aria-hidden="true">dashboard</mat-icon></span
+      >
       <div>
-        <span class="builder-page__label">Nexus</span>
-        <strong>{{ siteConfig().name }}</strong>
+        <span>Nexus</span><strong>{{ siteConfig().name }}</strong>
       </div>
     </header>
 
-    <label class="builder-page__field builder-page__field--compact">
-      <span>Название сайта</span>
-      <input type="text" [value]="siteConfig().name" (input)="updateSiteName($event)" />
-    </label>
+    <div class="builder-page__sidebar-tabs" role="tablist" aria-label="Разделы боковой панели">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="sidebarTab() === 'add'"
+        [class.is-active]="sidebarTab() === 'add'"
+        (click)="setSidebarTab('add')"
+      >
+        Добавить
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="sidebarTab() === 'layers'"
+        [class.is-active]="sidebarTab() === 'layers'"
+        (click)="setSidebarTab('layers')"
+      >
+        Слои
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="sidebarTab() === 'theme'"
+        [class.is-active]="sidebarTab() === 'theme'"
+        (click)="setSidebarTab('theme')"
+      >
+        Тема
+      </button>
+    </div>
 
-    <nav class="builder-page__nav" aria-label="Страницы">
-      @for (page of pages(); track page.slug) {
-        <button
-          class="builder-page__nav-button"
-          type="button"
-          [class.is-active]="page.slug === activePageSlug()"
-          (click)="selectPage(page.slug)"
-        >
-          <mat-icon aria-hidden="true">article</mat-icon>
-          <span>{{ page.title }}</span>
-        </button>
-      }
-    </nav>
-
-    <section class="builder-page__palette" aria-label="Добавить блок">
-      <div class="builder-page__section-head">
-        <span class="builder-page__label">Добавить</span>
-        <mat-icon aria-hidden="true">add_circle</mat-icon>
-      </div>
-
-      <div class="builder-page__palette-grid">
-        @for (item of blockPalette; track item.type) {
-          <button class="builder-page__palette-button" type="button" (click)="addBlock(item.type)">
-            <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
-            <span>
-              <strong>{{ item.label }}</strong>
-              <small>{{ item.description }}</small>
-            </span>
-          </button>
-        }
-      </div>
-    </section>
-
-    <section class="builder-page__layers" aria-label="Порядок блоков">
-      <div class="builder-page__section-head">
-        <span class="builder-page__label">Слои</span>
-        <span>{{ activeBlocks().length }}</span>
-      </div>
-
-      @if (activeBlocks().length > 0) {
-        <div class="builder-page__layer-list">
-          @for (block of activeBlocks(); track block.id) {
-            <button
-              class="builder-page__layer"
-              type="button"
-              [class.is-active]="block.id === selectedBlock()?.id"
-              (click)="selectBlock(block.id)"
-            >
-              <mat-icon aria-hidden="true">{{ getBlockIcon(block.type) }}</mat-icon>
-              <span>
-                <strong>{{ getBlockTypeLabel(block.type) }}</strong>
-                <small>{{ getBlockLabel(block) }}</small>
-              </span>
-            </button>
+    <div class="builder-page__sidebar-content">
+      @switch (sidebarTab()) {
+        @case ('add') {
+          @for (group of paletteGroups; track group.label) {
+            <section class="builder-page__palette-group" [attr.aria-label]="group.label">
+              <h2>{{ group.label }}</h2>
+              <div class="builder-page__palette-grid">
+                @for (item of group.items; track item.type) {
+                  <button
+                    type="button"
+                    class="builder-page__palette-item"
+                    (click)="addBlock(item.type)"
+                  >
+                    <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                    <span
+                      ><strong>{{ item.label }}</strong
+                      ><small>{{ item.description }}</small></span
+                    >
+                  </button>
+                }
+              </div>
+            </section>
           }
-        </div>
-      } @else {
-        <p class="builder-page__empty-text">Добавьте первый блок кнопкой выше.</p>
+        }
+        @case ('layers') {
+          <nav class="builder-page__pages" aria-label="Страницы">
+            @for (page of pages(); track page.slug) {
+              <button
+                type="button"
+                [class.is-active]="page.slug === activePageSlug()"
+                (click)="selectPage(page.slug)"
+              >
+                <mat-icon aria-hidden="true">article</mat-icon><span>{{ page.title }}</span>
+              </button>
+            }
+          </nav>
+          <div class="builder-page__layer-list">
+            @for (block of activeBlocks(); track block.id) {
+              <div
+                class="builder-page__layer"
+                [class.is-active]="block.id === selectedBlock()?.id"
+                [class.is-hidden]="block.hidden"
+              >
+                <button
+                  type="button"
+                  class="builder-page__layer-main"
+                  (click)="selectBlock(block.id)"
+                >
+                  <mat-icon aria-hidden="true">{{ getBlockIcon(block.type) }}</mat-icon>
+                  <span
+                    ><strong>{{ getBlockTypeLabel(block.type) }}</strong
+                    ><small>{{ getBlockLabel(block) }}</small></span
+                  >
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  [attr.aria-label]="block.hidden ? 'Показать блок' : 'Скрыть блок'"
+                  (click)="toggleBlockVisibility(block.id)"
+                >
+                  <mat-icon>{{ block.hidden ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+            } @empty {
+              <p class="builder-page__empty">Добавьте первую секцию во вкладке «Добавить».</p>
+            }
+          </div>
+        }
+        @case ('theme') {
+          <app-site-settings-editor />
+        }
       }
-    </section>
+    </div>
   </aside>
 
   <section
     class="builder-page__workspace"
     [class.is-mobile-active]="mobilePanel() === 'canvas'"
-    aria-label="Рабочая область конструктора"
+    aria-label="Холст конструктора"
   >
     <header class="builder-page__topbar">
-      <div>
-        <span class="builder-page__label">Страница</span>
-        <h1>{{ activePage()?.title }}</h1>
-        <p class="builder-page__status">
+      <div class="builder-page__breadcrumb">
+        <a mat-icon-button routerLink="/projects" aria-label="Назад к проектам" matTooltip="Проекты"
+          ><mat-icon>arrow_back</mat-icon></a
+        >
+        <div>
+          <span>{{ siteConfig().name }}</span
+          ><strong>{{ activePage()?.title }}</strong>
+        </div>
+      </div>
+
+      <div class="builder-page__canvas-tools">
+        <div class="builder-page__history" aria-label="История изменений">
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Отменить"
+            matTooltip="Отменить"
+            [disabled]="!canUndo()"
+            (click)="undo()"
+          >
+            <mat-icon>undo</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Повторить"
+            matTooltip="Повторить"
+            [disabled]="!canRedo()"
+            (click)="redo()"
+          >
+            <mat-icon>redo</mat-icon>
+          </button>
+        </div>
+        <div class="builder-page__segments" aria-label="Режим холста">
+          <button
+            type="button"
+            [class.is-active]="canvasMode() === 'edit'"
+            (click)="setCanvasMode('edit')"
+          >
+            <mat-icon aria-hidden="true">edit</mat-icon><span>Редактор</span>
+          </button>
+          <button
+            type="button"
+            [class.is-active]="canvasMode() === 'preview'"
+            (click)="setCanvasMode('preview')"
+          >
+            <mat-icon aria-hidden="true">visibility</mat-icon><span>Просмотр</span>
+          </button>
+        </div>
+        <div
+          class="builder-page__segments builder-page__segments--icons"
+          aria-label="Размер холста"
+        >
+          <button
+            type="button"
+            aria-label="Компьютер"
+            [class.is-active]="canvasViewport() === 'desktop'"
+            (click)="setCanvasViewport('desktop')"
+          >
+            <mat-icon>desktop_windows</mat-icon>
+          </button>
+          <button
+            type="button"
+            aria-label="Телефон"
+            [class.is-active]="canvasViewport() === 'mobile'"
+            (click)="setCanvasViewport('mobile')"
+          >
+            <mat-icon>phone_iphone</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="builder-page__primary-actions">
+        <span class="builder-page__status" aria-live="polite">
           @switch (saveStatus()) {
             @case ('dirty') {
-              Есть несохраненные изменения
+              Не сохранено
             }
             @case ('saving') {
               Сохранение...
@@ -132,114 +236,68 @@
               {{ projectError() }}
             }
             @default {
-              Локальный черновик
+              Черновик
             }
           }
-        </p>
-      </div>
-
-      <div class="builder-page__topbar-groups">
-        <div class="builder-page__nav-actions" aria-label="Навигация проекта">
-          <a mat-stroked-button routerLink="/">
-            <mat-icon aria-hidden="true">home</mat-icon>
-            Главная
-          </a>
-
-          <a mat-stroked-button routerLink="/projects">
-            <mat-icon aria-hidden="true">folder_open</mat-icon>
-            Проекты
-          </a>
-        </div>
-
-        <div class="builder-page__canvas-controls" aria-label="Настройки холста">
-          <div class="builder-page__mode-switch" aria-label="Режим холста">
-            <button
-              type="button"
-              [class.is-selected]="canvasMode() === 'edit'"
-              (click)="setCanvasMode('edit')"
-            >
-              <mat-icon aria-hidden="true">edit</mat-icon>
-              Edit
-            </button>
-            <button
-              type="button"
-              [class.is-selected]="canvasMode() === 'preview'"
-              (click)="setCanvasMode('preview')"
-            >
-              <mat-icon aria-hidden="true">visibility</mat-icon>
-              Preview
-            </button>
-          </div>
-
-          <div class="builder-page__mode-switch" aria-label="Размер предпросмотра">
-            <button
-              type="button"
-              [class.is-selected]="canvasViewport() === 'desktop'"
-              (click)="setCanvasViewport('desktop')"
-            >
-              <mat-icon aria-hidden="true">desktop_windows</mat-icon>
-            </button>
-            <button
-              type="button"
-              [class.is-selected]="canvasViewport() === 'mobile'"
-              (click)="setCanvasViewport('mobile')"
-            >
-              <mat-icon aria-hidden="true">phone_iphone</mat-icon>
-            </button>
-          </div>
-        </div>
-
-        <div class="builder-page__publish-actions" aria-label="Действия с локальным демо">
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="saveProject()"
-            matTooltip="Сохраняет черновик в локальном demo-хранилище"
+        </span>
+        <button
+          mat-stroked-button
+          type="button"
+          aria-label="Сохранить проект"
+          matTooltip="Сохранить"
+          (click)="saveProject()"
+        >
+          <mat-icon aria-hidden="true">save</mat-icon><span>Сохранить</span>
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          aria-label="Опубликовать локальное демо"
+          (click)="publishProject()"
+          matTooltip="Локальная демо-публикация"
+        >
+          <mat-icon aria-hidden="true">publish</mat-icon><span>Демо-публикация</span>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Еще действия"
+          [matMenuTriggerFor]="builderMenu"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #builderMenu="matMenu">
+          <a mat-menu-item routerLink="/"><mat-icon>home</mat-icon><span>Главная</span></a>
+          <a mat-menu-item routerLink="/projects"
+            ><mat-icon>folder_open</mat-icon><span>Мои проекты</span></a
           >
-            <mat-icon aria-hidden="true">save</mat-icon>
-            Сохранить
-          </button>
-
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            (click)="publishProject()"
-            matTooltip="Создает локальную демо-публикацию в этом браузере"
+          <a mat-menu-item routerLink="/create"
+            ><mat-icon>add</mat-icon><span>Новый лендинг</span></a
           >
-            <mat-icon aria-hidden="true">publish</mat-icon>
-            Демо-публикация
-          </button>
-
           @if (publishedUrl(); as url) {
-            <a mat-stroked-button [routerLink]="url">
-              <mat-icon aria-hidden="true">open_in_new</mat-icon>
-              Локальная ссылка
-            </a>
+            <a mat-menu-item [routerLink]="url"
+              ><mat-icon>open_in_new</mat-icon><span>Локальная ссылка</span></a
+            >
           }
-
-          <a mat-stroked-button routerLink="/create" class="builder-page__create-button">
-            <mat-icon aria-hidden="true">auto_awesome</mat-icon>
-            Новый лендинг
-          </a>
-        </div>
+        </mat-menu>
       </div>
     </header>
 
     <div class="builder-page__canvas-shell">
       <div
         class="builder-page__canvas"
-        [class.builder-page__canvas--mobile]="canvasViewport() === 'mobile'"
+        [class.is-mobile]="canvasViewport() === 'mobile'"
         cdkDropList
         cdkDropListLockAxis="y"
         [cdkDropListDisabled]="canvasMode() === 'preview'"
         [cdkDropListData]="activeBlocks()"
         (cdkDropListDropped)="dropBlock($event)"
-        aria-label="Холст страницы"
+        aria-label="Страница"
       >
         @if (activeBlocks().length > 0) {
           @if (canvasMode() === 'preview') {
-            <app-block-renderer [blocks]="activeBlocks()" />
+            <app-block-renderer [blocks]="activeBlocks()" [theme]="siteConfig().theme" />
           } @else {
             @for (block of activeBlocks(); track block.id) {
               <article
@@ -247,31 +305,28 @@
                 cdkDrag
                 [cdkDragData]="block"
                 [class.is-selected]="block.id === selectedBlock()?.id"
+                [class.is-hidden]="block.hidden"
                 (click)="selectBlock(block.id)"
               >
                 <header class="builder-page__block-toolbar">
                   <button
-                    class="builder-page__drag-handle"
                     type="button"
+                    class="builder-page__drag"
                     cdkDragHandle
                     aria-label="Перетащить блок"
-                    matTooltip="Перетащить"
                     (click)="$event.stopPropagation()"
                   >
-                    <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+                    <mat-icon>drag_indicator</mat-icon>
                   </button>
-
                   <div>
-                    <span>{{ getBlockTypeLabel(block.type) }}</span>
-                    <strong>{{ getBlockLabel(block) }}</strong>
+                    <span>{{ getBlockTypeLabel(block.type) }}</span
+                    ><strong>{{ getBlockLabel(block) }}</strong>
                   </div>
-
                   <div class="builder-page__block-actions">
                     <button
                       mat-icon-button
                       type="button"
-                      aria-label="Поднять блок"
-                      matTooltip="Выше"
+                      aria-label="Выше"
                       [disabled]="!canMoveBlock(block.id, 'up')"
                       (click)="moveBlock(block.id, 'up'); $event.stopPropagation()"
                     >
@@ -280,8 +335,7 @@
                     <button
                       mat-icon-button
                       type="button"
-                      aria-label="Опустить блок"
-                      matTooltip="Ниже"
+                      aria-label="Ниже"
                       [disabled]="!canMoveBlock(block.id, 'down')"
                       (click)="moveBlock(block.id, 'down'); $event.stopPropagation()"
                     >
@@ -290,8 +344,7 @@
                     <button
                       mat-icon-button
                       type="button"
-                      aria-label="Дублировать блок"
-                      matTooltip="Дублировать"
+                      aria-label="Дублировать"
                       (click)="duplicateBlock(block.id); $event.stopPropagation()"
                     >
                       <mat-icon>content_copy</mat-icon>
@@ -299,24 +352,27 @@
                     <button
                       mat-icon-button
                       type="button"
-                      aria-label="Удалить блок"
-                      matTooltip="Удалить"
+                      aria-label="Удалить"
                       (click)="removeBlock(block.id); $event.stopPropagation()"
                     >
                       <mat-icon>delete</mat-icon>
                     </button>
                   </div>
                 </header>
-
-                <app-block-renderer [blocks]="[block]" />
+                @if (!block.hidden) {
+                  <app-block-renderer [blocks]="[block]" [theme]="siteConfig().theme" />
+                } @else {
+                  <p class="builder-page__hidden-note">
+                    <mat-icon aria-hidden="true">visibility_off</mat-icon>Секция скрыта на сайте
+                  </p>
+                }
               </article>
             }
           }
         } @else {
           <section class="builder-page__empty-canvas">
-            <mat-icon aria-hidden="true">add_box</mat-icon>
-            <strong>Пустая страница</strong>
-            <p>Добавьте хедер, hero, предложения или футер и соберите порядок как нужно.</p>
+            <mat-icon aria-hidden="true">add_box</mat-icon><strong>Страница пока пустая</strong>
+            <p>Откройте «Блоки» и добавьте первую секцию.</p>
           </section>
         }
       </div>
@@ -326,728 +382,14 @@
   <aside
     class="builder-page__inspector"
     [class.is-mobile-active]="mobilePanel() === 'settings'"
-    aria-label="Свойства выбранного блока"
+    aria-label="Настройки выбранного блока"
   >
     @if (selectedBlock(); as block) {
-      <header class="builder-page__inspector-head">
-        <div>
-          <span class="builder-page__label">{{ getBlockTypeLabel(block.type) }}</span>
-          <h2>{{ getBlockLabel(block) }}</h2>
-        </div>
-        <mat-icon aria-hidden="true">{{ getBlockIcon(block.type) }}</mat-icon>
-      </header>
-
-      <div class="builder-page__inspector-tabs" aria-label="Разделы инспектора">
-        <button
-          type="button"
-          [class.is-selected]="inspectorTab() === 'content'"
-          (click)="setInspectorTab('content')"
-        >
-          <mat-icon aria-hidden="true">edit</mat-icon>
-          Контент
-        </button>
-        <button
-          type="button"
-          [class.is-selected]="inspectorTab() === 'design'"
-          (click)="setInspectorTab('design')"
-        >
-          <mat-icon aria-hidden="true">palette</mat-icon>
-          Дизайн
-        </button>
-        <button
-          type="button"
-          [class.is-selected]="inspectorTab() === 'behavior'"
-          (click)="setInspectorTab('behavior')"
-        >
-          <mat-icon aria-hidden="true">route</mat-icon>
-          Поведение
-        </button>
-      </div>
-
-      @if (inspectorTab() === 'design') {
-        <section class="builder-page__panel" aria-label="Дизайн блока">
-          <div class="builder-page__section-head">
-            <span class="builder-page__label">Дизайн блока</span>
-            <mat-icon aria-hidden="true">tune</mat-icon>
-          </div>
-
-          <div class="builder-page__control">
-            <span>Цвет</span>
-            <div class="builder-page__swatches">
-              @for (option of accentOptions; track option.id) {
-                <button
-                  class="builder-page__swatch"
-                  type="button"
-                  [class.is-selected]="selectedDesign().accentColor === option.id"
-                  [style.--swatch-color]="getAccentValue(option.id)"
-                  [attr.aria-label]="option.title"
-                  (click)="updateBlockAccent(block.id, option.id)"
-                ></button>
-              }
-            </div>
-          </div>
-
-          <div class="builder-page__control">
-            <span>Шрифт</span>
-            <div class="builder-page__segments">
-              @for (option of fontOptions; track option.id) {
-                <button
-                  type="button"
-                  [class.is-selected]="selectedDesign().fontPairing === option.id"
-                  (click)="updateBlockFont(block.id, option.id)"
-                >
-                  <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                  {{ option.title }}
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="builder-page__control">
-            <span>Плотность</span>
-            <div class="builder-page__segments">
-              @for (option of densityOptions; track option.id) {
-                <button
-                  type="button"
-                  [class.is-selected]="selectedDesign().density === option.id"
-                  (click)="updateBlockDensity(block.id, option.id)"
-                >
-                  <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                  {{ option.title }}
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="builder-page__control">
-            <span>Стиль</span>
-            <div class="builder-page__segments">
-              @for (option of templateStyleOptions; track option.id) {
-                <button
-                  type="button"
-                  [class.is-selected]="selectedDesign().templateStyle === option.id"
-                  (click)="updateBlockTemplateStyle(block.id, option.id)"
-                >
-                  <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                  {{ option.title }}
-                </button>
-              }
-            </div>
-          </div>
-
-          @switch (block.type) {
-            @case ('hero') {
-              <div class="builder-page__color-grid">
-                <label class="builder-page__color-field">
-                  <span>Фон</span>
-                  <input
-                    type="color"
-                    [value]="block.styles.backgroundColor"
-                    (input)="updateHeroColor(block.id, 'backgroundColor', $event)"
-                  />
-                </label>
-                <label class="builder-page__color-field">
-                  <span>Текст</span>
-                  <input
-                    type="color"
-                    [value]="block.styles.textColor"
-                    (input)="updateHeroColor(block.id, 'textColor', $event)"
-                  />
-                </label>
-                <label class="builder-page__color-field">
-                  <span>CTA</span>
-                  <input
-                    type="color"
-                    [value]="block.styles.buttonBackgroundColor"
-                    (input)="updateHeroColor(block.id, 'buttonBackgroundColor', $event)"
-                  />
-                </label>
-                <label class="builder-page__color-field">
-                  <span>CTA текст</span>
-                  <input
-                    type="color"
-                    [value]="block.styles.buttonTextColor"
-                    (input)="updateHeroColor(block.id, 'buttonTextColor', $event)"
-                  />
-                </label>
-              </div>
-
-              <label class="builder-page__field">
-                <span>Высота</span>
-                <input
-                  type="text"
-                  [value]="block.styles.minHeight"
-                  (input)="updateHeroMinHeight(block.id, $event)"
-                />
-              </label>
-
-              <div class="builder-page__control">
-                <span>Выравнивание</span>
-                <div class="builder-page__segments">
-                  @for (option of heroAlignmentOptions; track option.id) {
-                    <button
-                      type="button"
-                      [class.is-selected]="block.styles.alignment === option.id"
-                      (click)="updateHeroAlignment(block.id, option.id)"
-                    >
-                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                      {{ option.label }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          }
-        </section>
-      }
-
-      @if (inspectorTab() === 'content') {
-        <section class="builder-page__panel" aria-label="Контент блока">
-          <div class="builder-page__section-head">
-            <span class="builder-page__label">Контент</span>
-            <mat-icon aria-hidden="true">edit</mat-icon>
-          </div>
-
-          @switch (block.type) {
-            @case ('siteHeader') {
-              <label class="builder-page__field">
-                <span>Бренд</span>
-                <input
-                  type="text"
-                  [value]="block.brandName"
-                  (input)="updateHeaderText(block.id, 'brandName', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>Навигация</span>
-                <input
-                  type="text"
-                  [value]="formatLinkLabels(block.navigationItems)"
-                  (input)="updateHeaderNavigation(block.id, $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>CTA текст</span>
-                <input
-                  type="text"
-                  [value]="block.cta.label"
-                  (input)="updateHeaderCta(block.id, 'label', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>CTA ссылка</span>
-                <input
-                  type="text"
-                  [value]="block.cta.target"
-                  (input)="updateHeaderCta(block.id, 'target', $event)"
-                />
-              </label>
-
-              @if (block.booking; as booking) {
-                <div class="builder-page__compact-grid">
-                  <label class="builder-page__field">
-                    <span>Дата/слот</span>
-                    <input
-                      type="text"
-                      [value]="booking.dateLabel"
-                      (input)="updateHeaderBooking(block.id, 'dateLabel', $event)"
-                    />
-                  </label>
-                  <label class="builder-page__field">
-                    <span>Гости/формат</span>
-                    <input
-                      type="text"
-                      [value]="booking.partySizeLabel"
-                      (input)="updateHeaderBooking(block.id, 'partySizeLabel', $event)"
-                    />
-                  </label>
-                </div>
-              }
-            }
-
-            @case ('hero') {
-              <label class="builder-page__field">
-                <span>Заголовок</span>
-                <textarea
-                  rows="3"
-                  [value]="block.title"
-                  (input)="updateHeroText(block.id, 'title', $event)"
-                ></textarea>
-              </label>
-
-              <label class="builder-page__field">
-                <span>Подзаголовок</span>
-                <textarea
-                  rows="4"
-                  [value]="block.subtitle"
-                  (input)="updateHeroText(block.id, 'subtitle', $event)"
-                ></textarea>
-              </label>
-
-              <label class="builder-page__field">
-                <span>Кнопка</span>
-                <input
-                  type="text"
-                  [value]="block.buttonText"
-                  (input)="updateHeroText(block.id, 'buttonText', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>Ссылка CTA</span>
-                <input
-                  type="text"
-                  [value]="block.buttonHref"
-                  (input)="updateHeroText(block.id, 'buttonHref', $event)"
-                />
-              </label>
-
-              <div class="builder-page__compact-grid">
-                <label class="builder-page__field">
-                  <span>Изображение</span>
-                  <input
-                    type="url"
-                    [value]="block.media?.src ?? ''"
-                    (input)="updateHeroMedia(block.id, 'src', $event)"
-                  />
-                </label>
-                <label class="builder-page__field">
-                  <span>Alt</span>
-                  <input
-                    type="text"
-                    [value]="block.media?.alt ?? ''"
-                    (input)="updateHeroMedia(block.id, 'alt', $event)"
-                  />
-                </label>
-              </div>
-
-              <div class="builder-page__compact-grid">
-                <label class="builder-page__field">
-                  <span>Вторичная кнопка</span>
-                  <input
-                    type="text"
-                    [value]="block.secondaryButton?.label ?? ''"
-                    (input)="updateHeroSecondaryButton(block.id, 'label', $event)"
-                  />
-                </label>
-                <label class="builder-page__field">
-                  <span>Ссылка</span>
-                  <input
-                    type="text"
-                    [value]="block.secondaryButton?.target ?? '#offers'"
-                    (input)="updateHeroSecondaryButton(block.id, 'target', $event)"
-                  />
-                </label>
-              </div>
-            }
-
-            @case ('offerList') {
-              <label class="builder-page__field">
-                <span>Надзаголовок</span>
-                <input
-                  type="text"
-                  [value]="block.eyebrow"
-                  (input)="updateOfferText(block.id, 'eyebrow', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>Заголовок</span>
-                <textarea
-                  rows="3"
-                  [value]="block.title"
-                  (input)="updateOfferText(block.id, 'title', $event)"
-                ></textarea>
-              </label>
-
-              <div class="builder-page__items">
-                @for (item of block.items; track itemIndex; let itemIndex = $index) {
-                  <section class="builder-page__item-editor">
-                    <div class="builder-page__item-head">
-                      <span class="builder-page__item-index">{{ itemIndex + 1 }}</span>
-                      <button
-                        mat-icon-button
-                        type="button"
-                        aria-label="Удалить пункт"
-                        [disabled]="block.items.length <= 1"
-                        (click)="removeOfferItem(block.id, itemIndex)"
-                      >
-                        <mat-icon>remove_circle</mat-icon>
-                      </button>
-                    </div>
-                    <label class="builder-page__field">
-                      <span>Название</span>
-                      <input
-                        type="text"
-                        [value]="item.title"
-                        (input)="updateOfferItemText(block.id, itemIndex, 'title', $event)"
-                      />
-                    </label>
-                    <div class="builder-page__compact-grid">
-                      <label class="builder-page__field">
-                        <span>Мета</span>
-                        <input
-                          type="text"
-                          [value]="item.meta"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'meta', $event)"
-                        />
-                      </label>
-                      <label class="builder-page__field">
-                        <span>Цена</span>
-                        <input
-                          type="text"
-                          [value]="item.price ?? ''"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'price', $event)"
-                        />
-                      </label>
-                    </div>
-                    <label class="builder-page__field">
-                      <span>Бейдж</span>
-                      <input
-                        type="text"
-                        [value]="item.badge ?? ''"
-                        (input)="updateOfferItemText(block.id, itemIndex, 'badge', $event)"
-                      />
-                    </label>
-                    <label class="builder-page__field">
-                      <span>Описание</span>
-                      <textarea
-                        rows="3"
-                        [value]="item.description"
-                        (input)="updateOfferItemText(block.id, itemIndex, 'description', $event)"
-                      ></textarea>
-                    </label>
-                    <div class="builder-page__compact-grid">
-                      <label class="builder-page__field">
-                        <span>Картинка</span>
-                        <input
-                          type="url"
-                          [value]="item.image?.src ?? ''"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'imageSrc', $event)"
-                        />
-                      </label>
-                      <label class="builder-page__field">
-                        <span>Alt</span>
-                        <input
-                          type="text"
-                          [value]="item.image?.alt ?? ''"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'imageAlt', $event)"
-                        />
-                      </label>
-                    </div>
-                    <div class="builder-page__compact-grid">
-                      <label class="builder-page__field">
-                        <span>CTA</span>
-                        <input
-                          type="text"
-                          [value]="item.cta?.label ?? ''"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'ctaLabel', $event)"
-                        />
-                      </label>
-                      <label class="builder-page__field">
-                        <span>CTA ссылка</span>
-                        <input
-                          type="text"
-                          [value]="item.cta?.target ?? '#lead-form'"
-                          (input)="updateOfferItemText(block.id, itemIndex, 'ctaTarget', $event)"
-                        />
-                      </label>
-                    </div>
-                  </section>
-                }
-
-                <button mat-stroked-button type="button" (click)="addOfferItem(block.id)">
-                  <mat-icon aria-hidden="true">add</mat-icon>
-                  Добавить пункт
-                </button>
-              </div>
-            }
-
-            @case ('siteFooter') {
-              <label class="builder-page__field">
-                <span>Бренд</span>
-                <input
-                  type="text"
-                  [value]="block.brandName"
-                  (input)="updateFooterText(block.id, 'brandName', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>CTA текст</span>
-                <input
-                  type="text"
-                  [value]="block.cta.label"
-                  (input)="updateFooterCta(block.id, 'label', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>CTA ссылка</span>
-                <input
-                  type="text"
-                  [value]="block.cta.target"
-                  (input)="updateFooterCta(block.id, 'target', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>Контакты</span>
-                <textarea
-                  rows="4"
-                  [value]="formatMultilineList(block.contactLines)"
-                  (input)="updateFooterContacts(block.id, $event)"
-                ></textarea>
-              </label>
-
-              <label class="builder-page__field">
-                <span>Ссылки</span>
-                <input
-                  type="text"
-                  [value]="formatLinkLabels(block.links)"
-                  (input)="updateFooterLinks(block.id, $event)"
-                />
-              </label>
-
-              <div class="builder-page__compact-grid">
-                <label class="builder-page__field">
-                  <span>Карта: подпись</span>
-                  <input
-                    type="text"
-                    [value]="block.map?.label ?? ''"
-                    (input)="updateFooterMap(block.id, 'label', $event)"
-                  />
-                </label>
-                <label class="builder-page__field">
-                  <span>Адрес</span>
-                  <input
-                    type="text"
-                    [value]="block.map?.address ?? ''"
-                    (input)="updateFooterMap(block.id, 'address', $event)"
-                  />
-                </label>
-              </div>
-            }
-
-            @case ('leadForm') {
-              <label class="builder-page__field">
-                <span>Заголовок</span>
-                <textarea
-                  rows="3"
-                  [value]="block.title"
-                  (input)="updateLeadFormText(block.id, 'title', $event)"
-                ></textarea>
-              </label>
-
-              <label class="builder-page__field">
-                <span>Описание</span>
-                <textarea
-                  rows="4"
-                  [value]="block.description"
-                  (input)="updateLeadFormText(block.id, 'description', $event)"
-                ></textarea>
-              </label>
-
-              <label class="builder-page__field">
-                <span>Кнопка</span>
-                <input
-                  type="text"
-                  [value]="block.submitText"
-                  (input)="updateLeadFormText(block.id, 'submitText', $event)"
-                />
-              </label>
-
-              <label class="builder-page__field">
-                <span>Сообщение успеха</span>
-                <textarea
-                  rows="3"
-                  [value]="block.successMessage"
-                  (input)="updateLeadFormText(block.id, 'successMessage', $event)"
-                ></textarea>
-              </label>
-
-              <div class="builder-page__items">
-                @for (field of block.fields; track field.id) {
-                  <section class="builder-page__item-editor">
-                    <div class="builder-page__item-head">
-                      <span class="builder-page__item-index">{{ field.order }}</span>
-                      <button
-                        mat-icon-button
-                        type="button"
-                        aria-label="Удалить поле"
-                        [disabled]="block.fields.length <= 1"
-                        (click)="removeLeadField(block.id, field.id)"
-                      >
-                        <mat-icon>remove_circle</mat-icon>
-                      </button>
-                    </div>
-                    <label class="builder-page__field">
-                      <span>Название</span>
-                      <input
-                        type="text"
-                        [value]="field.label"
-                        (input)="updateLeadFieldText(block.id, field.id, 'label', $event)"
-                      />
-                    </label>
-                    <div class="builder-page__compact-grid">
-                      <label class="builder-page__field">
-                        <span>Тип</span>
-                        <select
-                          [value]="field.type"
-                          (change)="updateLeadFieldType(block.id, field.id, $event)"
-                        >
-                          <option value="text">Текст</option>
-                          <option value="email">Email</option>
-                          <option value="tel">Телефон</option>
-                          <option value="textarea">Textarea</option>
-                        </select>
-                      </label>
-                      <label class="builder-page__checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="field.required"
-                          (change)="updateLeadFieldRequired(block.id, field.id, $event)"
-                        />
-                        <span>Обязательное</span>
-                      </label>
-                    </div>
-                    <label class="builder-page__field">
-                      <span>Placeholder</span>
-                      <input
-                        type="text"
-                        [value]="field.placeholder"
-                        (input)="updateLeadFieldText(block.id, field.id, 'placeholder', $event)"
-                      />
-                    </label>
-                    <label class="builder-page__field">
-                      <span>Подсказка</span>
-                      <input
-                        type="text"
-                        [value]="field.helpText ?? ''"
-                        (input)="updateLeadFieldText(block.id, field.id, 'helpText', $event)"
-                      />
-                    </label>
-                  </section>
-                }
-
-                <button mat-stroked-button type="button" (click)="addLeadField(block.id)">
-                  <mat-icon aria-hidden="true">add</mat-icon>
-                  Добавить поле
-                </button>
-              </div>
-            }
-          }
-        </section>
-      }
-
-      @if (inspectorTab() === 'behavior') {
-        <section class="builder-page__panel" aria-label="Поведение блока">
-          <div class="builder-page__section-head">
-            <span class="builder-page__label">Поведение</span>
-            <mat-icon aria-hidden="true">route</mat-icon>
-          </div>
-
-          @switch (block.type) {
-            @case ('siteHeader') {
-              <div class="builder-page__control">
-                <span>Вариант хедера</span>
-                <div class="builder-page__segments">
-                  @for (option of headerOptions; track option.id) {
-                    <button
-                      type="button"
-                      [class.is-selected]="block.variant === option.id"
-                      (click)="updateHeaderVariant(block.id, option.id)"
-                    >
-                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                      {{ option.title }}
-                    </button>
-                  }
-                </div>
-              </div>
-
-              @if (block.booking; as booking) {
-                <div class="builder-page__compact-grid">
-                  <label class="builder-page__field">
-                    <span>Booking CTA</span>
-                    <input
-                      type="text"
-                      [value]="booking.action.label"
-                      (input)="updateHeaderBooking(block.id, 'actionLabel', $event)"
-                    />
-                  </label>
-                  <label class="builder-page__field">
-                    <span>Booking ссылка</span>
-                    <input
-                      type="text"
-                      [value]="booking.action.target"
-                      (input)="updateHeaderBooking(block.id, 'actionTarget', $event)"
-                    />
-                  </label>
-                </div>
-              }
-            }
-
-            @case ('offerList') {
-              <div class="builder-page__control">
-                <span>Вариант карточек</span>
-                <div class="builder-page__segments">
-                  @for (option of offerListOptions; track option.id) {
-                    <button
-                      type="button"
-                      [class.is-selected]="block.variant === option.id"
-                      (click)="updateOfferVariant(block.id, option.id)"
-                    >
-                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                      {{ option.title }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            @case ('siteFooter') {
-              <div class="builder-page__control">
-                <span>Вариант футера</span>
-                <div class="builder-page__segments">
-                  @for (option of footerOptions; track option.id) {
-                    <button
-                      type="button"
-                      [class.is-selected]="block.variant === option.id"
-                      (click)="updateFooterVariant(block.id, option.id)"
-                    >
-                      <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon>
-                      {{ option.title }}
-                    </button>
-                  }
-                </div>
-              </div>
-
-              <label class="builder-page__field">
-                <span>Embed URL карты</span>
-                <input
-                  type="url"
-                  [value]="block.map?.embedUrl ?? ''"
-                  (input)="updateFooterMap(block.id, 'embedUrl', $event)"
-                />
-              </label>
-            }
-
-            @default {
-              <p class="builder-page__empty-text">
-                Для этого блока основные сценарии настраиваются во вкладках контента и дизайна.
-              </p>
-            }
-          }
-        </section>
-      }
+      <app-block-inspector [block]="block" />
     } @else {
       <section class="builder-page__empty-inspector">
-        <mat-icon aria-hidden="true">ads_click</mat-icon>
-        <strong>Выберите блок</strong>
-        <p>Добавьте или выберите секцию на холсте, чтобы настроить контент, цвет и типографику.</p>
+        <mat-icon aria-hidden="true">ads_click</mat-icon><strong>Выберите секцию</strong>
+        <p>Контент, дизайн и поведение появятся здесь.</p>
       </section>
     }
   </aside>

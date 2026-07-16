@@ -9,7 +9,12 @@ import {
 } from '../../../builder/domain/models';
 import type { LeadFormBlockConfig, LeadFormFieldConfig } from '../../../builder/domain/models';
 
-type LeadFormStatus = 'idle' | 'success' | 'error';
+type LeadFormStatus = 'idle' | 'submitting' | 'success' | 'error' | 'unavailable';
+
+export interface LeadFormSubmitEvent {
+  readonly fields: Readonly<Record<string, string>>;
+  readonly complete: (saved: boolean) => void;
+}
 
 @Component({
   selector: 'app-lead-form-block',
@@ -20,7 +25,8 @@ type LeadFormStatus = 'idle' | 'success' | 'error';
 })
 export class LeadFormBlockComponent {
   readonly block = input.required<LeadFormBlockConfig>();
-  readonly formSubmit = output<Readonly<Record<string, string>>>();
+  readonly submissionEnabled = input(false);
+  readonly formSubmit = output<LeadFormSubmitEvent>();
   readonly status = signal<LeadFormStatus>('idle');
 
   readonly design = computed(() => this.block().design ?? DEFAULT_LANDING_DESIGN_SETTINGS);
@@ -37,31 +43,82 @@ export class LeadFormBlockComponent {
   submit(event: Event): void {
     event.preventDefault();
 
-    const form = event.target;
+    const form = event.currentTarget;
 
-    if (!(form instanceof HTMLFormElement) || !form.checkValidity()) {
+    if (!(form instanceof HTMLFormElement)) {
       this.status.set('error');
       return;
     }
 
     const fields = this.readFields(form, this.orderedFields());
 
-    this.formSubmit.emit(fields);
-    this.status.set('success');
-    form.reset();
+    if (!form.checkValidity() || !this.hasRequiredValues(fields, this.orderedFields())) {
+      form.reportValidity();
+      this.status.set('error');
+      return;
+    }
+
+    if (!this.submissionEnabled()) {
+      this.status.set('unavailable');
+      return;
+    }
+
+    this.status.set('submitting');
+    let completed = false;
+    const complete = (saved: boolean): void => {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      this.status.set(saved ? 'success' : 'error');
+
+      if (saved) {
+        form.reset();
+      }
+    };
+
+    try {
+      this.formSubmit.emit({ fields, complete });
+    } catch {
+      complete(false);
+    }
+  }
+
+  resetStatus(): void {
+    if (this.status() !== 'idle') {
+      this.status.set('idle');
+    }
+  }
+
+  fieldControlId(fieldId: string): string {
+    return `${this.block().id}-${fieldId}`;
+  }
+
+  fieldHelpId(fieldId: string): string {
+    return `${this.fieldControlId(fieldId)}-help`;
   }
 
   private readFields(
     form: HTMLFormElement,
     fields: readonly LeadFormFieldConfig[],
   ): Readonly<Record<string, string>> {
+    const formData = new FormData(form);
+
     return fields.reduce<Record<string, string>>((result, field) => {
-      const value = new FormData(form).get(field.id);
+      const value = formData.get(field.id);
 
       return {
         ...result,
         [field.id]: typeof value === 'string' ? value.trim() : '',
       };
     }, {});
+  }
+
+  private hasRequiredValues(
+    values: Readonly<Record<string, string>>,
+    fields: readonly LeadFormFieldConfig[],
+  ): boolean {
+    return fields.every((field) => !field.required || Boolean(values[field.id]));
   }
 }

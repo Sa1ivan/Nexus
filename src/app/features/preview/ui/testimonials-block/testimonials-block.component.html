@@ -1,0 +1,32 @@
+<section
+  [id]="block().anchor"
+  class="testimonials"
+  [class.testimonials--featured]="block().variant === 'featuredQuote'"
+  [class.testimonials--list]="block().variant === 'compactList'"
+>
+  <div class="testimonials__inner">
+    <header>
+      <p>{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+    </header>
+    <div class="testimonials__items">
+      @for (item of block().items; track item.id) {
+        <figure>
+          <blockquote>“{{ item.quote }}”</blockquote>
+          <figcaption>
+            @if (item.avatar; as avatar) {
+              <img [src]="avatar.src" [alt]="avatar.alt" />
+            }
+            <span
+              ><strong>{{ item.author }}</strong
+              ><small>{{ item.role }}</small></span
+            >
+            <span class="testimonials__rating" [attr.aria-label]="'Оценка ' + item.rating + ' из 5'"
+              >{{ item.rating }}/5</span
+            >
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </div>
+</section>

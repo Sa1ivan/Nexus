@@ -6,41 +6,90 @@
   [class.site-header--booking]="block().variant === 'reservationBar'"
   [class.site-header--editorial]="block().variant === 'editorial'"
   [class.site-header--burger]="block().variant === 'burgerMenu'"
+  [class.site-header--menu-open]="menuOpen()"
   [class.site-header--stretched]="block().variant === 'stretchedNav'"
   [class.site-header--design-editorial]="design().templateStyle === 'editorial'"
   [class.site-header--design-conversion]="design().templateStyle === 'conversion'"
-  [style.--landing-accent]="accentColor()"
-  [style.--landing-font]="fontFamily()"
-  [style.--landing-radius]="radiusValue()"
-  [style.--landing-header-y]="headerPaddingY()"
 >
   <div class="site-header__shell">
-    <div class="site-header__brand">{{ block().brandName }}</div>
+    <div class="site-header__brand">
+      @if (block().logo; as logo) {
+        <img class="site-header__logo" [src]="logo.src" [alt]="logo.alt" />
+      }
+      <span>{{ block().brandName }}</span>
+    </div>
 
     @if (block().variant === 'burgerMenu') {
-      <button class="site-header__burger-button" type="button" aria-label="Открыть меню">
+      <button
+        #burgerButton
+        class="site-header__burger-button"
+        type="button"
+        [attr.aria-label]="menuButtonLabel()"
+        [attr.aria-expanded]="menuOpen()"
+        [attr.aria-controls]="menuId()"
+        (click)="toggleMenu()"
+      >
         <span></span>
         <span></span>
         <span></span>
       </button>
     }
 
-    <nav class="site-header__nav" aria-label="Навигация лендинга">
-      @for (item of block().navigationItems; track item) {
-        <a class="site-header__link" [href]="item.target">{{ item.label }}</a>
+    <nav
+      class="site-header__nav"
+      [class.site-header__nav--open]="menuOpen()"
+      [id]="menuId()"
+      aria-label="Навигация лендинга"
+    >
+      @for (item of block().navigationItems; track item.id) {
+        <a
+          class="site-header__link"
+          [href]="item.target"
+          [attr.target]="item.openInNewTab ? '_blank' : null"
+          [attr.rel]="item.openInNewTab ? 'noopener noreferrer' : null"
+          (click)="closeMenu()"
+        >
+          {{ item.label }}
+        </a>
       }
     </nav>
 
     @if (block().variant === 'reservationBar') {
       @if (block().booking; as booking) {
         <div class="site-header__booking-bar" aria-label="Быстрое бронирование">
-          <span>{{ booking.dateLabel }}</span>
-          <span>{{ booking.partySizeLabel }}</span>
-          <a [href]="booking.action.target">{{ booking.action.label }}</a>
+          <input
+            type="date"
+            [attr.aria-label]="booking.dateLabel"
+            [attr.title]="booking.dateLabel"
+          />
+          <select [attr.aria-label]="booking.partySizeLabel" [attr.title]="booking.partySizeLabel">
+            <option value="">{{ booking.partySizeLabel }}</option>
+            <option value="1">1 гость</option>
+            <option value="2">2 гостя</option>
+            <option value="3">3 гостя</option>
+            <option value="4">4 гостя</option>
+            <option value="5">5 гостей</option>
+            <option value="6">6+ гостей</option>
+          </select>
+          <a
+            [href]="booking.action.target"
+            [attr.target]="booking.action.openInNewTab ? '_blank' : null"
+            [attr.rel]="booking.action.openInNewTab ? 'noopener noreferrer' : null"
+          >
+            {{ booking.action.label }}
+          </a>
         </div>
       }
     }
 
-    <a class="site-header__cta" [href]="block().cta.target">{{ block().cta.label }}</a>
+    <a
+      class="site-header__cta"
+      [href]="block().cta.target"
+      [attr.target]="block().cta.openInNewTab ? '_blank' : null"
+      [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"
+      (click)="closeMenu()"
+    >
+      {{ block().cta.label }}
+    </a>
   </div>
 </header>

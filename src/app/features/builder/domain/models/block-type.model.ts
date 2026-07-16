@@ -1,1 +1,12 @@
-export type BlockType = 'hero' | 'siteHeader' | 'offerList' | 'siteFooter' | 'leadForm';
+export type BlockType =
+  | 'hero'
+  | 'siteHeader'
+  | 'contentMedia'
+  | 'featureGrid'
+  | 'offerList'
+  | 'gallery'
+  | 'testimonials'
+  | 'faq'
+  | 'callToAction'
+  | 'leadForm'
+  | 'siteFooter';

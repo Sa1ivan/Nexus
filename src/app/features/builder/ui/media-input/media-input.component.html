@@ -1,0 +1,47 @@
+<section class="media-input" [attr.aria-label]="label()">
+  <div class="media-input__head">
+    <span>{{ label() }}</span>
+    @if (src() && !required()) {
+      <button mat-icon-button type="button" aria-label="Удалить изображение" (click)="clear()">
+        <mat-icon>delete</mat-icon>
+      </button>
+    }
+  </div>
+
+  @if (src()) {
+    <img class="media-input__preview" [src]="src()" [alt]="alt() || ''" />
+  }
+
+  <label class="media-input__field">
+    <span>URL</span>
+    <input
+      type="url"
+      [value]="src()"
+      [required]="required()"
+      placeholder="https://..."
+      (input)="updateUrl($event)"
+    />
+  </label>
+
+  <label class="media-input__upload">
+    <input
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      [disabled]="isProcessing()"
+      (change)="uploadFile($event)"
+    />
+    <mat-icon aria-hidden="true">upload</mat-icon>
+    <span>{{ isProcessing() ? 'Обработка...' : 'Загрузить локально' }}</span>
+  </label>
+
+  @if (showAlt()) {
+    <label class="media-input__field">
+      <span>Alt-текст</span>
+      <input type="text" [value]="alt()" (input)="updateAlt($event)" />
+    </label>
+  }
+
+  @if (error(); as message) {
+    <p class="media-input__error" role="alert">{{ message }}</p>
+  }
+</section>

@@ -1,12 +1,21 @@
-import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../models';
+import {
+  DEFAULT_BLOCK_APPEARANCE,
+  DEFAULT_LANDING_DESIGN_SETTINGS,
+  getLandingAccentValue,
+} from '../models';
 import { createBlockAnchor, createBlockId } from '../utils/builder-ids';
+export { normalizeLinkTarget } from '../utils/link-target';
 import type {
   BlockType,
   HeaderBookingConfig,
   HeroBlockStyles,
+  FaqItem,
+  FeatureGridItem,
+  GalleryItem,
   LinkConfig,
   OfferListItem,
   PageBlockConfig,
+  TestimonialItem,
 } from '../models';
 
 export interface BlockVariantOption<TVariant extends string = string> {
@@ -37,6 +46,7 @@ const DEFAULT_HERO_STYLES: HeroBlockStyles = {
 };
 
 const DEFAULT_LINK_TARGETS: readonly string[] = ['#hero', '#offers', '#lead-form', '#contact'];
+let fallbackElementId = 0;
 
 export const BLOCK_DEFINITIONS: Readonly<Record<BlockType, BlockDefinition>> = {
   siteHeader: {
@@ -96,6 +106,64 @@ export const BLOCK_DEFINITIONS: Readonly<Record<BlockType, BlockDefinition>> = {
     inspector: 'HeroInspector',
     variants: [],
   },
+  contentMedia: {
+    type: 'contentMedia',
+    label: 'Текст и медиа',
+    description: 'История, изображение и переход к следующему шагу.',
+    icon: 'chrome_reader_mode',
+    anchorBase: 'about',
+    renderer: 'ContentMediaBlockComponent',
+    inspector: 'ContentMediaInspector',
+    variants: [
+      {
+        id: 'textOnly',
+        label: 'Текст',
+        description: 'Сфокусированный текст без медиа.',
+        icon: 'notes',
+      },
+      {
+        id: 'mediaLeft',
+        label: 'Медиа слева',
+        description: 'Изображение открывает секцию.',
+        icon: 'view_sidebar',
+      },
+      {
+        id: 'mediaRight',
+        label: 'Медиа справа',
+        description: 'Текст ведет к изображению.',
+        icon: 'splitscreen',
+      },
+    ],
+  },
+  featureGrid: {
+    type: 'featureGrid',
+    label: 'Преимущества',
+    description: 'Возможности, этапы или ключевые аргументы.',
+    icon: 'grid_view',
+    anchorBase: 'features',
+    renderer: 'FeatureGridBlockComponent',
+    inspector: 'FeatureGridInspector',
+    variants: [
+      {
+        id: 'cards',
+        label: 'Карточки',
+        description: 'Визуальная сетка преимуществ.',
+        icon: 'dashboard',
+      },
+      {
+        id: 'editorialList',
+        label: 'Список',
+        description: 'Спокойная редакционная подача.',
+        icon: 'view_agenda',
+      },
+      {
+        id: 'numberedSteps',
+        label: 'Этапы',
+        description: 'Нумерованный процесс по шагам.',
+        icon: 'format_list_numbered',
+      },
+    ],
+  },
   offerList: {
     type: 'offerList',
     label: 'Предложения',
@@ -128,6 +196,122 @@ export const BLOCK_DEFINITIONS: Readonly<Record<BlockType, BlockDefinition>> = {
         label: 'Каталог',
         description: 'Продуктовая сетка с CTA.',
         icon: 'widgets',
+      },
+    ],
+  },
+  gallery: {
+    type: 'gallery',
+    label: 'Галерея',
+    description: 'Фотографии, подписи и полноэкранный просмотр.',
+    icon: 'photo_library',
+    anchorBase: 'gallery',
+    renderer: 'GalleryBlockComponent',
+    inspector: 'GalleryInspector',
+    variants: [
+      {
+        id: 'uniformGrid',
+        label: 'Сетка',
+        description: 'Ровная сетка изображений.',
+        icon: 'grid_on',
+      },
+      {
+        id: 'collage',
+        label: 'Коллаж',
+        description: 'Акцентная журнальная композиция.',
+        icon: 'view_quilt',
+      },
+      {
+        id: 'strip',
+        label: 'Лента',
+        description: 'Горизонтальная лента кадров.',
+        icon: 'view_week',
+      },
+    ],
+  },
+  testimonials: {
+    type: 'testimonials',
+    label: 'Отзывы',
+    description: 'Цитаты клиентов, авторы и рейтинг.',
+    icon: 'reviews',
+    anchorBase: 'testimonials',
+    renderer: 'TestimonialsBlockComponent',
+    inspector: 'TestimonialsInspector',
+    variants: [
+      {
+        id: 'cards',
+        label: 'Карточки',
+        description: 'Несколько равноправных отзывов.',
+        icon: 'view_module',
+      },
+      {
+        id: 'featuredQuote',
+        label: 'Цитата',
+        description: 'Один отзыв становится главным.',
+        icon: 'format_quote',
+      },
+      {
+        id: 'compactList',
+        label: 'Список',
+        description: 'Компактная лента доверия.',
+        icon: 'view_list',
+      },
+    ],
+  },
+  faq: {
+    type: 'faq',
+    label: 'FAQ',
+    description: 'Ответы на частые вопросы с доступным раскрытием.',
+    icon: 'quiz',
+    anchorBase: 'faq',
+    renderer: 'FaqBlockComponent',
+    inspector: 'FaqInspector',
+    variants: [
+      {
+        id: 'borderedAccordion',
+        label: 'Аккордеон',
+        description: 'Собранные вопросы в рамках.',
+        icon: 'expand',
+      },
+      {
+        id: 'separatedList',
+        label: 'Список',
+        description: 'Воздушные разделенные строки.',
+        icon: 'view_headline',
+      },
+      {
+        id: 'twoColumns',
+        label: '2 колонки',
+        description: 'Плотная справочная раскладка.',
+        icon: 'view_column',
+      },
+    ],
+  },
+  callToAction: {
+    type: 'callToAction',
+    label: 'Призыв к действию',
+    description: 'Финальный аргумент, кнопки и дополнительное медиа.',
+    icon: 'campaign',
+    anchorBase: 'cta',
+    renderer: 'CallToActionBlockComponent',
+    inspector: 'CallToActionInspector',
+    variants: [
+      {
+        id: 'banner',
+        label: 'Баннер',
+        description: 'Компактная горизонтальная полоса.',
+        icon: 'view_stream',
+      },
+      {
+        id: 'split',
+        label: 'Split',
+        description: 'Текст и изображение рядом.',
+        icon: 'splitscreen',
+      },
+      {
+        id: 'cover',
+        label: 'Обложка',
+        description: 'Текст поверх полноразмерного медиа.',
+        icon: 'panorama',
       },
     ],
   },
@@ -197,9 +381,13 @@ export function createDefaultBlock(
         id,
         anchor,
         type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
         design,
+        inheritBusiness: true,
         variant: 'stretchedNav',
         brandName: 'Nexus Studio',
+        logo: undefined,
         navigationItems: createDefaultNavigation(),
         cta: createLink('Связаться', '#lead-form'),
         booking: createDefaultBooking(),
@@ -209,6 +397,8 @@ export function createDefaultBlock(
         id,
         anchor,
         type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
         design,
         title: 'Большой ясный оффер для нового блока',
         subtitle: 'Опишите ценность, сценарий и следующий шаг для посетителя.',
@@ -222,25 +412,122 @@ export function createDefaultBlock(
         },
         styles: DEFAULT_HERO_STYLES,
       };
+    case 'contentMedia':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'mediaRight',
+        eyebrow: 'О нас',
+        title: 'Покажите контекст, который помогает принять решение',
+        body: 'Расскажите о подходе, продукте или команде без общих фраз. Добавьте факты, процесс и понятный следующий шаг.',
+        cta: createLink('Узнать подробнее', '#lead-form'),
+        media: {
+          src: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80',
+          alt: 'Команда обсуждает проект за общим столом',
+          focalPoint: { x: 50, y: 50 },
+        },
+      };
+    case 'featureGrid':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'cards',
+        eyebrow: 'Преимущества',
+        title: 'Все важное видно с первого взгляда',
+        description: 'Соберите сильные аргументы в ясную структуру.',
+        items: createDefaultFeatures(),
+      };
     case 'offerList':
       return {
         id,
         anchor,
         type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
         design,
         variant: 'catalogGrid',
         eyebrow: 'Подборка',
         title: 'Что можно показать в этом блоке',
         items: createDefaultOffers(),
       };
+    case 'gallery':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'collage',
+        eyebrow: 'Галерея',
+        title: 'Покажите результат без лишних обещаний',
+        description: 'Фотографии проекта, пространства или продукта.',
+        items: createDefaultGalleryItems(),
+        lightboxEnabled: true,
+      };
+    case 'testimonials':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'cards',
+        eyebrow: 'Отзывы',
+        title: 'Что говорят после работы с нами',
+        items: createDefaultTestimonials(),
+      };
+    case 'faq':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'borderedAccordion',
+        eyebrow: 'FAQ',
+        title: 'Ответы до того, как вы спросите',
+        description: 'Сроки, процесс, оплата и другие важные детали.',
+        items: createDefaultFaqItems(),
+        allowMultipleOpen: false,
+      };
+    case 'callToAction':
+      return {
+        id,
+        anchor,
+        type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
+        design,
+        variant: 'banner',
+        eyebrow: 'Следующий шаг',
+        title: 'Готовы обсудить ваш лендинг?',
+        text: 'Оставьте заявку, и мы разберем задачу, сроки и подходящий формат.',
+        primaryAction: createLink('Оставить заявку', '#lead-form'),
+        secondaryAction: createLink('Посмотреть работы', '#gallery'),
+      };
     case 'siteFooter':
       return {
         id,
         anchor,
         type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
         design,
+        inheritBusiness: true,
         variant: 'bookingFooter',
         brandName: 'Nexus Studio',
+        logo: undefined,
         cta: createLink('Оставить заявку', '#lead-form'),
         contactLines: ['hello@nexus.app', '+7 999 000-00-00', 'Ответ в течение дня'],
         links: createLegalLinks(),
@@ -249,9 +536,9 @@ export function createDefaultBlock(
           createExternalLink('VK', 'https://vk.com/nexus'),
         ],
         map: {
-          label: 'Карта',
+          label: 'Открыть карту',
           address: 'Москва, Тверская 12',
-          embedUrl: 'https://maps.example.com/nexus',
+          embedUrl: createMapSearchUrl('Москва, Тверская 12'),
         },
       };
     case 'leadForm':
@@ -259,6 +546,8 @@ export function createDefaultBlock(
         id,
         anchor,
         type,
+        appearance: DEFAULT_BLOCK_APPEARANCE,
+        hidden: false,
         design,
         title: 'Оставьте заявку',
         description: 'Напишите, что нужно собрать, и мы вернемся с понятным следующим шагом.',
@@ -304,14 +593,16 @@ export function cloneRegisteredBlock(
         ...block,
         id,
         anchor,
-        navigationItems: block.navigationItems.map((item) => ({ ...item })),
-        cta: { ...block.cta },
+        appearance: cloneAppearance(block.appearance),
+        logo: cloneMedia(block.logo),
+        navigationItems: block.navigationItems.map(cloneLink),
+        cta: cloneLink(block.cta),
         booking:
           block.booking === undefined
             ? undefined
             : {
                 ...block.booking,
-                action: { ...block.booking.action },
+                action: cloneLink(block.booking.action),
               },
       };
     case 'hero':
@@ -319,33 +610,103 @@ export function cloneRegisteredBlock(
         ...block,
         id,
         anchor,
-        media: block.media === undefined ? undefined : { ...block.media },
+        appearance: cloneAppearance(block.appearance),
+        media: cloneMedia(block.media),
         secondaryButton:
-          block.secondaryButton === undefined ? undefined : { ...block.secondaryButton },
+          block.secondaryButton === undefined ? undefined : cloneLink(block.secondaryButton),
         styles: {
           ...block.styles,
         },
+      };
+    case 'contentMedia':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        cta: block.cta === undefined ? undefined : cloneLink(block.cta),
+        media: cloneMedia(block.media),
+      };
+    case 'featureGrid':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        items: block.items.map((item) => ({
+          ...item,
+          id: createElementId('feature'),
+          image: cloneMedia(item.image),
+          link: item.link === undefined ? undefined : cloneLink(item.link),
+        })),
       };
     case 'offerList':
       return {
         ...block,
         id,
         anchor,
+        appearance: cloneAppearance(block.appearance),
         items: block.items.map((item) => ({
           ...item,
-          image: item.image === undefined ? undefined : { ...item.image },
-          cta: item.cta === undefined ? undefined : { ...item.cta },
+          id: createElementId('offer'),
+          image: cloneMedia(item.image),
+          cta: item.cta === undefined ? undefined : cloneLink(item.cta),
         })),
+      };
+    case 'gallery':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        items: block.items.map((item) => ({
+          ...item,
+          id: createElementId('gallery'),
+          image: cloneRequiredMedia(item.image),
+        })),
+      };
+    case 'testimonials':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        items: block.items.map((item) => ({
+          ...item,
+          id: createElementId('testimonial'),
+          avatar: cloneMedia(item.avatar),
+        })),
+      };
+    case 'faq':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        items: block.items.map((item) => ({ ...item, id: createElementId('faq') })),
+      };
+    case 'callToAction':
+      return {
+        ...block,
+        id,
+        anchor,
+        appearance: cloneAppearance(block.appearance),
+        primaryAction: cloneLink(block.primaryAction),
+        secondaryAction:
+          block.secondaryAction === undefined ? undefined : cloneLink(block.secondaryAction),
+        media: cloneMedia(block.media),
       };
     case 'siteFooter':
       return {
         ...block,
         id,
         anchor,
-        cta: { ...block.cta },
+        appearance: cloneAppearance(block.appearance),
+        logo: cloneMedia(block.logo),
+        cta: cloneLink(block.cta),
         contactLines: [...block.contactLines],
-        links: block.links.map((link) => ({ ...link })),
-        socialLinks: block.socialLinks?.map((link) => ({ ...link })),
+        links: block.links.map(cloneLink),
+        socialLinks: block.socialLinks?.map(cloneLink),
         map: block.map === undefined ? undefined : { ...block.map },
       };
     case 'leadForm':
@@ -353,6 +714,7 @@ export function cloneRegisteredBlock(
         ...block,
         id,
         anchor,
+        appearance: cloneAppearance(block.appearance),
         fields: block.fields.map((field) => ({ ...field })),
       };
   }
@@ -360,38 +722,30 @@ export function cloneRegisteredBlock(
 
 export function createLink(label: string, target: string): LinkConfig {
   return {
+    id: createElementId('link'),
     label,
     target,
-    kind: target.startsWith('#') ? 'anchor' : 'internal',
+    kind: inferLinkKind(target),
+    openInNewTab: false,
   };
 }
 
 export function createExternalLink(label: string, target: string): LinkConfig {
   return {
+    id: createElementId('link'),
     label,
     target,
     kind: 'external',
+    openInNewTab: true,
   };
 }
 
-export function normalizeLinkTarget(target: string): string {
-  const trimmedTarget = target.trim();
+export function createMapSearchUrl(address: string): string {
+  const normalizedAddress = address.trim();
 
-  if (!trimmedTarget) {
-    return '#';
-  }
-
-  if (
-    trimmedTarget.startsWith('#') ||
-    trimmedTarget.startsWith('/') ||
-    trimmedTarget.startsWith('https://') ||
-    trimmedTarget.startsWith('mailto:') ||
-    trimmedTarget.startsWith('tel:')
-  ) {
-    return trimmedTarget;
-  }
-
-  return '#';
+  return normalizedAddress
+    ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(normalizedAddress)}`
+    : '#contact';
 }
 
 export function createLinkFromText(label: string, index: number): LinkConfig {
@@ -420,9 +774,10 @@ export function createDefaultBooking(): HeaderBookingConfig {
   };
 }
 
-function createDefaultOffers(): readonly OfferListItem[] {
+export function createDefaultOffers(): readonly OfferListItem[] {
   return [
     {
+      id: createElementId('offer'),
       title: 'Первый пункт',
       description: 'Короткое описание пользы, услуги или продукта.',
       meta: 'База',
@@ -435,6 +790,7 @@ function createDefaultOffers(): readonly OfferListItem[] {
       cta: createLink('Подробнее', '#lead-form'),
     },
     {
+      id: createElementId('offer'),
       title: 'Второй пункт',
       description: 'Добавьте детали, цену, срок или формат работы.',
       meta: 'Про',
@@ -446,6 +802,7 @@ function createDefaultOffers(): readonly OfferListItem[] {
       cta: createLink('Выбрать', '#lead-form'),
     },
     {
+      id: createElementId('offer'),
       title: 'Третий пункт',
       description: 'Закройте список сильным аргументом для заявки.',
       meta: 'Плюс',
@@ -459,6 +816,181 @@ function createDefaultOffers(): readonly OfferListItem[] {
   ];
 }
 
+export function createDefaultFeatures(): readonly FeatureGridItem[] {
+  return [
+    {
+      id: createElementId('feature'),
+      icon: 'speed',
+      title: 'Быстрый старт',
+      description: 'Начните с готовой структуры и адаптируйте ее под свою задачу.',
+      link: createLink('Как это работает', '#about'),
+    },
+    {
+      id: createElementId('feature'),
+      icon: 'tune',
+      title: 'Гибкая настройка',
+      description: 'Меняйте контент, композицию, медиа и визуальный характер секции.',
+      link: createLink('Посмотреть блоки', '#gallery'),
+    },
+    {
+      id: createElementId('feature'),
+      icon: 'verified',
+      title: 'Готово к публикации',
+      description: 'Соберите цельный лендинг с рабочими ссылками и формой заявки.',
+      link: createLink('Оставить заявку', '#lead-form'),
+    },
+  ];
+}
+
+export function createDefaultGalleryItems(): readonly GalleryItem[] {
+  return [
+    {
+      id: createElementId('gallery'),
+      image: {
+        src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+        alt: 'Светлое рабочее пространство современной студии',
+        focalPoint: { x: 50, y: 50 },
+      },
+      caption: 'Рабочее пространство',
+    },
+    {
+      id: createElementId('gallery'),
+      image: {
+        src: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80',
+        alt: 'Команда работает в открытом офисе',
+        focalPoint: { x: 50, y: 50 },
+      },
+      caption: 'Команда в процессе',
+    },
+    {
+      id: createElementId('gallery'),
+      image: {
+        src: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80',
+        alt: 'Совместное обсуждение проекта за столом',
+        focalPoint: { x: 50, y: 50 },
+      },
+      caption: 'Проектная встреча',
+    },
+    {
+      id: createElementId('gallery'),
+      image: {
+        src: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80',
+        alt: 'Специалисты обсуждают результаты на экране',
+        focalPoint: { x: 50, y: 50 },
+      },
+      caption: 'Презентация результата',
+    },
+  ];
+}
+
+export function createDefaultTestimonials(): readonly TestimonialItem[] {
+  return [
+    {
+      id: createElementId('testimonial'),
+      quote: 'Мы быстро собрали ясную структуру и наконец показали продукт без лишних слов.',
+      author: 'Анна Крылова',
+      role: 'Основатель студии',
+      rating: 5,
+    },
+    {
+      id: createElementId('testimonial'),
+      quote: 'Все ключевые блоки уже были на месте, а каждый элемент можно было адаптировать.',
+      author: 'Илья Соколов',
+      role: 'Руководитель продукта',
+      rating: 5,
+    },
+    {
+      id: createElementId('testimonial'),
+      quote: 'Лендинг одинаково хорошо читается на телефоне и большом экране.',
+      author: 'Мария Белова',
+      role: 'Маркетолог',
+      rating: 4,
+    },
+  ];
+}
+
+export function createDefaultFaqItems(): readonly FaqItem[] {
+  return [
+    {
+      id: createElementId('faq'),
+      question: 'Можно ли заменить весь текст и изображения?',
+      answer: 'Да. Контент каждого блока хранится отдельно и доступен для редактирования.',
+      initiallyOpen: true,
+    },
+    {
+      id: createElementId('faq'),
+      question: 'Лендинг адаптируется под мобильные устройства?',
+      answer: 'Все композиции перестраиваются под узкий экран без горизонтальной прокрутки.',
+      initiallyOpen: false,
+    },
+    {
+      id: createElementId('faq'),
+      question: 'Как посетители отправляют заявку?',
+      answer: 'Добавьте блок формы, настройте поля и опубликуйте локальную демо-версию проекта.',
+      initiallyOpen: false,
+    },
+  ];
+}
+
 export function getAccentButtonColor(accentColor: string): string {
   return getLandingAccentValue(accentColor as Parameters<typeof getLandingAccentValue>[0]);
+}
+
+function inferLinkKind(target: string): LinkConfig['kind'] {
+  if (target.startsWith('#')) {
+    return 'anchor';
+  }
+
+  if (target.startsWith('mailto:')) {
+    return 'email';
+  }
+
+  if (target.startsWith('tel:')) {
+    return 'phone';
+  }
+
+  return target.startsWith('http://') || target.startsWith('https://') ? 'external' : 'internal';
+}
+
+function cloneLink(link: LinkConfig): LinkConfig {
+  return {
+    ...link,
+    id: createElementId('link'),
+  };
+}
+
+function cloneMedia<
+  TMedia extends { readonly focalPoint?: { readonly x: number; readonly y: number } },
+>(media: TMedia | undefined): TMedia | undefined {
+  return media === undefined
+    ? undefined
+    : {
+        ...media,
+        focalPoint: media.focalPoint === undefined ? undefined : { ...media.focalPoint },
+      };
+}
+
+function cloneRequiredMedia<
+  TMedia extends { readonly focalPoint?: { readonly x: number; readonly y: number } },
+>(media: TMedia): TMedia {
+  return {
+    ...media,
+    focalPoint: media.focalPoint === undefined ? undefined : { ...media.focalPoint },
+  };
+}
+
+function cloneAppearance<TAppearance extends object>(
+  appearance: TAppearance | undefined,
+): TAppearance | undefined {
+  return appearance === undefined ? undefined : { ...appearance };
+}
+
+function createElementId(prefix: string): string {
+  if (globalThis.crypto?.randomUUID !== undefined) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  fallbackElementId += 1;
+
+  return `${prefix}-${Date.now().toString(36)}-${fallbackElementId.toString(36)}`;
 }

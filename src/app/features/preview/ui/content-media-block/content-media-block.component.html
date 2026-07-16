@@ -1,0 +1,30 @@
+<section
+  [id]="block().anchor"
+  class="content-media"
+  [class.content-media--text]="block().variant === 'textOnly'"
+  [class.content-media--left]="block().variant === 'mediaLeft'"
+  [class.content-media--right]="block().variant === 'mediaRight'"
+>
+  <div class="content-media__inner">
+    <div class="content-media__copy">
+      <p class="content-media__eyebrow">{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+      <p class="content-media__body">{{ block().body }}</p>
+      @if (block().cta; as cta) {
+        <a
+          class="content-media__cta"
+          [href]="cta.target"
+          [attr.target]="cta.openInNewTab ? '_blank' : null"
+          [attr.rel]="cta.openInNewTab ? 'noopener noreferrer' : null"
+          >{{ cta.label }}</a
+        >
+      }
+    </div>
+
+    @if (block().variant !== 'textOnly' && block().media; as media) {
+      <figure class="content-media__media">
+        <img [src]="media.src" [alt]="media.alt" [style.object-position]="objectPosition(media)" />
+      </figure>
+    }
+  </div>
+</section>

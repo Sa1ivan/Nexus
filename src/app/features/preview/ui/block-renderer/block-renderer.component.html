@@ -1,21 +1,75 @@
-<div class="block-renderer">
+<div
+  class="block-renderer"
+  [class.block-renderer--type-compact]="theme().typeScale === 'compact'"
+  [class.block-renderer--type-display]="theme().typeScale === 'display'"
+  [style.--site-page-background]="theme().pageBackground"
+  [style.--site-surface]="theme().surfaceColor"
+  [style.--site-text]="theme().textColor"
+  [style.--site-muted]="theme().mutedTextColor"
+  [style.--site-accent]="theme().accentColor"
+  [style.--site-font]="fontFamily()"
+  [style.--site-content-width]="contentWidth()"
+  [style.--site-section-spacing]="sectionSpacing()"
+  [style.--site-button-radius]="buttonRadius()"
+  [style.--site-radius]="theme().radius + 'px'"
+>
   @for (block of blocks(); track block.id) {
-    @switch (block.type) {
-      @case ('siteHeader') {
-        <app-site-header-block [block]="block" />
-      }
-      @case ('hero') {
-        <app-hero-block [block]="block" />
-      }
-      @case ('offerList') {
-        <app-offer-list-block [block]="block" />
-      }
-      @case ('siteFooter') {
-        <app-site-footer-block [block]="block" />
-      }
-      @case ('leadForm') {
-        <app-lead-form-block [block]="block" (formSubmit)="handleLeadSubmit(block.id, $event)" />
-      }
+    @if (!block.hidden) {
+      <div
+        class="block-renderer__block"
+        [style.--block-background]="blockBackground(block)"
+        [style.--block-text]="blockText(block)"
+        [style.--block-accent]="blockAccent(block)"
+        [style.--block-content-width]="blockContentWidth(block)"
+        [style.--block-section-spacing]="blockSpacing(block)"
+        [style.--block-radius]="blockRadius(block)"
+        [style.--block-font]="blockFont(block)"
+        [style.--block-spacing-y]="blockSpacingY(block)"
+        [style.--landing-accent]="blockAccent(block)"
+        [style.--landing-font]="blockFont(block)"
+        [style.--landing-radius]="blockRadius(block)"
+        [style.--landing-section-y]="blockSpacingY(block)"
+      >
+        @switch (block.type) {
+          @case ('siteHeader') {
+            <app-site-header-block [block]="block" />
+          }
+          @case ('hero') {
+            <app-hero-block [block]="block" />
+          }
+          @case ('contentMedia') {
+            <app-content-media-block [block]="block" />
+          }
+          @case ('featureGrid') {
+            <app-feature-grid-block [block]="block" />
+          }
+          @case ('offerList') {
+            <app-offer-list-block [block]="block" />
+          }
+          @case ('gallery') {
+            <app-gallery-block [block]="block" />
+          }
+          @case ('testimonials') {
+            <app-testimonials-block [block]="block" />
+          }
+          @case ('faq') {
+            <app-faq-block [block]="block" />
+          }
+          @case ('callToAction') {
+            <app-call-to-action-block [block]="block" />
+          }
+          @case ('siteFooter') {
+            <app-site-footer-block [block]="block" />
+          }
+          @case ('leadForm') {
+            <app-lead-form-block
+              [block]="block"
+              [submissionEnabled]="projectId() !== null"
+              (formSubmit)="handleLeadSubmit(block.id, $event)"
+            />
+          }
+        }
+      </div>
     }
   }
 </div>

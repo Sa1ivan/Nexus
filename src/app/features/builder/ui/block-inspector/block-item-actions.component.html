@@ -1,0 +1,41 @@
+<div class="item-actions" aria-label="Действия с элементом">
+  <button
+    mat-icon-button
+    type="button"
+    aria-label="Переместить выше"
+    matTooltip="Выше"
+    [disabled]="!canMoveUp()"
+    (click)="moveUp.emit()"
+  >
+    <mat-icon>keyboard_arrow_up</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
+    aria-label="Переместить ниже"
+    matTooltip="Ниже"
+    [disabled]="!canMoveDown()"
+    (click)="moveDown.emit()"
+  >
+    <mat-icon>keyboard_arrow_down</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
+    aria-label="Дублировать"
+    matTooltip="Дублировать"
+    (click)="duplicateItem.emit()"
+  >
+    <mat-icon>content_copy</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    type="button"
+    aria-label="Удалить"
+    matTooltip="Удалить"
+    [disabled]="!canRemove()"
+    (click)="removeItem.emit()"
+  >
+    <mat-icon>delete</mat-icon>
+  </button>
+</div>

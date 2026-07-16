@@ -60,6 +60,18 @@ function toAnchor(type: BlockType): string {
       return 'hero';
     case 'offerList':
       return 'offers';
+    case 'contentMedia':
+      return 'about';
+    case 'featureGrid':
+      return 'features';
+    case 'gallery':
+      return 'gallery';
+    case 'testimonials':
+      return 'testimonials';
+    case 'faq':
+      return 'faq';
+    case 'callToAction':
+      return 'cta';
     case 'siteFooter':
       return 'contact';
     case 'leadForm':

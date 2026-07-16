@@ -59,11 +59,17 @@ test('block registry exposes a complete metadata contract for every block type',
   const supportedTypes = [...blockTypes.matchAll(/'([^']+)'/g)].map((match) => match[1]);
 
   assert.deepEqual([...supportedTypes].sort(), [
+    'callToAction',
+    'contentMedia',
+    'faq',
+    'featureGrid',
+    'gallery',
     'hero',
     'leadForm',
     'offerList',
     'siteFooter',
     'siteHeader',
+    'testimonials',
   ]);
 
   for (const type of supportedTypes) {
@@ -118,9 +124,254 @@ test('storage normalization and validation harden local demo data', async () => 
   assert.match(persistence, /normalizeBlock/);
   assert.match(persistence, /readLink/);
   assert.match(persistence, /normalizeLinkTarget/);
+  assert.match(persistence, /MAX_REVISIONS_PER_PROJECT/);
+  assert.match(persistence, /Existing storage is corrupted and was not modified/);
   assert.doesNotMatch(persistence, /JSON\.parse\(rawState\) as StorageState/);
   assert.match(validation, /validateHref/);
-  assert.match(validation, /startsWith\('javascript:'\)/);
-  assert.match(validation, /startsWith\('data:'\)/);
+  assert.match(validation, /isSafeLinkTarget/);
   assert.match(validation, /Дублируется id страницы/);
+});
+
+test('complete builder exposes site theme, business data, SEO and stable element contracts', async () => {
+  const [siteConfig, blockConfig, linkModel, headerModel, offerModel, store, persistence] =
+    await Promise.all([
+      source('src/app/features/builder/domain/models/site-config.model.ts'),
+      source('src/app/features/builder/domain/models/block-config.model.ts'),
+      source('src/app/features/builder/domain/models/link-config.model.ts'),
+      source('src/app/features/builder/domain/models/site-header-block-config.model.ts'),
+      source('src/app/features/builder/domain/models/offer-list-block-config.model.ts'),
+      source('src/app/features/builder/stores/builder.store.ts'),
+      source('src/app/features/builder/data-access/project-persistence.service.ts'),
+    ]);
+
+  assert.match(siteConfig, /theme: SiteThemeConfig/);
+  assert.match(siteConfig, /business: SiteBusinessConfig/);
+  assert.match(siteConfig, /seo: SiteSeoConfig/);
+  assert.match(blockConfig, /appearance\?: BlockAppearanceOverrides/);
+  assert.match(blockConfig, /hidden: boolean/);
+  assert.match(linkModel, /id: string/);
+  assert.match(linkModel, /openInNewTab: boolean/);
+  assert.match(headerModel, /navigationItems: readonly LinkConfig\[\]/);
+  assert.match(offerModel, /readonly id: string/);
+  assert.match(store, /updateSiteTheme/);
+  assert.match(store, /updateSiteBusiness/);
+  assert.match(store, /updateSiteSeo/);
+  assert.match(store, /updateBlockAppearance/);
+  assert.match(store, /updateBlockAnchor/);
+  assert.match(store, /toggleBlockVisibility/);
+  assert.match(store, /undo\(\)/);
+  assert.match(store, /redo\(\)/);
+  assert.match(store, /updateHeaderNavigationItem/);
+  assert.match(store, /duplicateOfferListItem/);
+  assert.match(store, /moveOfferListItem/);
+  assert.match(persistence, /DEFAULT_SITE_THEME/);
+  assert.match(persistence, /readFocalPoint/);
+});
+
+test('existing preview blocks render functional content and accessible interactions', async () => {
+  const [headerTs, headerHtml, heroTs, heroHtml, offers, formTs, formHtml, footer] =
+    await Promise.all([
+      source('src/app/features/preview/ui/site-header-block/site-header-block.component.ts'),
+      source('src/app/features/preview/ui/site-header-block/site-header-block.component.html'),
+      source('src/app/features/preview/ui/hero-block/hero-block.component.ts'),
+      source('src/app/features/preview/ui/hero-block/hero-block.component.html'),
+      source('src/app/features/preview/ui/offer-list-block/offer-list-block.component.html'),
+      source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.ts'),
+      source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.html'),
+      source('src/app/features/preview/ui/site-footer-block/site-footer-block.component.html'),
+    ]);
+
+  assert.match(headerTs, /menuOpen = signal/);
+  assert.match(headerTs, /document:keydown\.escape/);
+  assert.match(headerHtml, /aria-expanded/);
+  assert.match(headerHtml, /aria-controls/);
+  assert.match(headerHtml, /\(click\)="toggleMenu\(\)"/);
+  assert.match(headerHtml, /noopener noreferrer/);
+  assert.match(headerHtml, /type="date"/);
+  assert.match(headerHtml, /booking\.partySizeLabel/);
+
+  assert.match(heroTs, /layoutVariant/);
+  assert.match(heroHtml, /hero-block--cover/);
+  assert.match(heroHtml, /object-position/);
+
+  assert.match(offers, /track item\.id/);
+  assert.match(offers, /item\.image/);
+  assert.match(offers, /item\.price/);
+  assert.match(offers, /item\.cta/);
+  assert.match(offers, /noopener noreferrer/);
+
+  assert.match(formTs, /reportValidity\(\)/);
+  assert.match(formHtml, /novalidate/);
+  assert.match(formHtml, /aria-live="polite"/);
+
+  assert.match(footer, /block\(\)\.socialLinks/);
+  assert.match(footer, /block\(\)\.map/);
+  assert.match(footer, /noopener noreferrer/);
+});
+
+test('rendered output contracts require real interactive recipes instead of placeholders', async () => {
+  const [header, hero, offers, footer, form, renderer, builder] = await Promise.all([
+    source('src/app/features/preview/ui/site-header-block/site-header-block.component.html'),
+    source('src/app/features/preview/ui/hero-block/hero-block.component.html'),
+    source('src/app/features/preview/ui/offer-list-block/offer-list-block.component.html'),
+    source('src/app/features/preview/ui/site-footer-block/site-footer-block.component.html'),
+    source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.html'),
+    source('src/app/features/preview/ui/block-renderer/block-renderer.component.html'),
+    source('src/app/features/builder/pages/builder-page/builder-page.component.html'),
+  ]);
+
+  assert.match(header, /aria-expanded/);
+  assert.match(header, /aria-controls/);
+  assert.match(header, /menuOpen\(\)/);
+  assert.match(hero, /hero-block--cover/);
+  assert.match(hero, /object-position/);
+  assert.match(offers, /offer-list--pricing/);
+  assert.match(footer, /socialLinks/);
+  assert.match(form, /aria-live/);
+  assert.match(renderer, /case \('contentMedia'\)/);
+  assert.match(renderer, /case \('featureGrid'\)/);
+  assert.match(renderer, /case \('gallery'\)/);
+  assert.match(renderer, /case \('testimonials'\)/);
+  assert.match(renderer, /case \('faq'\)/);
+  assert.match(renderer, /case \('callToAction'\)/);
+  assert.match(builder, /Добавить/);
+  assert.match(builder, /Слои/);
+  assert.match(builder, /Тема/);
+  assert.match(builder, /app-block-inspector/);
+  assert.match(builder, /undo\(\)/);
+  assert.match(builder, /redo\(\)/);
+});
+
+test('builder guards media removal and waits for confirmed lead persistence', async () => {
+  const [mediaInput, inspector, leadForm, renderer, publicPreview, builderStyles] =
+    await Promise.all([
+      source('src/app/features/builder/ui/media-input/media-input.component.ts'),
+      source('src/app/features/builder/ui/block-inspector/block-inspector.component.ts'),
+      source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.ts'),
+      source('src/app/features/preview/ui/block-renderer/block-renderer.component.ts'),
+      source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
+      source('src/app/features/builder/pages/builder-page/builder-page.component.scss'),
+    ]);
+
+  assert.match(mediaInput, /readonly required = input\(false\)/);
+  assert.match(inspector, /value === '' && field === 'src' \? null/);
+  assert.match(leadForm, /complete: \(saved: boolean\) => void/);
+  assert.match(leadForm, /status\.set\('submitting'\)/);
+  assert.match(renderer, /event\.complete\(false\)/);
+  assert.match(publicPreview, /event\.complete\(true\)/);
+  assert.match(publicPreview, /event\.complete\(false\)/);
+  assert.match(builderStyles, /container: builder-workspace \/ inline-size/);
+  assert.match(builderStyles, /@container builder-workspace \(max-width: 860px\)/);
+});
+
+test('new landing blocks expose structured content, stable ids and real layout recipes', async () => {
+  const [contentMedia, features, gallery, testimonials, faq, cta] = await Promise.all([
+    source('src/app/features/builder/domain/models/content-media-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/feature-grid-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/gallery-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/testimonials-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/faq-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/call-to-action-block-config.model.ts'),
+  ]);
+
+  assert.match(contentMedia, /'textOnly' \| 'mediaLeft' \| 'mediaRight'/);
+  assert.match(contentMedia, /media\?: MediaAsset/);
+  assert.match(contentMedia, /cta\?: LinkConfig/);
+  assert.match(features, /readonly id: string/);
+  assert.match(features, /'cards' \| 'editorialList' \| 'numberedSteps'/);
+  assert.match(features, /link\?: LinkConfig/);
+  assert.match(gallery, /readonly id: string/);
+  assert.match(gallery, /lightboxEnabled: boolean/);
+  assert.match(gallery, /'uniformGrid' \| 'collage' \| 'strip'/);
+  assert.match(testimonials, /readonly id: string/);
+  assert.match(testimonials, /rating: number/);
+  assert.match(testimonials, /'cards' \| 'featuredQuote' \| 'compactList'/);
+  assert.match(faq, /readonly id: string/);
+  assert.match(faq, /initiallyOpen: boolean/);
+  assert.match(faq, /allowMultipleOpen: boolean/);
+  assert.match(faq, /'borderedAccordion' \| 'separatedList' \| 'twoColumns'/);
+  assert.match(cta, /primaryAction: LinkConfig/);
+  assert.match(cta, /secondaryAction\?: LinkConfig/);
+  assert.match(cta, /'banner' \| 'split' \| 'cover'/);
+});
+
+test('block renderer applies the site theme, skips hidden blocks and keeps interactions accessible', async () => {
+  const [
+    rendererTs,
+    rendererHtml,
+    rendererScss,
+    publicPreview,
+    wizardPreview,
+    faq,
+    gallery,
+    galleryTs,
+    scrollLock,
+    createPage,
+  ] = await Promise.all([
+    source('src/app/features/preview/ui/block-renderer/block-renderer.component.ts'),
+    source('src/app/features/preview/ui/block-renderer/block-renderer.component.html'),
+    source('src/app/features/preview/ui/block-renderer/block-renderer.component.scss'),
+    source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.html'),
+    source(
+      'src/app/features/builder/pages/create-landing-page/landing-wizard-preview/landing-wizard-preview.component.html',
+    ),
+    source('src/app/features/preview/ui/faq-block/faq-block.component.html'),
+    source('src/app/features/preview/ui/gallery-block/gallery-block.component.html'),
+    source('src/app/features/preview/ui/gallery-block/gallery-block.component.ts'),
+    source('src/app/shared/utils/document-scroll-lock.ts'),
+    source('src/app/features/builder/pages/create-landing-page/create-landing-page.component.ts'),
+  ]);
+
+  assert.match(rendererTs, /theme = input<SiteThemeConfig>\(DEFAULT_SITE_THEME\)/);
+  assert.match(rendererHtml, /@if \(!block\.hidden\)/);
+  assert.match(rendererHtml, /--site-page-background/);
+  assert.match(rendererHtml, /--site-accent/);
+  assert.match(rendererHtml, /--site-content-width/);
+  assert.match(rendererHtml, /--landing-accent/);
+  assert.match(rendererHtml, /--block-font/);
+  assert.match(rendererScss, /var\(--site-page-background\)/);
+  assert.match(publicPreview, /\[theme\]="publishedRelease\.siteConfig\.theme"/);
+  assert.match(wizardPreview, /\[theme\]="siteConfig\(\)\.theme"/);
+  assert.match(faq, /aria-expanded/);
+  assert.match(faq, /aria-controls/);
+  assert.match(gallery, /role="dialog"/);
+  assert.match(gallery, /aria-modal="true"/);
+  assert.match(galleryTs, /lockDocumentScroll/);
+  assert.match(galleryTs, /keepFocusInsideDialog/);
+  assert.match(createPage, /lockDocumentScroll/);
+  assert.match(createPage, /A11yModule/);
+  assert.match(createPage, /previewTrigger/);
+  assert.match(scrollLock, /root\.style\.overflow = 'hidden'/);
+  assert.match(scrollLock, /body\.style\.overflow = 'hidden'/);
+  assert.match(scrollLock, /activeLocks = new WeakMap/);
+  assert.match(scrollLock, /lockState\.count -= 1/);
+});
+
+test('generated footer maps use a real editable search target', async () => {
+  const [registry, factory, store] = await Promise.all([
+    source('src/app/features/builder/domain/registry/block-registry.ts'),
+    source('src/app/features/builder/data-access/landing-draft.factory.ts'),
+    source('src/app/features/builder/stores/builder.store.ts'),
+  ]);
+
+  assert.match(registry, /createMapSearchUrl/);
+  assert.match(registry, /openstreetmap\.org\/search/);
+  assert.match(factory, /createMapSearchUrl\(business\.address\)/);
+  assert.match(factory, /NAVIGATION_TARGETS\[selection\.industry\]/);
+  assert.match(store, /createMapSearchUrl\(address\)/);
+  assert.doesNotMatch(`${registry}\n${factory}`, /maps\.example\.com/);
+});
+
+test('published pages apply SEO and insights cover every registered block', async () => {
+  const [publicPage, insights] = await Promise.all([
+    source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
+    source('src/app/features/workspace/data-access/project-insights.service.ts'),
+  ]);
+
+  assert.match(publicPage, /applySeo/);
+  assert.match(publicPage, /root\.lang = seo\.language/);
+  assert.match(publicPage, /name: 'description'/);
+  assert.match(publicPage, /updateOptionalMeta\('og:image'/);
+  assert.match(insights, /BLOCK_PALETTE\.map/);
+  assert.doesNotMatch(insights, /const BLOCK_TYPE_META: readonly BlockTypeMeta\[\] = \[/);
 });

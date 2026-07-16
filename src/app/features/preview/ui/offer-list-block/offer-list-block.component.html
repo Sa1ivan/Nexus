@@ -7,26 +7,30 @@
   [class.offer-list--catalog]="block().variant === 'catalogGrid'"
   [class.offer-list--editorial]="design().templateStyle === 'editorial'"
   [class.offer-list--conversion]="design().templateStyle === 'conversion'"
-  [style.--landing-accent]="accentColor()"
-  [style.--landing-font]="fontFamily()"
-  [style.--landing-radius]="radiusValue()"
-  [style.--landing-section-y]="sectionPaddingY()"
 >
   <div class="offer-list__inner">
     <p class="offer-list__eyebrow">{{ block().eyebrow }}</p>
     <h2 class="offer-list__title">{{ block().title }}</h2>
 
     <div class="offer-list__grid">
-      @for (item of block().items; track itemIndex; let itemIndex = $index) {
+      @for (item of block().items; track item.id) {
         <article class="offer-list__item">
           @if (item.image; as image) {
             <div class="offer-list__media">
-              <img [src]="image.src" [alt]="image.alt" />
+              <img
+                [src]="image.src"
+                [alt]="image.alt"
+                [style.object-position]="
+                  (image.focalPoint?.x ?? 50) + '% ' + (image.focalPoint?.y ?? 50) + '%'
+                "
+              />
             </div>
           }
           <div class="offer-list__item-copy">
             <div class="offer-list__item-topline">
-              <span class="offer-list__meta">{{ item.meta }}</span>
+              @if (item.meta) {
+                <span class="offer-list__meta">{{ item.meta }}</span>
+              }
               @if (item.badge) {
                 <span class="offer-list__badge">{{ item.badge }}</span>
               }
@@ -37,7 +41,14 @@
             <h3>{{ item.title }}</h3>
             <p>{{ item.description }}</p>
             @if (item.cta; as cta) {
-              <a class="offer-list__cta" [href]="cta.target">{{ cta.label }}</a>
+              <a
+                class="offer-list__cta"
+                [href]="cta.target"
+                [attr.target]="cta.openInNewTab ? '_blank' : null"
+                [attr.rel]="cta.openInNewTab ? 'noopener noreferrer' : null"
+              >
+                {{ cta.label }}
+              </a>
             }
           </div>
         </article>

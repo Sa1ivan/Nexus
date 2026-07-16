@@ -7,26 +7,56 @@
   [class.site-footer--booking]="block().variant === 'bookingFooter'"
   [class.site-footer--editorial]="design().templateStyle === 'editorial'"
   [class.site-footer--conversion]="design().templateStyle === 'conversion'"
-  [style.--landing-accent]="accentColor()"
-  [style.--landing-font]="fontFamily()"
-  [style.--landing-radius]="radiusValue()"
-  [style.--landing-section-y]="sectionPaddingY()"
 >
   <div class="site-footer__main">
-    <div>
-      <strong class="site-footer__brand">{{ block().brandName }}</strong>
-      <a class="site-footer__cta" [href]="block().cta.target">{{ block().cta.label }}</a>
+    <div class="site-footer__identity">
+      <div class="site-footer__brand">
+        @if (block().logo; as logo) {
+          <img class="site-footer__logo" [src]="logo.src" [alt]="logo.alt" />
+        }
+        <strong>{{ block().brandName }}</strong>
+      </div>
+      <a
+        class="site-footer__cta"
+        [href]="block().cta.target"
+        [attr.target]="block().cta.openInNewTab ? '_blank' : null"
+        [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"
+      >
+        {{ block().cta.label }}
+      </a>
+
+      @if (block().socialLinks; as socialLinks) {
+        @if (socialLinks.length > 0) {
+          <nav class="site-footer__socials" aria-label="Социальные сети">
+            @for (link of socialLinks; track link.id) {
+              <a
+                [href]="link.target"
+                [attr.target]="link.openInNewTab ? '_blank' : null"
+                [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
+              >
+                {{ link.label }}
+              </a>
+            }
+          </nav>
+        }
+      }
     </div>
 
     <address class="site-footer__contacts">
-      @for (line of block().contactLines; track line) {
+      @for (line of block().contactLines; track $index) {
         <span>{{ line }}</span>
       }
     </address>
 
     @if (block().variant === 'contactMap') {
       @if (block().map; as map) {
-        <a class="site-footer__map" [href]="map.embedUrl" target="_blank" rel="noreferrer">
+        <a
+          class="site-footer__map"
+          [href]="map.embedUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          [attr.aria-label]="map.label + ': ' + map.address"
+        >
           <span>{{ map.label }}</span>
           <strong>{{ map.address }}</strong>
         </a>
@@ -35,8 +65,14 @@
   </div>
 
   <div class="site-footer__bottom">
-    @for (link of block().links; track link) {
-      <a [href]="link.target">{{ link.label }}</a>
+    @for (link of block().links; track link.id) {
+      <a
+        [href]="link.target"
+        [attr.target]="link.openInNewTab ? '_blank' : null"
+        [attr.rel]="link.openInNewTab ? 'noopener noreferrer' : null"
+      >
+        {{ link.label }}
+      </a>
     }
   </div>
 </footer>

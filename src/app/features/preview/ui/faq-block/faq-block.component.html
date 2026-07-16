@@ -1,0 +1,41 @@
+<section
+  [id]="block().anchor"
+  class="faq"
+  [class.faq--separated]="block().variant === 'separatedList'"
+  [class.faq--columns]="block().variant === 'twoColumns'"
+>
+  <div class="faq__inner">
+    <header>
+      <p>{{ block().eyebrow }}</p>
+      <h2>{{ block().title }}</h2>
+      <span>{{ block().description }}</span>
+    </header>
+    <div class="faq__items">
+      @for (item of block().items; track item.id) {
+        <article class="faq__item">
+          <h3>
+            <button
+              type="button"
+              [id]="triggerId(item.id)"
+              [attr.aria-expanded]="isOpen(item.id)"
+              [attr.aria-controls]="panelId(item.id)"
+              (click)="toggle(item.id)"
+            >
+              <span>{{ item.question }}</span
+              ><b aria-hidden="true">{{ isOpen(item.id) ? '−' : '+' }}</b>
+            </button>
+          </h3>
+          <div
+            class="faq__answer"
+            [id]="panelId(item.id)"
+            role="region"
+            [attr.aria-labelledby]="triggerId(item.id)"
+            [hidden]="!isOpen(item.id)"
+          >
+            <p>{{ item.answer }}</p>
+          </div>
+        </article>
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,105 @@
+:host {
+  display: block;
+}
+.testimonials {
+  padding: var(--block-section-spacing);
+  background: var(--block-background);
+  color: var(--block-text);
+}
+.testimonials__inner {
+  width: min(100%, var(--block-content-width));
+  margin: auto;
+}
+header p {
+  color: var(--block-accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+h2 {
+  margin: 0;
+  font-size: 44px;
+}
+.testimonials__items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 32px;
+}
+figure {
+  margin: 0;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, currentColor, transparent 88%);
+  border-radius: var(--block-radius);
+  background: var(--site-surface);
+}
+blockquote {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.55;
+}
+figcaption {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+}
+figcaption img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+figcaption span {
+  display: grid;
+}
+small {
+  color: var(--site-muted);
+}
+.testimonials__rating {
+  margin-left: auto;
+  color: var(--block-accent);
+  font-weight: 800;
+}
+.testimonials--featured figure:first-child {
+  grid-column: span 2;
+}
+.testimonials--featured figure:first-child blockquote {
+  font-size: 30px;
+}
+.testimonials--list .testimonials__items {
+  grid-template-columns: 1fr;
+}
+.testimonials--list figure {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+}
+@media (max-width: 760px) {
+  .testimonials__items {
+    grid-template-columns: 1fr;
+  }
+  .testimonials--featured figure:first-child {
+    grid-column: auto;
+  }
+  h2 {
+    font-size: 34px;
+  }
+  .testimonials--list figure {
+    grid-template-columns: 1fr;
+  }
+}
+@container site-preview (max-width: 520px) {
+  .testimonials__items {
+    grid-template-columns: 1fr;
+  }
+  .testimonials--featured figure:first-child {
+    grid-column: auto;
+  }
+  .testimonials--featured figure:first-child blockquote {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 32px;
+  }
+}

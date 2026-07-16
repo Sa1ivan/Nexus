@@ -4,6 +4,7 @@ import type { LinkConfig, LinkConfigUpdate } from './link-config.model';
 import type { MediaAsset, MediaAssetUpdate } from './media-asset.model';
 
 export interface OfferListItem {
+  readonly id: string;
   readonly title: string;
   readonly description: string;
   readonly meta: string;
