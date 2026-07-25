@@ -428,7 +428,7 @@
             mat-flat-button
             color="primary"
             type="button"
-            [disabled]="!canFinish()"
+            [disabled]="!canFinish() || creating()"
             (click)="createLanding()"
           >
             <mat-icon aria-hidden="true">auto_awesome</mat-icon>

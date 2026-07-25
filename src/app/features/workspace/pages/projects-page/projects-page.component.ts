@@ -1,13 +1,19 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
 import {
+  EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
   type ProjectPublicationStatus,
-  type ProjectSummary,
-  type WorkspaceMetrics,
 } from '../../data-access/project-insights.service';
 
 @Component({
@@ -18,11 +24,15 @@ import {
   styleUrl: './projects-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectsPageComponent {
+export class ProjectsPageComponent implements OnInit {
   private readonly projectInsights = inject(ProjectInsightsService);
 
-  readonly metrics: WorkspaceMetrics = this.projectInsights.getMetrics();
-  readonly projects: readonly ProjectSummary[] = this.metrics.projects;
+  readonly metrics = signal(EMPTY_WORKSPACE_METRICS);
+  readonly projects = computed(() => this.metrics().projects);
+
+  async ngOnInit(): Promise<void> {
+    this.metrics.set(await this.projectInsights.getMetrics());
+  }
 
   getStatusLabel(status: ProjectPublicationStatus): string {
     return status === 'published' ? 'Опубликован' : 'Черновик';

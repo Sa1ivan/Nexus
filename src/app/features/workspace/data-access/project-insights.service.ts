@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 
-import { ProjectPersistenceService } from '../../builder/data-access/project-persistence.service';
-import { BLOCK_PALETTE } from '../../builder/domain/registry/block-registry';
 import type { BlockType, Project } from '../../builder/domain/models';
+import { PROJECT_REPOSITORY } from '../../builder/domain/ports';
+import { BLOCK_PALETTE } from '../../builder/domain/registry/block-registry';
 
 export type ProjectPublicationStatus = 'draft' | 'published';
 
@@ -49,6 +49,19 @@ export interface ProjectLeadStats {
   readonly percentage: number;
 }
 
+export const EMPTY_WORKSPACE_METRICS: WorkspaceMetrics = {
+  projects: [],
+  totalProjects: 0,
+  publishedProjects: 0,
+  draftProjects: 0,
+  totalLeads: 0,
+  totalBlocks: 0,
+  totalReleases: 0,
+  totalRevisions: 0,
+  averageBlocksPerProject: 0,
+  latestProject: null,
+};
+
 const BLOCK_TYPE_META: readonly BlockTypeMeta[] = BLOCK_PALETTE.map((definition) => ({
   type: definition.type,
   label: definition.label,
@@ -59,16 +72,25 @@ const BLOCK_TYPE_META: readonly BlockTypeMeta[] = BLOCK_PALETTE.map((definition)
   providedIn: 'root',
 })
 export class ProjectInsightsService {
-  private readonly projectPersistence = inject(ProjectPersistenceService);
+  private readonly projectRepository = inject(PROJECT_REPOSITORY);
   private readonly dateFormatter = new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
 
-  getMetrics(): WorkspaceMetrics {
-    const projects = [...this.projectPersistence.listProjects()]
-      .map((project) => this.createProjectSummary(project))
+  async getMetrics(): Promise<WorkspaceMetrics> {
+    const storedProjects = await this.projectRepository.listProjects();
+    const leadCounts = new Map(
+      await Promise.all(
+        storedProjects.map(
+          async (project) =>
+            [project.id, (await this.projectRepository.listLeads(project.id)).length] as const,
+        ),
+      ),
+    );
+    const projects = [...storedProjects]
+      .map((project) => this.createProjectSummary(project, leadCounts.get(project.id) ?? 0))
       .sort((left, right) => this.compareUpdatedAtDesc(left, right));
 
     const totalProjects = projects.length;
@@ -90,8 +112,8 @@ export class ProjectInsightsService {
     };
   }
 
-  getBlockDistribution(): readonly BlockDistributionItem[] {
-    const projects = this.projectPersistence.listProjects();
+  async getBlockDistribution(): Promise<readonly BlockDistributionItem[]> {
+    const projects = await this.projectRepository.listProjects();
     const totalBlocks = projects.reduce(
       (projectSum, project) => projectSum + this.countBlocks(project),
       0,
@@ -111,8 +133,8 @@ export class ProjectInsightsService {
     });
   }
 
-  getProjectLeadStats(): readonly ProjectLeadStats[] {
-    const metrics = this.getMetrics();
+  async getProjectLeadStats(): Promise<readonly ProjectLeadStats[]> {
+    const metrics = await this.getMetrics();
 
     return metrics.projects
       .map((summary) => ({
@@ -127,7 +149,7 @@ export class ProjectInsightsService {
     return BLOCK_TYPE_META.find((meta) => meta.type === type)?.label ?? type;
   }
 
-  private createProjectSummary(project: Project): ProjectSummary {
+  private createProjectSummary(project: Project, leadCount: number): ProjectSummary {
     const published = project.publishedReleaseId !== null;
 
     return {
@@ -137,7 +159,7 @@ export class ProjectInsightsService {
       blockCount: this.countBlocks(project),
       releaseCount: project.releases.length,
       revisionCount: project.revisions.length,
-      leadCount: this.projectPersistence.listLeads(project.id).length,
+      leadCount,
       firstPageTitle: project.draft.pages[0]?.title ?? 'Без страницы',
       publicUrl: published ? `/p/${project.id}` : null,
       createdAtLabel: this.formatDate(project.createdAt),

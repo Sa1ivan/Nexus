@@ -75,12 +75,8 @@ export class BuilderPageComponent implements OnInit {
     }))
     .filter((group) => group.items.length > 0);
 
-  ngOnInit(): void {
-    const projectId = this.route.snapshot.paramMap.get('projectId');
-
-    if (projectId !== null) {
-      this.builderStore.loadProject(projectId);
-    }
+  async ngOnInit(): Promise<void> {
+    await this.builderStore.initialize(this.route.snapshot.paramMap.get('projectId') ?? undefined);
   }
 
   selectPage(slug: string): void {
@@ -95,12 +91,12 @@ export class BuilderPageComponent implements OnInit {
     this.builderStore.addBlock(type);
   }
 
-  saveProject(): void {
-    this.builderStore.saveCurrentProject();
+  async saveProject(): Promise<void> {
+    await this.builderStore.saveCurrentProject();
   }
 
-  publishProject(): void {
-    this.builderStore.publishCurrentProject();
+  async publishProject(): Promise<void> {
+    await this.builderStore.publishCurrentProject();
   }
 
   undo(): void {

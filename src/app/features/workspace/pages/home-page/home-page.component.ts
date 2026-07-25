@@ -1,12 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
 import {
+  EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
-  type ProjectSummary,
-  type WorkspaceMetrics,
 } from '../../data-access/project-insights.service';
 
 interface HomeCapability {
@@ -23,11 +29,11 @@ interface HomeCapability {
   styleUrl: './home-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomePageComponent {
+export class HomePageComponent implements OnInit {
   private readonly projectInsights = inject(ProjectInsightsService);
 
-  readonly metrics: WorkspaceMetrics = this.projectInsights.getMetrics();
-  readonly recentProjects: readonly ProjectSummary[] = this.metrics.projects.slice(0, 3);
+  readonly metrics = signal(EMPTY_WORKSPACE_METRICS);
+  readonly recentProjects = computed(() => this.metrics().projects.slice(0, 3));
   readonly capabilities: readonly HomeCapability[] = [
     {
       title: 'Сборка лендингов',
@@ -45,4 +51,8 @@ export class HomePageComponent {
       icon: 'monitoring',
     },
   ] as const;
+
+  async ngOnInit(): Promise<void> {
+    this.metrics.set(await this.projectInsights.getMetrics());
+  }
 }

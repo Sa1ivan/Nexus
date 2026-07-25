@@ -92,6 +92,12 @@ export type {
   ProjectSaveStatus,
   PublishedRelease,
 } from './project.model';
+export { ProjectVersionConflictError } from './project-repository.model';
+export type {
+  CreateProjectRequest,
+  PublishProjectRequest,
+  SaveDraftRequest,
+} from './project-repository.model';
 export type {
   FooterMapConfig,
   FooterMapUpdate,
