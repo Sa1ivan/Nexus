@@ -147,25 +147,29 @@ test('editable block models include richer Wix-like customization fields', async
 });
 
 test('storage normalization and validation harden local demo data', async () => {
-  const [persistence, validation] = await Promise.all([
+  const [persistence, projectStorageCodec, siteConfigCodec, validation] = await Promise.all([
     source('src/app/features/builder/data-access/project-persistence.service.ts'),
+    source('src/app/features/builder/data-access/project-storage.codec.ts'),
+    source('src/app/features/builder/data-access/site-config.codec.ts'),
     source('src/app/features/builder/domain/utils/site-config-validation.ts'),
   ]);
 
-  assert.match(persistence, /normalizeStorageState\(JSON\.parse\(rawState\) as unknown\)/);
-  assert.match(persistence, /normalizeBlock/);
-  assert.match(persistence, /readLink/);
-  assert.match(persistence, /normalizeLinkTarget/);
+  assert.match(persistence, /projectStorageCodec\.decode\(rawState\)/);
+  assert.match(persistence, /projectStorageCodec\.encode\(state\)/);
   assert.match(persistence, /MAX_REVISIONS_PER_PROJECT/);
-  assert.match(persistence, /Existing storage is corrupted and was not modified/);
-  assert.doesNotMatch(persistence, /JSON\.parse\(rawState\) as StorageState/);
+  assert.doesNotMatch(persistence, /normalizeBlock/);
+  assert.match(projectStorageCodec, /normalizeStorageState/);
+  assert.match(projectStorageCodec, /Existing storage is corrupted and was not modified/);
+  assert.match(siteConfigCodec, /normalizeBlock/);
+  assert.match(siteConfigCodec, /readLink/);
+  assert.match(siteConfigCodec, /normalizeLinkTarget/);
   assert.match(validation, /validateHref/);
   assert.match(validation, /isSafeLinkTarget/);
   assert.match(validation, /Дублируется id страницы/);
 });
 
 test('complete builder exposes site theme, business data, SEO and stable element contracts', async () => {
-  const [siteConfig, blockConfig, linkModel, headerModel, offerModel, store, persistence] =
+  const [siteConfig, blockConfig, linkModel, headerModel, offerModel, store, siteConfigCodec] =
     await Promise.all([
       source('src/app/features/builder/domain/models/site-config.model.ts'),
       source('src/app/features/builder/domain/models/block-config.model.ts'),
@@ -173,7 +177,7 @@ test('complete builder exposes site theme, business data, SEO and stable element
       source('src/app/features/builder/domain/models/site-header-block-config.model.ts'),
       source('src/app/features/builder/domain/models/offer-list-block-config.model.ts'),
       source('src/app/features/builder/stores/builder.store.ts'),
-      source('src/app/features/builder/data-access/project-persistence.service.ts'),
+      source('src/app/features/builder/data-access/site-config.codec.ts'),
     ]);
 
   assert.match(siteConfig, /theme: SiteThemeConfig/);
@@ -196,8 +200,8 @@ test('complete builder exposes site theme, business data, SEO and stable element
   assert.match(store, /updateHeaderNavigationItem/);
   assert.match(store, /duplicateOfferListItem/);
   assert.match(store, /moveOfferListItem/);
-  assert.match(persistence, /DEFAULT_SITE_THEME/);
-  assert.match(persistence, /readFocalPoint/);
+  assert.match(siteConfigCodec, /DEFAULT_SITE_THEME/);
+  assert.match(siteConfigCodec, /readFocalPoint/);
 });
 
 test('existing preview blocks render functional content and accessible interactions', async () => {
