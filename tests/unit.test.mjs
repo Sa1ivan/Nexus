@@ -18,6 +18,26 @@ async function importTypeScriptModule(path) {
   return import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
 }
 
+test('CI installs the Playwright Chromium runtime before browser tests', async () => {
+  const workflow = await source('.github/workflows/pages.yml');
+  const buildJobStart = workflow.indexOf('  build:\n');
+  const nextJobStart = workflow.indexOf('\n  deploy:\n', buildJobStart);
+  const buildJob = workflow.slice(buildJobStart, nextJobStart);
+  const runCommands = buildJob
+    .split('\n')
+    .flatMap((line) => line.match(/^\s+run:\s*(.+)$/)?.[1].trim() ?? []);
+  const installBrowserStep = runCommands.indexOf('npx playwright install --with-deps chromium');
+  const runBrowserTestsStep = runCommands.indexOf('npm run e2e');
+
+  assert.notEqual(buildJobStart, -1);
+  assert.notEqual(nextJobStart, -1);
+  assert.notEqual(installBrowserStep, -1);
+  assert.notEqual(runBrowserTestsStep, -1);
+  assert.equal(installBrowserStep + 1, runBrowserTestsStep);
+  assert.match(buildJob, /^\s+uses: actions\/checkout@v5$/m);
+  assert.match(buildJob, /^\s+uses: actions\/setup-node@v5$/m);
+});
+
 test('domain model includes publishable MVP contracts', async () => {
   const [siteConfig, blockType, blockConfig, projectModel] = await Promise.all([
     source('src/app/features/builder/domain/models/site-config.model.ts'),
