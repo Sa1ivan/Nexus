@@ -34,6 +34,8 @@ test('CI installs the Playwright Chromium runtime before browser tests', async (
   assert.notEqual(installBrowserStep, -1);
   assert.notEqual(runBrowserTestsStep, -1);
   assert.equal(installBrowserStep + 1, runBrowserTestsStep);
+  assert.match(buildJob, /^\s+uses: actions\/checkout@v5$/m);
+  assert.match(buildJob, /^\s+uses: actions\/setup-node@v5$/m);
 });
 
 test('domain model includes publishable MVP contracts', async () => {
