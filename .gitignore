@@ -29,3 +29,7 @@ Thumbs.db
 
 # Angular
 .ng/
+
+# Browser tests
+playwright-report/
+test-results/

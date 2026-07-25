@@ -18,11 +18,6 @@ export class LandingLinkDirective {
     const location = this.documentRef.location;
     const basePath = new URL(this.documentRef.baseURI).pathname;
 
-    return resolveLandingHref(
-      this.appLandingLink(),
-      location.pathname,
-      location.search,
-      basePath,
-    );
+    return resolveLandingHref(this.appLandingLink(), location.pathname, location.search, basePath);
   }
 }
