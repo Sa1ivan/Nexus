@@ -62,10 +62,16 @@
       @if (leadStats.length > 0) {
         <div class="statistics-page__lead-list">
           @for (item of leadStats; track item.summary.project.id) {
-            <a class="statistics-page__lead-row" [routerLink]="['/builder', item.summary.project.id]">
+            <a
+              class="statistics-page__lead-row"
+              [routerLink]="['/builder', item.summary.project.id]"
+            >
               <span>
                 <strong>{{ item.summary.project.name }}</strong>
-                <small>{{ item.summary.releaseCount }} релизов · {{ item.summary.blockCount }} блоков</small>
+                <small
+                  >{{ item.summary.releaseCount }} релизов ·
+                  {{ item.summary.blockCount }} блоков</small
+                >
               </span>
               <span class="statistics-page__lead-count">{{ item.summary.leadCount }}</span>
               <span class="statistics-page__lead-track" aria-hidden="true">

@@ -3,7 +3,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
-import { ProjectInsightsService, type WorkspaceMetrics } from '../../data-access/project-insights.service';
+import {
+  ProjectInsightsService,
+  type WorkspaceMetrics,
+} from '../../data-access/project-insights.service';
 
 interface ProfileField {
   readonly label: string;

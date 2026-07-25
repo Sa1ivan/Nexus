@@ -411,9 +411,7 @@ test('landing fragment links keep the current published route', async () => {
       'offer-list-block',
       'call-to-action-block',
       'site-footer-block',
-    ].map((name) =>
-      source(`src/app/features/preview/ui/${name}/${name}.component.html`),
-    ),
+    ].map((name) => source(`src/app/features/preview/ui/${name}/${name}.component.html`)),
   );
 
   assert.equal(
@@ -466,10 +464,7 @@ test('public landing controls use compact icon buttons and structured booking fi
   assert.match(header, /type="date"[\s\S]*required/u);
   assert.match(header, /material-icons site-header__burger-icon/);
   assert.match(headerStyles, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) auto/);
-  assert.match(
-    headerStyles,
-    /site-header--burger\.site-header--menu-open \.site-header__cta/u,
-  );
+  assert.match(headerStyles, /site-header--burger\.site-header--menu-open \.site-header__cta/u);
   assert.match(gallery, /material-icons gallery-dialog__control-icon/);
   assert.doesNotMatch(gallery, />\s*[‹›×]\s*</u);
   assert.match(leadForm, /bookingDate/);
