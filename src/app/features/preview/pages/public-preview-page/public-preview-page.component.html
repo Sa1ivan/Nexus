@@ -1,4 +1,12 @@
-@if (release(); as publishedRelease) {
+@if (loading()) {
+  <main class="public-preview public-preview--missing">
+    <section>
+      <span>Nexus</span>
+      <h1>Загружаем публикацию</h1>
+      <p>Подготавливаем последнюю опубликованную версию сайта.</p>
+    </section>
+  </main>
+} @else if (release(); as publishedRelease) {
   <main class="public-preview">
     <app-block-renderer
       [blocks]="publishedRelease.siteConfig.pages[0]?.blocks ?? []"

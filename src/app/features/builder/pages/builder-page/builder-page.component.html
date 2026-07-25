@@ -246,6 +246,7 @@
           type="button"
           aria-label="Сохранить проект"
           matTooltip="Сохранить"
+          [disabled]="saveStatus() === 'saving'"
           (click)="saveProject()"
         >
           <mat-icon aria-hidden="true">save</mat-icon><span>Сохранить</span>
@@ -256,6 +257,7 @@
           color="primary"
           type="button"
           aria-label="Опубликовать локальное демо"
+          [disabled]="saveStatus() === 'saving'"
           (click)="publishProject()"
           matTooltip="Локальная демо-публикация"
         >

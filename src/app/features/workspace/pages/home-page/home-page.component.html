@@ -23,19 +23,19 @@
     <aside class="home-page__snapshot" aria-label="Сводка workspace">
       <div class="home-page__snapshot-head">
         <span>Workspace</span>
-        <strong>{{ metrics.totalProjects }}</strong>
+        <strong>{{ metrics().totalProjects }}</strong>
       </div>
       <div class="home-page__mini-grid">
         <span>
-          <strong>{{ metrics.publishedProjects }}</strong>
+          <strong>{{ metrics().publishedProjects }}</strong>
           Опубликовано
         </span>
         <span>
-          <strong>{{ metrics.totalLeads }}</strong>
+          <strong>{{ metrics().totalLeads }}</strong>
           Заявок
         </span>
         <span>
-          <strong>{{ metrics.totalBlocks }}</strong>
+          <strong>{{ metrics().totalBlocks }}</strong>
           Блоков
         </span>
       </div>
@@ -51,22 +51,22 @@
   <section class="home-page__metrics" aria-label="Ключевые показатели">
     <a class="home-page__metric" routerLink="/projects">
       <mat-icon aria-hidden="true">folder</mat-icon>
-      <strong>{{ metrics.totalProjects }}</strong>
+      <strong>{{ metrics().totalProjects }}</strong>
       <span>Проекты</span>
     </a>
     <a class="home-page__metric" routerLink="/statistics">
       <mat-icon aria-hidden="true">publish</mat-icon>
-      <strong>{{ metrics.publishedProjects }}</strong>
+      <strong>{{ metrics().publishedProjects }}</strong>
       <span>Публикации</span>
     </a>
     <a class="home-page__metric" routerLink="/statistics">
       <mat-icon aria-hidden="true">dynamic_form</mat-icon>
-      <strong>{{ metrics.totalLeads }}</strong>
+      <strong>{{ metrics().totalLeads }}</strong>
       <span>Заявки</span>
     </a>
     <a class="home-page__metric" routerLink="/statistics">
       <mat-icon aria-hidden="true">view_week</mat-icon>
-      <strong>{{ metrics.averageBlocksPerProject }}</strong>
+      <strong>{{ metrics().averageBlocksPerProject }}</strong>
       <span>Блоков в среднем</span>
     </a>
   </section>
@@ -95,9 +95,9 @@
         <h2>Недавние проекты</h2>
       </div>
 
-      @if (recentProjects.length > 0) {
+      @if (recentProjects().length > 0) {
         <div class="home-page__project-list">
-          @for (summary of recentProjects; track summary.project.id) {
+          @for (summary of recentProjects(); track summary.project.id) {
             <a class="home-page__project" [routerLink]="['/builder', summary.project.id]">
               <span>
                 <strong>{{ summary.project.name }}</strong>

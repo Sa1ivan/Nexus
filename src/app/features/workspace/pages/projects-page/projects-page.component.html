@@ -12,28 +12,28 @@
     </a>
   </header>
 
-  @if (projects.length > 0) {
+  @if (projects().length > 0) {
     <section class="projects-page__summary" aria-label="Сводка проектов">
       <div>
-        <strong>{{ metrics.totalProjects }}</strong>
+        <strong>{{ metrics().totalProjects }}</strong>
         <span>Всего проектов</span>
       </div>
       <div>
-        <strong>{{ metrics.publishedProjects }}</strong>
+        <strong>{{ metrics().publishedProjects }}</strong>
         <span>Опубликовано</span>
       </div>
       <div>
-        <strong>{{ metrics.draftProjects }}</strong>
+        <strong>{{ metrics().draftProjects }}</strong>
         <span>Черновики</span>
       </div>
       <div>
-        <strong>{{ metrics.totalLeads }}</strong>
+        <strong>{{ metrics().totalLeads }}</strong>
         <span>Заявки</span>
       </div>
     </section>
 
     <section class="projects-page__grid" aria-label="Список проектов">
-      @for (summary of projects; track summary.project.id) {
+      @for (summary of projects(); track summary.project.id) {
         <article class="projects-page__card">
           <header class="projects-page__card-head">
             <span

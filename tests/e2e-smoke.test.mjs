@@ -16,7 +16,7 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
     settingsTemplate,
     wizardTemplate,
     publicPreview,
-    persistence,
+    repository,
   ] = await Promise.all([
     source('src/app/app.routes.ts'),
     source('src/app/features/builder/pages/builder-page/builder-page.component.html'),
@@ -26,7 +26,7 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
     source('src/app/features/builder/ui/site-settings-editor/site-settings-editor.component.html'),
     source('src/app/features/builder/pages/create-landing-page/create-landing-page.component.html'),
     source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
-    source('src/app/features/builder/data-access/project-persistence.service.ts'),
+    source('src/app/features/builder/data-access/local-project.repository.ts'),
   ]);
   const editorSources = `${inspectorTemplate}\n${inspectorComponent}\n${mediaTemplate}`;
 
@@ -59,6 +59,6 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
   assert.match(wizardTemplate, /updateBusinessDetails\('heroTitle'/);
   assert.match(publicPreview, /getPublishedRelease/);
   assert.match(publicPreview, /submitLead/);
-  assert.match(persistence, /publishProject/);
-  assert.match(persistence, /submitLead/);
+  assert.match(repository, /publishProject/);
+  assert.match(repository, /submitLead/);
 });

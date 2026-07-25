@@ -147,17 +147,17 @@ test('editable block models include richer Wix-like customization fields', async
 });
 
 test('storage normalization and validation harden local demo data', async () => {
-  const [persistence, projectStorageCodec, siteConfigCodec, validation] = await Promise.all([
-    source('src/app/features/builder/data-access/project-persistence.service.ts'),
+  const [repository, projectStorageCodec, siteConfigCodec, validation] = await Promise.all([
+    source('src/app/features/builder/data-access/local-project.repository.ts'),
     source('src/app/features/builder/data-access/project-storage.codec.ts'),
     source('src/app/features/builder/data-access/site-config.codec.ts'),
     source('src/app/features/builder/domain/utils/site-config-validation.ts'),
   ]);
 
-  assert.match(persistence, /projectStorageCodec\.decode\(rawState\)/);
-  assert.match(persistence, /projectStorageCodec\.encode\(state\)/);
-  assert.match(persistence, /MAX_REVISIONS_PER_PROJECT/);
-  assert.doesNotMatch(persistence, /normalizeBlock/);
+  assert.match(repository, /projectStorageCodec\.decode\(rawState\)/);
+  assert.match(repository, /projectStorageCodec\.encode\(state\)/);
+  assert.match(repository, /MAX_REVISIONS_PER_PROJECT/);
+  assert.doesNotMatch(repository, /normalizeBlock/);
   assert.match(projectStorageCodec, /normalizeStorageState/);
   assert.match(projectStorageCodec, /Existing storage is corrupted and was not modified/);
   assert.match(siteConfigCodec, /normalizeBlock/);

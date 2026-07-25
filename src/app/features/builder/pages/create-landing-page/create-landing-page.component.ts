@@ -142,6 +142,7 @@ export class CreateLandingPageComponent {
 
   readonly currentStepIndex = signal<number>(0);
   readonly isPreviewOpen = signal<boolean>(false);
+  readonly creating = signal(false);
   private previewTrigger: HTMLElement | null = null;
   readonly designByStep = signal<LandingDesignByStep>(
     createDesignByStep(DEFAULT_LANDING_DESIGN_SETTINGS),
@@ -546,15 +547,28 @@ export class CreateLandingPageComponent {
     );
   }
 
-  createLanding(): void {
+  async createLanding(): Promise<void> {
+    if (this.creating()) {
+      return;
+    }
+
     const completeSelection = this.getCompleteSelection();
 
     if (completeSelection === null) {
       return;
     }
 
-    this.builderStore.createLandingDraft(completeSelection);
-    void this.router.navigate(['/builder']);
+    this.creating.set(true);
+
+    try {
+      const project = await this.builderStore.createLandingDraft(completeSelection);
+
+      if (project !== null) {
+        await this.router.navigate(['/builder', project.id]);
+      }
+    } finally {
+      this.creating.set(false);
+    }
   }
 
   private getCompleteSelection(): CompleteLandingWizardSelection | null {

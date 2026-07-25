@@ -1,10 +1,10 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 
-import { ProjectPersistenceService } from '../../../builder/data-access/project-persistence.service';
 import type { PublishedRelease, SiteSeoConfig } from '../../../builder/domain/models';
+import { PROJECT_REPOSITORY } from '../../../builder/domain/ports';
 import {
   BlockRendererComponent,
   type LeadSubmissionEvent,
@@ -19,17 +19,23 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PublicPreviewPageComponent {
-  private readonly projectPersistence = inject(ProjectPersistenceService);
+  private readonly projectRepository = inject(PROJECT_REPOSITORY);
   private readonly documentRef = inject(DOCUMENT);
   private readonly meta = inject(Meta);
   private readonly title = inject(Title);
+  private readonly releaseSignal = signal<PublishedRelease | null>(null);
+  private readonly loadingSignal = signal(true);
+  private loadRequestId = 0;
 
   readonly projectId = input.required<string>();
-  readonly release = computed<PublishedRelease | null>(() =>
-    this.projectPersistence.getPublishedRelease(this.projectId()),
-  );
+  readonly release = this.releaseSignal.asReadonly();
+  readonly loading = this.loadingSignal.asReadonly();
 
   constructor() {
+    effect(() => {
+      void this.loadRelease(this.projectId());
+    });
+
     effect((onCleanup) => {
       const release = this.release();
 
@@ -39,12 +45,34 @@ export class PublicPreviewPageComponent {
     });
   }
 
-  submitLead(event: LeadSubmissionEvent): void {
+  async submitLead(event: LeadSubmissionEvent): Promise<void> {
     try {
-      this.projectPersistence.submitLead(event.request);
+      await this.projectRepository.submitLead(event.request);
       event.complete(true);
     } catch {
       event.complete(false);
+    }
+  }
+
+  private async loadRelease(projectId: string): Promise<void> {
+    const requestId = ++this.loadRequestId;
+    this.loadingSignal.set(true);
+    this.releaseSignal.set(null);
+
+    try {
+      const release = await this.projectRepository.getPublishedRelease(projectId);
+
+      if (requestId === this.loadRequestId) {
+        this.releaseSignal.set(release);
+      }
+    } catch {
+      if (requestId === this.loadRequestId) {
+        this.releaseSignal.set(null);
+      }
+    } finally {
+      if (requestId === this.loadRequestId) {
+        this.loadingSignal.set(false);
+      }
     }
   }
 

@@ -2,7 +2,6 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
 import { buildLandingDraft } from '../data-access/landing-draft.factory';
-import { ProjectPersistenceService } from '../data-access/project-persistence.service';
 import {
   DEFAULT_BLOCK_APPEARANCE,
   DEFAULT_LANDING_DESIGN_SETTINGS,
@@ -51,7 +50,6 @@ import type {
   PageBlockConfig,
   PageConfig,
   Project,
-  ProjectSaveStatus,
   SiteBusinessConfig,
   SiteConfig,
   SiteFooterBlockUpdate,
@@ -61,48 +59,36 @@ import type {
   TestimonialItemUpdate,
   TestimonialsBlockUpdate,
 } from '../domain/models';
+import { BuilderHistoryStore } from './builder-history.store';
+import { BuilderProjectStore } from './builder-project.store';
 
 type MoveDirection = 'up' | 'down';
 type FooterLinkCollection = 'links' | 'socialLinks';
-
-const HISTORY_LIMIT = 50;
 
 @Injectable({
   providedIn: 'root',
 })
 export class BuilderStore {
-  private readonly projectPersistence = inject(ProjectPersistenceService);
+  private readonly projectStore = inject(BuilderProjectStore);
+  private readonly historyStore = inject(BuilderHistoryStore);
 
-  private readonly currentProjectSignal = signal<Project | null>(null);
   private readonly siteConfigSignal = signal<SiteConfig>(DEFAULT_SITE_CONFIG);
   private readonly activePageSlugSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.slug ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(
     DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
   );
-  private readonly saveStatusSignal = signal<ProjectSaveStatus>('idle');
-  private readonly projectErrorSignal = signal<string | null>(null);
-  private readonly undoHistorySignal = signal<readonly SiteConfig[]>([]);
-  private readonly redoHistorySignal = signal<readonly SiteConfig[]>([]);
   private fallbackElementId = 0;
 
-  readonly currentProject = computed<Project | null>(() => this.currentProjectSignal());
-  readonly saveStatus = computed<ProjectSaveStatus>(() => this.saveStatusSignal());
-  readonly projectError = computed<string | null>(() => this.projectErrorSignal());
+  readonly currentProject = this.projectStore.currentProject;
+  readonly saveStatus = this.projectStore.saveStatus;
+  readonly projectError = this.projectStore.projectError;
   readonly siteConfig = computed<SiteConfig>(() => this.siteConfigSignal());
   readonly pages = computed<readonly PageConfig[]>(() => this.siteConfig().pages);
   readonly activePageSlug = computed<string>(() => this.activePageSlugSignal());
   readonly selectedBlockId = computed<string | null>(() => this.selectedBlockIdSignal());
-  readonly canUndo = computed<boolean>(() => this.undoHistorySignal().length > 0);
-  readonly canRedo = computed<boolean>(() => this.redoHistorySignal().length > 0);
-  readonly publishedUrl = computed<string | null>(() => {
-    const project = this.currentProject();
-
-    if (project?.publishedReleaseId === null || project === null) {
-      return null;
-    }
-
-    return `/p/${project.id}`;
-  });
+  readonly canUndo = this.historyStore.canUndo;
+  readonly canRedo = this.historyStore.canRedo;
+  readonly publishedUrl = this.projectStore.publishedUrl;
   readonly activePage = computed<PageConfig | null>(() => {
     const activeSlug = this.activePageSlug();
 
@@ -117,14 +103,6 @@ export class BuilderStore {
 
     return blocks.find((block) => block.id === selectedBlockId) ?? blocks[0] ?? null;
   });
-
-  constructor() {
-    const activeProject = this.projectPersistence.getActiveProject();
-
-    if (activeProject !== null) {
-      this.hydrateProject(activeProject, 'saved');
-    }
-  }
 
   selectPage(slug: string): boolean {
     const page = this.pages().find((pageConfig) => pageConfig.slug === slug);
@@ -151,63 +129,20 @@ export class BuilderStore {
     return true;
   }
 
-  loadProject(projectId: string): boolean {
-    const project = this.projectPersistence.getProject(projectId);
+  async initialize(projectId?: string): Promise<void> {
+    const siteConfig = await this.projectStore.initialize(projectId);
 
-    if (project === null) {
-      this.projectErrorSignal.set('Проект не найден.');
-      return false;
-    }
-
-    this.hydrateProject(project, 'saved');
-    this.projectPersistence.setActiveProject(project.id);
-
-    return true;
-  }
-
-  saveCurrentProject(): boolean {
-    this.saveStatusSignal.set('saving');
-    this.projectErrorSignal.set(null);
-
-    try {
-      const currentProject = this.currentProject();
-      const savedProject =
-        currentProject === null
-          ? this.projectPersistence.createProject(this.siteConfig())
-          : this.projectPersistence.saveDraft(currentProject, this.siteConfig());
-
-      this.hydrateProject(savedProject, 'saved');
-
-      return true;
-    } catch (error) {
-      this.projectErrorSignal.set(this.readErrorMessage(error));
-      this.saveStatusSignal.set('error');
-
-      return false;
+    if (siteConfig !== null) {
+      this.hydrateSiteConfig(siteConfig);
     }
   }
 
-  publishCurrentProject(): boolean {
-    this.saveStatusSignal.set('saving');
-    this.projectErrorSignal.set(null);
+  async saveCurrentProject(): Promise<boolean> {
+    return (await this.projectStore.save(this.siteConfig())) !== null;
+  }
 
-    try {
-      const baseProject =
-        this.currentProject() ?? this.projectPersistence.createProject(this.siteConfig());
-      const publishedProject = this.projectPersistence.publishProject(
-        baseProject,
-        this.siteConfig(),
-      );
-
-      this.hydrateProject(publishedProject, 'saved');
-
-      return true;
-    } catch (error) {
-      this.projectErrorSignal.set(this.readErrorMessage(error));
-      this.saveStatusSignal.set('error');
-
-      return false;
-    }
+  async publishCurrentProject(): Promise<boolean> {
+    return (await this.projectStore.publish(this.siteConfig())) !== null;
   }
 
   updateSiteName(name: string): boolean {
@@ -316,15 +251,12 @@ export class BuilderStore {
   }
 
   undo(): boolean {
-    const undoHistory = this.undoHistorySignal();
-    const previous = undoHistory[undoHistory.length - 1];
+    const previous = this.historyStore.undo(this.siteConfig());
 
-    if (previous === undefined) {
+    if (previous === null) {
       return false;
     }
 
-    this.redoHistorySignal.set(this.appendHistory(this.redoHistorySignal(), this.siteConfig()));
-    this.undoHistorySignal.set(undoHistory.slice(0, -1));
     this.siteConfigSignal.set(previous);
     this.reconcileTransientState();
     this.markDirty();
@@ -333,15 +265,12 @@ export class BuilderStore {
   }
 
   redo(): boolean {
-    const redoHistory = this.redoHistorySignal();
-    const next = redoHistory[redoHistory.length - 1];
+    const next = this.historyStore.redo(this.siteConfig());
 
-    if (next === undefined) {
+    if (next === null) {
       return false;
     }
 
-    this.undoHistorySignal.set(this.appendHistory(this.undoHistorySignal(), this.siteConfig()));
-    this.redoHistorySignal.set(redoHistory.slice(0, -1));
     this.siteConfigSignal.set(next);
     this.reconcileTransientState();
     this.markDirty();
@@ -349,11 +278,15 @@ export class BuilderStore {
     return true;
   }
 
-  createLandingDraft(selection: CompleteLandingWizardSelection): void {
+  async createLandingDraft(selection: CompleteLandingWizardSelection): Promise<Project | null> {
     const siteConfig = buildLandingDraft(selection);
-    const project = this.projectPersistence.createProject(siteConfig);
+    const project = await this.projectStore.create(siteConfig);
 
-    this.hydrateProject(project, 'saved');
+    if (project !== null) {
+      this.hydrateSiteConfig(project.draft);
+    }
+
+    return project;
   }
 
   addBlock(
@@ -1674,15 +1607,11 @@ export class BuilderStore {
     };
   }
 
-  private hydrateProject(project: Project, saveStatus: ProjectSaveStatus): void {
-    this.currentProjectSignal.set(project);
-    this.siteConfigSignal.set(project.draft);
-    this.activePageSlugSignal.set(project.draft.pages[0]?.slug ?? '');
-    this.selectedBlockIdSignal.set(project.draft.pages[0]?.blocks[0]?.id ?? null);
-    this.saveStatusSignal.set(saveStatus);
-    this.projectErrorSignal.set(null);
-    this.undoHistorySignal.set([]);
-    this.redoHistorySignal.set([]);
+  private hydrateSiteConfig(siteConfig: SiteConfig): void {
+    this.siteConfigSignal.set(siteConfig);
+    this.activePageSlugSignal.set(siteConfig.pages[0]?.slug ?? '');
+    this.selectedBlockIdSignal.set(siteConfig.pages[0]?.blocks[0]?.id ?? null);
+    this.historyStore.reset();
   }
 
   private commitSiteConfig(siteConfig: SiteConfig): boolean {
@@ -1692,19 +1621,11 @@ export class BuilderStore {
       return false;
     }
 
-    this.undoHistorySignal.set(this.appendHistory(this.undoHistorySignal(), current));
-    this.redoHistorySignal.set([]);
+    this.historyStore.record(current);
     this.siteConfigSignal.set(siteConfig);
     this.markDirty();
 
     return true;
-  }
-
-  private appendHistory(
-    history: readonly SiteConfig[],
-    snapshot: SiteConfig,
-  ): readonly SiteConfig[] {
-    return [...history.slice(-(HISTORY_LIMIT - 1)), snapshot];
   }
 
   private reconcileTransientState(): void {
@@ -1919,10 +1840,6 @@ export class BuilderStore {
   }
 
   private markDirty(): void {
-    this.saveStatusSignal.set('dirty');
-  }
-
-  private readErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Не удалось выполнить действие.';
+    this.projectStore.markDirty();
   }
 }

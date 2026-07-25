@@ -1,12 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
 import {
+  EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
   type BlockDistributionItem,
   type ProjectLeadStats,
-  type WorkspaceMetrics,
 } from '../../data-access/project-insights.service';
 
 @Component({
@@ -17,11 +17,22 @@ import {
   styleUrl: './statistics-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatisticsPageComponent {
+export class StatisticsPageComponent implements OnInit {
   private readonly projectInsights = inject(ProjectInsightsService);
 
-  readonly metrics: WorkspaceMetrics = this.projectInsights.getMetrics();
-  readonly blockDistribution: readonly BlockDistributionItem[] =
-    this.projectInsights.getBlockDistribution();
-  readonly leadStats: readonly ProjectLeadStats[] = this.projectInsights.getProjectLeadStats();
+  readonly metrics = signal(EMPTY_WORKSPACE_METRICS);
+  readonly blockDistribution = signal<readonly BlockDistributionItem[]>([]);
+  readonly leadStats = signal<readonly ProjectLeadStats[]>([]);
+
+  async ngOnInit(): Promise<void> {
+    const [metrics, blockDistribution, leadStats] = await Promise.all([
+      this.projectInsights.getMetrics(),
+      this.projectInsights.getBlockDistribution(),
+      this.projectInsights.getProjectLeadStats(),
+    ]);
+
+    this.metrics.set(metrics);
+    this.blockDistribution.set(blockDistribution);
+    this.leadStats.set(leadStats);
+  }
 }

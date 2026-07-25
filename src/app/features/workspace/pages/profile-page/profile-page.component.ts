@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 
 import {
+  EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
-  type WorkspaceMetrics,
 } from '../../data-access/project-insights.service';
 
 interface ProfileField {
@@ -28,10 +28,10 @@ interface WorkspacePreference {
   styleUrl: './profile-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProfilePageComponent {
+export class ProfilePageComponent implements OnInit {
   private readonly projectInsights = inject(ProjectInsightsService);
 
-  readonly metrics: WorkspaceMetrics = this.projectInsights.getMetrics();
+  readonly metrics = signal(EMPTY_WORKSPACE_METRICS);
   readonly profileFields: readonly ProfileField[] = [
     {
       label: 'Имя',
@@ -71,4 +71,8 @@ export class ProfilePageComponent {
       icon: 'dynamic_form',
     },
   ] as const;
+
+  async ngOnInit(): Promise<void> {
+    this.metrics.set(await this.projectInsights.getMetrics());
+  }
 }
