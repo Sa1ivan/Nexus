@@ -1,7 +1,7 @@
 @if (loading()) {
   <main class="public-preview public-preview--missing">
     <section>
-      <span>Nexus</span>
+      <span>Nexus.UI</span>
       <h1>Загружаем публикацию</h1>
       <p>Подготавливаем последнюю опубликованную версию сайта.</p>
     </section>
@@ -10,7 +10,7 @@
   @if (pageMissing()) {
     <main class="public-preview public-preview--missing">
       <section>
-        <span>Nexus</span>
+        <span>Nexus.UI</span>
         <h1>Страница не найдена</h1>
         <p>В опубликованной версии сайта нет страницы с таким адресом.</p>
         <a [routerLink]="['/p', projectId()]">Вернуться на главную страницу</a>
@@ -29,7 +29,7 @@
 } @else {
   <main class="public-preview public-preview--missing">
     <section>
-      <span>Nexus</span>
+      <span>Nexus.UI</span>
       <h1>Публикация не найдена</h1>
       <p>Проект еще не опубликован или ссылка устарела.</p>
       <a routerLink="/builder">Вернуться в конструктор</a>

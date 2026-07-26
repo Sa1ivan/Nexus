@@ -44,10 +44,10 @@ jobs:
         run: npm run e2e
 
       - name: Build
-        run: npm run build -- --base-href=/Nexus/
+        run: npm run build -- --base-href=/Nexus.UI/
 
       - name: Add SPA fallback
-        run: cp dist/nexus/browser/index.html dist/nexus/browser/404.html
+        run: cp dist/nexus.ui/browser/index.html dist/nexus.ui/browser/404.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -55,7 +55,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/nexus/browser
+          path: dist/nexus.ui/browser
 
   deploy:
     environment:

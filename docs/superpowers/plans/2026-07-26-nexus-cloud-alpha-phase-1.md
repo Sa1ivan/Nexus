@@ -4,7 +4,7 @@
 
 **Goal:** Перевести Nexus с локального demo-хранилища на аккаунты, облачные проекты, публичные поддомены, S3-compatible медиа и серверный приём заявок, сохранив доказанные P0-контракты редактора.
 
-**Architecture:** Backend создаётся отдельным модульным монолитом в репозитории `Sa1ivan/Nexus.Backend` и локальном sibling-каталоге `../Nexus.Backend`. Каждый бизнес-модуль разделён на `domain`, `application`, `infrastructure` и `api`; контроллеры не обращаются к Prisma напрямую, а модули взаимодействуют только через экспортируемые application ports. Один NestJS process и одна PostgreSQL database достаточны для Cloud Alpha, но границы позволяют позднее вынести Media, Forms или Public rendering без переписывания домена.
+**Architecture:** Backend создаётся отдельным модульным монолитом в репозитории `Sa1ivan/Nexus.BC` и локальном sibling-каталоге `../Nexus.BC`. Каждый бизнес-модуль разделён на `domain`, `application`, `infrastructure` и `api`; контроллеры не обращаются к Prisma напрямую, а модули взаимодействуют только через экспортируемые application ports. Один NestJS process и одна PostgreSQL database достаточны для Cloud Alpha, но границы позволяют позднее вынести Media, Forms или Public rendering без переписывания домена.
 
 **Tech Stack:** Node.js 24, NestJS 11, TypeScript strict, PostgreSQL, Prisma ORM 7, Jest/Supertest, Docker, Railway, Cloudflare R2 through the S3 API, Resend, Angular 20 HTTP adapters, GitHub Actions.
 
@@ -12,8 +12,8 @@
 
 ## Зафиксированные решения
 
-- Frontend остаётся в `Sa1ivan/Nexus`; backend — только в `Sa1ivan/Nexus.Backend`.
-- Backend local path: sibling `../Nexus.Backend`; backend не добавляется внутрь frontend repository.
+- Frontend остаётся в `Sa1ivan/Nexus.UI`; backend — только в `Sa1ivan/Nexus.BC`.
+- Backend local path: sibling `../Nexus.BC`; backend не добавляется внутрь frontend repository.
 - Deployment baseline: Railway application service плюс Railway PostgreSQL.
 - Object storage baseline: Cloudflare R2 через стандартный S3 client.
 - Transactional email baseline: Resend behind the Notifications application port.
@@ -54,7 +54,7 @@ domain -> nothing outside its own module and shared/kernel
 Разрешённая структура:
 
 ```text
-Nexus.Backend/
+Nexus.BC/
   prisma/
     schema.prisma
     migrations/
@@ -160,13 +160,13 @@ register -> verify email -> create workspace -> create project -> autosave
 
 **Files:**
 
-- Create in `../Nexus.Backend`: NestJS application scaffold
-- Create: `../Nexus.Backend/.nvmrc`
-- Create: `../Nexus.Backend/.env.example`
-- Create: `../Nexus.Backend/.github/workflows/ci.yml`
-- Create: `../Nexus.Backend/test/architecture/module-boundaries.spec.ts`
-- Modify: `../Nexus.Backend/package.json`
-- Modify: `../Nexus.Backend/tsconfig.json`
+- Create in `../Nexus.BC`: NestJS application scaffold
+- Create: `../Nexus.BC/.nvmrc`
+- Create: `../Nexus.BC/.env.example`
+- Create: `../Nexus.BC/.github/workflows/ci.yml`
+- Create: `../Nexus.BC/test/architecture/module-boundaries.spec.ts`
+- Modify: `../Nexus.BC/package.json`
+- Modify: `../Nexus.BC/tsconfig.json`
 
 - [ ] **Step 1: Create and connect the separate repository**
 
@@ -174,13 +174,13 @@ Run outside the frontend repository:
 
 ```bash
 cd ..
-git clone git@github.com:Sa1ivan/Nexus.Backend.git
-cd Nexus.Backend
+git clone git@github.com:Sa1ivan/Nexus.BC.git
+cd Nexus.BC
 npx @nestjs/cli@11 new . --package-manager npm --strict --skip-git
 ```
 
-Expected: `Nexus.Backend` is a separate Git worktree whose `origin` is
-`git@github.com:Sa1ivan/Nexus.Backend.git`.
+Expected: `Nexus.BC` is a separate Git worktree whose `origin` is
+`git@github.com:Sa1ivan/Nexus.BC.git`.
 
 - [ ] **Step 2: Pin the runtime and commands**
 
@@ -302,7 +302,7 @@ Commit:
 
 ```bash
 git add .
-git commit -m "chore: bootstrap Nexus backend architecture"
+git commit -m "chore: bootstrap Nexus.BC architecture"
 ```
 
 ## Task P1-02: Typed configuration, errors, health and database
@@ -958,7 +958,7 @@ git commit -m "feat: add server-side lead capture"
 
 ## Task P1-08: Angular auth, HTTP repository and local migration
 
-**Files in frontend `Sa1ivan/Nexus`:**
+**Files in frontend `Sa1ivan/Nexus.UI`:**
 
 - Create: `src/app/core/auth/auth-session.store.ts`
 - Create: `src/app/core/http/api-client.ts`
@@ -1098,7 +1098,7 @@ release handoff.
 Run:
 
 ```bash
-docker build -t nexus-backend:phase-1 .
+docker build -t nexus-bc:phase-1 .
 npm run verify
 ```
 
