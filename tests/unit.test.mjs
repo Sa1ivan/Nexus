@@ -412,6 +412,7 @@ test('published pages apply SEO and insights cover every registered block', asyn
   assert.match(publicPage, /name: 'description'/);
   assert.match(publicPage, /updateOptionalMeta\('og:image'/);
   assert.match(insights, /BLOCK_PALETTE\.map/);
+  assert.match(insights, /project\.draft\.pages\[0\]\?\.slug \?\? 'home'/);
   assert.doesNotMatch(insights, /const BLOCK_TYPE_META: readonly BlockTypeMeta\[\] = \[/);
 });
 
@@ -451,7 +452,7 @@ test('landing fragment links keep the current published route', async () => {
   );
   assert.equal(
     resolveLandingHref('/pricing', '/Nexus/p/project-1', '', '/Nexus/'),
-    '/Nexus/pricing',
+    '/Nexus/p/project-1/pricing',
   );
   assert.equal(
     resolveLandingHref('https://example.com', '/Nexus/p/project-1', '', '/Nexus/'),

@@ -1,9 +1,18 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 
 import type {
+  PageConfig,
   PageSeoConfig,
   PublishedRelease,
   SiteSeoConfig,
@@ -32,8 +41,23 @@ export class PublicPreviewPageComponent {
   private loadRequestId = 0;
 
   readonly projectId = input.required<string>();
+  readonly pageSlug = input<string>();
   readonly release = this.releaseSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
+  readonly activePage = computed<PageConfig | null>(() => {
+    const release = this.release();
+
+    if (release === null) {
+      return null;
+    }
+
+    const pageSlug = this.pageSlug();
+
+    return pageSlug === undefined
+      ? (release.siteConfig.pages[0] ?? null)
+      : (release.siteConfig.pages.find((page) => page.slug === pageSlug) ?? null);
+  });
+  readonly pageMissing = computed(() => this.release() !== null && this.activePage() === null);
 
   constructor() {
     effect(() => {
@@ -42,7 +66,7 @@ export class PublicPreviewPageComponent {
 
     effect((onCleanup) => {
       const release = this.release();
-      const pageSeo = release?.siteConfig.pages[0]?.seo;
+      const pageSeo = this.activePage()?.seo;
 
       if (release !== null && pageSeo !== undefined) {
         onCleanup(this.applySeo(release.siteConfig.seo, pageSeo));
@@ -109,7 +133,7 @@ export class PublicPreviewPageComponent {
     this.updateOptionalMeta('og:image', pageSeo.socialImage?.src ?? null);
 
     if (pageSeo.noIndex) {
-      this.meta.updateTag({ name: 'robots', content: 'noindex, nofollow' });
+      this.meta.updateTag({ name: 'robots', content: 'noindex,nofollow' });
     } else {
       this.meta.removeTag("name='robots'");
     }

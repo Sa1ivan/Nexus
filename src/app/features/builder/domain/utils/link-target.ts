@@ -60,6 +60,16 @@ export function resolveLandingHref(
 
   if (safeTarget.startsWith('/')) {
     const normalizedBasePath = basePath === '/' ? '' : basePath.replace(/\/$/u, '');
+    const relativeCurrentPath =
+      normalizedBasePath !== '' && currentPath.startsWith(`${normalizedBasePath}/`)
+        ? currentPath.slice(normalizedBasePath.length)
+        : currentPath;
+    const publishedMatch = relativeCurrentPath.match(/^\/p\/([^/]+)(?:\/[^/]+)?$/u);
+
+    if (publishedMatch !== null) {
+      return `${normalizedBasePath}/p/${publishedMatch[1]}${safeTarget}`;
+    }
+
     return `${normalizedBasePath}${safeTarget}`;
   }
 
