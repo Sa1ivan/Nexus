@@ -1,7 +1,14 @@
 import { CdkDrag, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import type { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  type OnDestroy,
+  type OnInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -15,6 +22,7 @@ import {
   BLOCK_PALETTE,
   type BlockDefinition,
 } from '../../domain/registry/block-registry';
+import { BuilderAutosaveService } from '../../services/builder-autosave.service';
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockInspectorComponent } from '../../ui/block-inspector/block-inspector.component';
 import { PageManagerComponent } from '../../ui/page-manager/page-manager.component';
@@ -51,11 +59,13 @@ interface PaletteGroup {
   styleUrl: './builder-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BuilderPageComponent implements OnInit {
+export class BuilderPageComponent implements OnInit, OnDestroy {
+  private readonly autosave = inject(BuilderAutosaveService);
   private readonly builderStore = inject(BuilderStore);
   private readonly document = inject(DOCUMENT);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private destroyed = false;
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly activePage = this.builderStore.activePage;
@@ -80,6 +90,15 @@ export class BuilderPageComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.builderStore.initialize(this.route.snapshot.paramMap.get('projectId') ?? undefined);
+
+    if (!this.destroyed) {
+      this.autosave.start();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    this.autosave.stop();
   }
 
   selectBlock(blockId: string): void {
@@ -91,10 +110,16 @@ export class BuilderPageComponent implements OnInit {
   }
 
   async saveProject(): Promise<void> {
-    await this.builderStore.saveCurrentProject();
+    await this.autosave.flush();
   }
 
   async publishProject(): Promise<void> {
+    await this.autosave.flush();
+
+    if (this.saveStatus() === 'error') {
+      return;
+    }
+
     await this.builderStore.publishCurrentProject();
   }
 

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('edit, save, publish and submit a lead', async ({ page }) => {
+test('edit, autosave, publish and submit a lead', async ({ page }) => {
   await page.goto('/builder');
 
   await page.getByRole('textbox', { name: 'Заголовок' }).fill('Проверенный E2E лендинг');
@@ -16,7 +16,6 @@ test('edit, save, publish and submit a lead', async ({ page }) => {
   await page.getByRole('button', { name: /Hero Новая страница/u }).click();
   await page.getByRole('textbox', { name: 'Заголовок' }).fill('О компании');
   await page.getByRole('button', { name: 'Открыть страницу Главная' }).click();
-  await page.getByRole('button', { name: 'Сохранить проект' }).click();
   await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
   await page.reload();
   await page.getByRole('tab', { name: 'Слои' }).click();

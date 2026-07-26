@@ -8,7 +8,8 @@ import {
 } from '../domain/models';
 import { PROJECT_REPOSITORY } from '../domain/ports';
 
-const CONFLICT_MESSAGE = 'Проект изменен в другой вкладке. Обновите страницу и повторите действие.';
+const CONFLICT_MESSAGE =
+  'Проект изменён в другой вкладке. Экспортируйте текущую версию или перезагрузите последнюю сохранённую.';
 
 @Injectable({
   providedIn: 'root',
