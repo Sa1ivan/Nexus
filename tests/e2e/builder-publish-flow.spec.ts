@@ -12,6 +12,9 @@ test('edit, save, publish and submit a lead', async ({ page }) => {
   await page.locator('#page-slug').press('Tab');
   await page.locator('#page-seo-title').fill('О компании — E2E');
   await page.locator('#page-seo-title').press('Tab');
+  await page.locator('#page-seo-noindex').check();
+  await page.getByRole('button', { name: /Hero Новая страница/u }).click();
+  await page.getByRole('textbox', { name: 'Заголовок' }).fill('О компании');
   await page.getByRole('button', { name: 'Открыть страницу Главная' }).click();
   await page.getByRole('button', { name: 'Сохранить проект' }).click();
   await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
@@ -27,7 +30,25 @@ test('edit, save, publish and submit a lead', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/p\/project-/u);
   await expect(page.getByRole('heading', { name: 'Проверенный E2E лендинг' })).toBeVisible();
+  const publishedHomeUrl = page.url();
+  const publishedHomePath = new URL(publishedHomeUrl).pathname;
 
+  await page.goto(`${publishedHomeUrl}/about`);
+  await expect(page.getByRole('heading', { name: 'О компании' })).toBeVisible();
+  await expect(page).toHaveTitle('О компании — E2E');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
+
+  await page.goto(`${publishedHomeUrl}/missing`);
+  await expect(page.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
+  await expect(
+    page.getByText('В опубликованной версии сайта нет страницы с таким адресом.'),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Вернуться на главную страницу' })).toHaveAttribute(
+    'href',
+    publishedHomePath,
+  );
+
+  await page.goto(publishedHomeUrl);
   await page.getByRole('textbox', { name: 'Имя' }).fill('Тестовый пользователь');
   await page.getByRole('textbox', { name: 'Телефон или email' }).fill('test@example.com');
   await page.getByRole('button', { name: 'Отправить' }).click();

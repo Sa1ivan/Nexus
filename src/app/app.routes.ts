@@ -30,6 +30,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'p/:projectId/:pageSlug',
+    loadComponent: () =>
+      import('./features/preview/pages/public-preview-page/public-preview-page.component').then(
+        (component) => component.PublicPreviewPageComponent,
+      ),
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./features/workspace/ui/app-shell/app-shell.component').then(

@@ -12,4 +12,18 @@ describe('link target', () => {
       '/p/project-1/home?ref=test#lead-form',
     );
   });
+
+  it('keeps an internal page target inside a published site', () => {
+    expect(resolveLandingHref('/about', '/p/project-1/home', '', '/')).toBe('/p/project-1/about');
+  });
+
+  it('keeps an internal page target inside a deployed base path', () => {
+    expect(resolveLandingHref('/about', '/nexus/p/project-1/home', '', '/nexus/')).toBe(
+      '/nexus/p/project-1/about',
+    );
+  });
+
+  it('keeps ordinary application internal links outside published routes', () => {
+    expect(resolveLandingHref('/projects', '/builder', '', '/')).toBe('/projects');
+  });
 });

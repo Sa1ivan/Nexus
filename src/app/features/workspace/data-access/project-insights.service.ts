@@ -161,7 +161,7 @@ export class ProjectInsightsService {
       revisionCount: project.revisions.length,
       leadCount,
       firstPageTitle: project.draft.pages[0]?.title ?? 'Без страницы',
-      publicUrl: published ? `/p/${project.id}` : null,
+      publicUrl: published ? `/p/${project.id}/${project.draft.pages[0]?.slug ?? 'home'}` : null,
       createdAtLabel: this.formatDate(project.createdAt),
       updatedAtLabel: this.formatDate(project.updatedAt),
     };

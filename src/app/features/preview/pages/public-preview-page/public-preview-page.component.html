@@ -7,14 +7,25 @@
     </section>
   </main>
 } @else if (release(); as publishedRelease) {
-  <main class="public-preview">
-    <app-block-renderer
-      [blocks]="publishedRelease.siteConfig.pages[0]?.blocks ?? []"
-      [theme]="publishedRelease.siteConfig.theme"
-      [projectId]="projectId()"
-      (leadSubmit)="submitLead($event)"
-    />
-  </main>
+  @if (pageMissing()) {
+    <main class="public-preview public-preview--missing">
+      <section>
+        <span>Nexus</span>
+        <h1>Страница не найдена</h1>
+        <p>В опубликованной версии сайта нет страницы с таким адресом.</p>
+        <a [routerLink]="['/p', projectId()]">Вернуться на главную страницу</a>
+      </section>
+    </main>
+  } @else if (activePage(); as page) {
+    <main class="public-preview">
+      <app-block-renderer
+        [blocks]="page.blocks"
+        [theme]="publishedRelease.siteConfig.theme"
+        [projectId]="projectId()"
+        (leadSubmit)="submitLead($event)"
+      />
+    </main>
+  }
 } @else {
   <main class="public-preview public-preview--missing">
     <section>
