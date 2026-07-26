@@ -9,6 +9,8 @@ import {
   type ProjectStorageLock,
 } from './local-project.repository';
 
+const PROJECTS_STORAGE_KEY = 'nexus.builder.projects.v1';
+
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
 
@@ -53,16 +55,81 @@ class SerialProjectStorageLock implements ProjectStorageLock {
 
 describe('LocalProjectRepository', () => {
   let repository: LocalProjectRepository;
+  let storage: MemoryStorage;
 
   beforeEach(() => {
+    storage = new MemoryStorage();
     TestBed.configureTestingModule({
       providers: [
         LocalProjectRepository,
-        { provide: PROJECT_STORAGE, useValue: new MemoryStorage() },
+        { provide: PROJECT_STORAGE, useValue: storage },
         { provide: PROJECT_STORAGE_LOCK, useValue: new SerialProjectStorageLock() },
       ],
     });
     repository = TestBed.inject(LocalProjectRepository);
+  });
+
+  it('creates a project when stored projects use schema version 2', async () => {
+    seedSchemaVersionTwoProject(storage);
+
+    const created = await repository.createProject({
+      siteConfig: { ...DEFAULT_SITE_CONFIG, name: 'New project' },
+    });
+    const recoveredRepository = TestBed.runInInjectionContext(() => new LocalProjectRepository());
+
+    expect(created).toMatchObject({
+      name: 'New project',
+      draftVersion: 1,
+    });
+    await expect(recoveredRepository.getProject(created.id)).resolves.toMatchObject({
+      name: 'New project',
+    });
+  });
+
+  it('saves a project loaded from schema version 2 storage', async () => {
+    seedSchemaVersionTwoProject(storage);
+    const project = await repository.getProject('legacy-project');
+
+    if (project === null) {
+      throw new Error('Legacy project fixture was not normalized.');
+    }
+
+    await repository.saveDraft({
+      projectId: project.id,
+      expectedDraftVersion: project.draftVersion,
+      siteConfig: { ...project.draft, name: 'Saved legacy project' },
+    });
+    const recoveredRepository = TestBed.runInInjectionContext(() => new LocalProjectRepository());
+
+    await expect(recoveredRepository.getProject(project.id)).resolves.toMatchObject({
+      name: 'Saved legacy project',
+      draftVersion: 2,
+    });
+  });
+
+  it('publishes a project loaded from schema version 2 storage', async () => {
+    seedSchemaVersionTwoProject(storage);
+    const project = await repository.getProject('legacy-project');
+
+    if (project === null) {
+      throw new Error('Legacy project fixture was not normalized.');
+    }
+
+    await repository.publishProject({
+      projectId: project.id,
+      expectedDraftVersion: project.draftVersion,
+      siteConfig: project.draft,
+    });
+    const recoveredRepository = TestBed.runInInjectionContext(() => new LocalProjectRepository());
+    const recoveredProject = await recoveredRepository.getProject(project.id);
+
+    expect(recoveredProject).toMatchObject({
+      draftVersion: 2,
+      publishedReleaseId: expect.any(String),
+    });
+    await expect(recoveredRepository.getPublishedRelease(project.id)).resolves.toMatchObject({
+      version: 1,
+    });
   });
 
   it('rejects a stale save and preserves the latest draft', async () => {
@@ -149,3 +216,51 @@ describe('LocalProjectRepository', () => {
     });
   });
 });
+
+function seedSchemaVersionTwoProject(storage: Storage): void {
+  const timestamp = '2026-07-26T00:00:00.000Z';
+  const legacySiteConfig = {
+    ...DEFAULT_SITE_CONFIG,
+    schemaVersion: 2,
+    seo: {
+      title: DEFAULT_SITE_CONFIG.pages[0]?.title ?? DEFAULT_SITE_CONFIG.name,
+      description: '',
+      socialImage: null,
+      language: DEFAULT_SITE_CONFIG.seo.language,
+      favicon: DEFAULT_SITE_CONFIG.seo.favicon,
+    },
+    pages: DEFAULT_SITE_CONFIG.pages.map((page) => ({
+      id: page.id,
+      title: page.title,
+      blocks: page.blocks,
+    })),
+  };
+
+  storage.setItem(
+    PROJECTS_STORAGE_KEY,
+    JSON.stringify({
+      projects: [
+        {
+          id: 'legacy-project',
+          name: 'Legacy project',
+          draft: legacySiteConfig,
+          draftVersion: 1,
+          publishedReleaseId: null,
+          releases: [],
+          revisions: [
+            {
+              id: 'legacy-revision',
+              version: 1,
+              siteConfig: legacySiteConfig,
+              createdAt: timestamp,
+            },
+          ],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      leads: [],
+      activeProjectId: 'legacy-project',
+    }),
+  );
+}
