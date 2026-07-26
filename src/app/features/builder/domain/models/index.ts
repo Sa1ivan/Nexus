@@ -83,6 +83,7 @@ export type {
   OfferListItemUpdate,
 } from './offer-list-block-config.model';
 export type { PageBlockConfig, PageConfig, PageId } from './page-config.model';
+export type { PageSeoConfig } from './page-seo.model';
 export type {
   DraftRevision,
   LeadSubmission,

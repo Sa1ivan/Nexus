@@ -20,16 +20,18 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     phone: '+7 999 000-00-00',
     email: 'hello@nexus.app',
   },
-  seo: {
-    ...DEFAULT_SITE_SEO,
-    title: 'Nexus Studio',
-    description: 'Лендинг, собранный в Nexus.',
-  },
+  seo: DEFAULT_SITE_SEO,
   pages: [
     {
       id: 'page-home',
       slug: 'home',
       title: 'Главная',
+      seo: {
+        title: 'Nexus Studio',
+        description: 'Лендинг, собранный в Nexus.',
+        socialImage: null,
+        noIndex: false,
+      },
       blocks: [
         {
           id: 'hero-home',

@@ -405,7 +405,10 @@ test('published pages apply SEO and insights cover every registered block', asyn
   ]);
 
   assert.match(publicPage, /applySeo/);
-  assert.match(publicPage, /root\.lang = seo\.language/);
+  assert.match(publicPage, /root\.lang = siteSeo\.language/);
+  assert.match(publicPage, /this\.title\.setTitle\(pageSeo\.title\)/);
+  assert.match(publicPage, /pageSeo\.noIndex/);
+  assert.match(publicPage, /name: 'robots'/);
   assert.match(publicPage, /name: 'description'/);
   assert.match(publicPage, /updateOptionalMeta\('og:image'/);
   assert.match(insights, /BLOCK_PALETTE\.map/);

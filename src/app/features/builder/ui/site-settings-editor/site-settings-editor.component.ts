@@ -23,7 +23,7 @@ type ThemeColorField =
   | 'mutedTextColor'
   | 'accentColor';
 type BusinessTextField = 'brandName' | 'phone' | 'email' | 'address' | 'hours';
-type SeoTextField = 'title' | 'description' | 'language';
+type SeoTextField = 'language';
 type BusinessLinkCollection = 'messengers' | 'socialLinks';
 type LinkTextField = 'label' | 'target';
 
@@ -107,7 +107,7 @@ export class SiteSettingsEditorComponent {
     this.builderStore.updateSiteSeo({ [field]: this.readValue(event) });
   }
 
-  updateSeoMedia(kind: 'socialImage' | 'favicon', field: 'src' | 'alt', value: string): void {
+  updateSeoMedia(kind: 'favicon', field: 'src' | 'alt', value: string): void {
     const current = this.siteConfig().seo[kind];
 
     if (field === 'src' && value === '') {

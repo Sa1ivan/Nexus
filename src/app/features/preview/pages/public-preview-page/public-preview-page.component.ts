@@ -3,7 +3,11 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal } fro
 import { RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 
-import type { PublishedRelease, SiteSeoConfig } from '../../../builder/domain/models';
+import type {
+  PageSeoConfig,
+  PublishedRelease,
+  SiteSeoConfig,
+} from '../../../builder/domain/models';
 import { PROJECT_REPOSITORY } from '../../../builder/domain/ports';
 import {
   BlockRendererComponent,
@@ -38,9 +42,10 @@ export class PublicPreviewPageComponent {
 
     effect((onCleanup) => {
       const release = this.release();
+      const pageSeo = release?.siteConfig.pages[0]?.seo;
 
-      if (release !== null) {
-        onCleanup(this.applySeo(release.siteConfig.seo));
+      if (release !== null && pageSeo !== undefined) {
+        onCleanup(this.applySeo(release.siteConfig.seo, pageSeo));
       }
     });
   }
@@ -76,16 +81,17 @@ export class PublicPreviewPageComponent {
     }
   }
 
-  private applySeo(seo: SiteSeoConfig): () => void {
+  private applySeo(siteSeo: SiteSeoConfig, pageSeo: PageSeoConfig): () => void {
     const root = this.documentRef.documentElement;
     const previousTitle = this.title.getTitle();
     const previousLanguage = root.lang;
     const previousDescription = this.meta.getTag("name='description'")?.content ?? null;
+    const previousRobots = this.meta.getTag("name='robots'")?.content ?? null;
     const previousOgTitle = this.meta.getTag("property='og:title'")?.content ?? null;
     const previousOgDescription = this.meta.getTag("property='og:description'")?.content ?? null;
     const previousOgImage = this.meta.getTag("property='og:image'")?.content ?? null;
     let favicon = this.documentRef.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    const createdFavicon = favicon === null && seo.favicon !== null;
+    const createdFavicon = favicon === null && siteSeo.favicon !== null;
 
     if (createdFavicon) {
       favicon = this.documentRef.createElement('link');
@@ -95,21 +101,28 @@ export class PublicPreviewPageComponent {
 
     const previousFavicon = favicon?.getAttribute('href') ?? null;
 
-    this.title.setTitle(seo.title);
-    root.lang = seo.language;
-    this.meta.updateTag({ name: 'description', content: seo.description });
-    this.meta.updateTag({ property: 'og:title', content: seo.title });
-    this.meta.updateTag({ property: 'og:description', content: seo.description });
-    this.updateOptionalMeta('og:image', seo.socialImage?.src ?? null);
+    this.title.setTitle(pageSeo.title);
+    root.lang = siteSeo.language;
+    this.meta.updateTag({ name: 'description', content: pageSeo.description });
+    this.meta.updateTag({ property: 'og:title', content: pageSeo.title });
+    this.meta.updateTag({ property: 'og:description', content: pageSeo.description });
+    this.updateOptionalMeta('og:image', pageSeo.socialImage?.src ?? null);
 
-    if (favicon !== null && seo.favicon !== null) {
-      favicon.href = seo.favicon.src;
+    if (pageSeo.noIndex) {
+      this.meta.updateTag({ name: 'robots', content: 'noindex, nofollow' });
+    } else {
+      this.meta.removeTag("name='robots'");
+    }
+
+    if (favicon !== null && siteSeo.favicon !== null) {
+      favicon.href = siteSeo.favicon.src;
     }
 
     return () => {
       this.title.setTitle(previousTitle);
       root.lang = previousLanguage;
       this.restoreMeta('description', previousDescription, 'name');
+      this.restoreMeta('robots', previousRobots, 'name');
       this.restoreMeta('og:title', previousOgTitle, 'property');
       this.restoreMeta('og:description', previousOgDescription, 'property');
       this.restoreMeta('og:image', previousOgImage, 'property');
