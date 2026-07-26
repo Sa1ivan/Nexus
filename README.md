@@ -2,6 +2,13 @@
 
 Nexus — Angular-приложение для сборки лендингов в формате конструктора сайтов. Проект хранит сайт как структурированную конфигурацию, позволяет проходить wizard, редактировать блоки в builder, смотреть desktop/mobile preview, сохранять локальные проекты, делать demo-публикацию и собирать заявки через опубликованный preview.
 
+Пошаговый путь от локального конструктора до production-платформы описан в
+[ROADMAP.md](ROADMAP.md). Детализация работ находится в
+[программе выполнения](docs/superpowers/plans/2026-07-25-nexus-roadmap-execution-program.md)
+и планах
+[этапа P0](docs/superpowers/plans/2026-07-25-nexus-foundation-phase-0.md) и
+[Cloud Alpha P1](docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md).
+
 ## Технологический стек
 
 - Angular 20
@@ -37,6 +44,8 @@ npm.cmd install
 
 ## Запуск
 
+Требуется Node.js 24; версия закреплена в `.nvmrc` и проверяется обоими CI workflow.
+
 ```bash
 npm.cmd start
 ```
@@ -61,8 +70,12 @@ npm.cmd start -- --port 3000
 npm.cmd start
 npm.cmd run build
 npm.cmd run lint
+npm.cmd run test:contracts
+npm.cmd run test:unit
 npm.cmd test
+npm.cmd run e2e:contracts
 npm.cmd run e2e
+npm.cmd run verify
 npm.cmd run format
 npm.cmd run format:check
 npm.cmd audit
@@ -73,11 +86,25 @@ npm.cmd audit
 - `npm.cmd start` — запускает локальный dev server на `localhost:4200`.
 - `npm.cmd run build` — собирает production build.
 - `npm.cmd run lint` — запускает ESLint.
-- `npm.cmd test` — запускает lightweight unit/source-contract тесты.
-- `npm.cmd run e2e` — запускает smoke-проверки основных сценариев.
+- `npm.cmd run test:contracts` — проверяет структурную полноту моделей, registry,
+  rendering и CI-контрактов.
+- `npm.cmd run test:unit` — выполняет TypeScript behavior-тесты через
+  TestBed/Vitest.
+- `npm.cmd test` — последовательно запускает source-contract и unit-тесты.
+- `npm.cmd run e2e:contracts` — проверяет wiring основного пользовательского
+  сценария на уровне исходного кода.
+- `npm.cmd run e2e` — выполняет браузерные сценарии в Chromium через Playwright.
+- `npm.cmd run verify` — обязательный pre-handoff gate: lint, contracts, unit,
+  E2E, production build и проверка форматирования.
 - `npm.cmd run format` — форматирует файлы через Prettier.
 - `npm.cmd run format:check` — проверяет форматирование без изменения файлов.
 - `npm.cmd audit` — проверяет зависимости на известные уязвимости.
+
+Перед первым E2E-запуском установи Chromium:
+
+```bash
+npx playwright install chromium
+```
 
 ## Архитектура
 
@@ -136,7 +163,7 @@ src/app/
 `features` содержит самостоятельные области приложения. Сейчас заложены две области:
 
 - `builder` — интерфейс конструктора и редактирования конфигурации сайта;
-- `preview` — будущий слой предпросмотра опубликованной/собранной страницы.
+- `preview` — рендер предпросмотра и локально опубликованных страниц.
 
 ## Builder
 
@@ -187,8 +214,13 @@ State management:
 - Редактирование отдельных ссылок, CTA, изображений и focal point, цен, карточек, полей формы, FAQ, отзывов, карты, соцсетей и контактов.
 - Функциональные варианты компоновки, включая раскрываемое меню, разные hero-композиции, каталог, прайс, галерею и FAQ.
 - Настройки бренда, общих контактов и SEO-метаданных.
+- Многостраничная структура с уникальными slug, page-level SEO, дублированием,
+  сортировкой и удалением страниц.
 - Управление видимостью и якорем секции, дублирование, сортировка и удаление элементов.
 - Ограниченная история undo/redo для изменений конфигурации сайта.
+- Автосохранение через 800 мс после последнего изменения и восстановление
+  последнего активного проекта после reload.
+- Экспорт и импорт переносимого `.nexus.json` между чистыми browser-профилями.
 - Desktop/mobile preview внутри builder.
 - Container queries для preview-блоков: mobile preview адаптируется по ширине холста, а не только по ширине окна браузера.
 - Локальные Material Icons в `public/fonts`, чтобы builder не зависел от Google Fonts при разработке.
@@ -197,14 +229,30 @@ State management:
 
 Сейчас проект работает без backend:
 
-- проекты, релизы, ревизии и заявки сохраняются в `localStorage`;
+- `SiteConfig` использует schema version `3`;
+- SEO страницы хранится в `SiteConfig.pages[].seo` и содержит title,
+  description, social image и `noIndex`;
+- проекты, релизы, ревизии, активный проект и заявки сохраняются через
+  `ProjectRepository`; текущая реализация репозитория использует `localStorage`;
+- codec принимает legacy-схемы `1` и `2`, нормализует их в schema version `3` и
+  отклоняет неподдерживаемые версии;
+- изменения автоматически сохраняются через 800 мс; новый browser-сеанс
+  восстанавливает последний активный проект, первую доступную страницу и блок;
+- конфликт `draftVersion` не перезаписывает сохранённый проект и предлагает
+  экспортировать текущую локальную версию либо перезагрузить последнюю
+  сохранённую;
+- меню конструктора экспортирует документ в `.nexus.json` и импортирует его как
+  новый локальный проект;
 - кнопка публикации создает локальную demo-публикацию;
-- публичный preview доступен по локальному route `/p/:projectId`;
+- главная опубликованная страница доступна по `/p/:projectId`, а конкретная
+  страница — по `/p/:projectId/:pageSlug`;
 - persistence слой нормализует данные из storage и отбрасывает небезопасные ссылки вроде `javascript:` и `data:`.
 
 Это локальный demo-режим: ссылка публикации работает только в том же браузере и профиле, где сохранен `localStorage`. Для публичного хостинга, совместного редактирования, загрузки медиа в облако и надежного приема заявок нужен backend.
 
-Для production-публикации нужен отдельный backend-репозиторий/порт `ProjectRepository`.
+Production-backend будет отдельным проектом и реализует существующий порт
+`ProjectRepository`; frontend-редактор не должен зависеть от конкретной
+persistence-реализации.
 
 ## Правила разработки
 
@@ -268,10 +316,5 @@ Spec-файлы отключены по умолчанию через Angular sc
 Перед завершением задачи запускай:
 
 ```bash
-npm.cmd run lint
-npm.cmd test
-npm.cmd run e2e
-npm.cmd run build
-npm.cmd run format:check
-npm.cmd audit
+npm.cmd run verify
 ```
