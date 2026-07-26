@@ -3,7 +3,7 @@ import type { SiteBusinessConfig } from './site-business.model';
 import type { SiteSeoConfig } from './site-seo.model';
 import type { SiteThemeConfig } from './site-theme.model';
 
-export const SITE_CONFIG_SCHEMA_VERSION = 2;
+export const SITE_CONFIG_SCHEMA_VERSION = 3;
 
 export interface SiteConfig {
   readonly id: string;

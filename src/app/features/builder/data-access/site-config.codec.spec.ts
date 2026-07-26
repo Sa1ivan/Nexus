@@ -30,6 +30,60 @@ describe('SiteConfigCodec', () => {
     });
   });
 
+  it.each([1, 2])('migrates schema version %s SEO to every page', (schemaVersion) => {
+    const legacySocialImage = {
+      src: 'https://example.com/social.jpg',
+      alt: 'Legacy social image',
+    };
+    const legacyFavicon = {
+      src: 'https://example.com/favicon.png',
+      alt: '',
+    };
+    const input = {
+      ...DEFAULT_SITE_CONFIG,
+      schemaVersion,
+      seo: {
+        title: 'Legacy page title',
+        description: 'Legacy page description',
+        language: 'en',
+        socialImage: legacySocialImage,
+        favicon: legacyFavicon,
+      },
+      pages: DEFAULT_SITE_CONFIG.pages.map((page) => ({
+        ...page,
+        seo: {
+          title: 'Page SEO must be ignored for a legacy schema',
+          description: 'Legacy pages did not own SEO.',
+          socialImage: null,
+          noIndex: true,
+        },
+      })),
+    };
+
+    const result = codec.decode(JSON.stringify(input));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      expect(result.value.schemaVersion).toBe(3);
+      expect(result.value.seo).toMatchObject({
+        language: 'en',
+        favicon: {
+          src: legacyFavicon.src,
+        },
+      });
+      expect(result.value.pages[0]?.seo).toMatchObject({
+        title: 'Legacy page title',
+        description: 'Legacy page description',
+        socialImage: {
+          src: legacySocialImage.src,
+          alt: legacySocialImage.alt,
+        },
+        noIndex: false,
+      });
+    }
+  });
+
   it('sanitizes unsafe link targets during normalization', () => {
     const page = DEFAULT_SITE_CONFIG.pages[0];
 

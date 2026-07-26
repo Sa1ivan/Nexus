@@ -244,6 +244,98 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.siteConfig()).toBe(firstImportedConfig);
     expect(builderStore.projectError()).toBeNull();
   });
+
+  it('adds and edits a page while selecting it by stable id', () => {
+    expect(builderStore.addPage('О компании')).toBe(true);
+
+    const page = builderStore.activePage();
+
+    expect(page).not.toBeNull();
+    expect(builderStore.activePageId()).toBe(page?.id);
+    expect(builderStore.activePageSlug()).toBe('o-kompanii');
+    expect(page?.blocks.map((block) => block.type)).toEqual(['siteHeader', 'hero', 'siteFooter']);
+    expect(builderStore.selectedBlockId()).toBe(page?.blocks[0]?.id);
+    expect(builderStore.canUndo()).toBe(true);
+    expect(builderStore.saveStatus()).toBe('dirty');
+
+    expect(builderStore.renamePage(page?.id ?? '', 'О студии')).toBe(true);
+    expect(builderStore.updatePageSlug(page?.id ?? '', 'about')).toBe(true);
+    expect(
+      builderStore.updatePageSeo(page?.id ?? '', {
+        title: 'О студии — Nexus',
+        description: 'Описание студии',
+        noIndex: true,
+      }),
+    ).toBe(true);
+    expect(builderStore.activePage()).toMatchObject({
+      id: page?.id,
+      title: 'О студии',
+      slug: 'about',
+      seo: {
+        title: 'О студии — Nexus',
+        description: 'Описание студии',
+        noIndex: true,
+      },
+    });
+
+    expect(builderStore.undo()).toBe(true);
+    expect(builderStore.activePage()).toMatchObject({
+      slug: 'about',
+      seo: {
+        title: 'О компании',
+        description: '',
+        noIndex: false,
+      },
+    });
+  });
+
+  it('duplicates, moves and removes pages while reconciling active state', () => {
+    expect(builderStore.addPage('Услуги')).toBe(true);
+    const sourcePage = builderStore.activePage();
+
+    expect(builderStore.duplicatePage(sourcePage?.id ?? '')).toBe(true);
+    const duplicatedPage = builderStore.activePage();
+
+    expect(duplicatedPage?.id).not.toBe(sourcePage?.id);
+    expect(duplicatedPage?.blocks.map((block) => block.anchor)).toEqual(
+      sourcePage?.blocks.map((block) => block.anchor),
+    );
+    expect(builderStore.movePage(duplicatedPage?.id ?? '', 'up')).toBe(true);
+    expect(builderStore.pages()[1]?.id).toBe(duplicatedPage?.id);
+    expect(builderStore.removePage(duplicatedPage?.id ?? '')).toBe(true);
+    expect(builderStore.pages()).toHaveLength(2);
+    expect(builderStore.activePage()).not.toBeNull();
+    expect(builderStore.selectedBlockId()).toBe(builderStore.activePage()?.blocks[0]?.id);
+  });
+
+  it('allows the same block anchor on different pages', () => {
+    const homePage = builderStore.pages()[0];
+
+    expect(homePage?.blocks.some((block) => block.anchor === 'lead-form')).toBe(true);
+    expect(builderStore.addPage('Услуги')).toBe(true);
+
+    const activeHeader = builderStore
+      .activePage()
+      ?.blocks.find((block) => block.type === 'siteHeader');
+
+    expect(builderStore.updateBlockAnchor(activeHeader?.id ?? '', 'lead-form')).toBe(true);
+    expect(builderStore.activePage()?.blocks[0]?.anchor).toBe('lead-form');
+    expect(builderStore.pages()[0]).toBe(homePage);
+  });
+
+  it('reports page errors in Russian without changing the document', () => {
+    const page = builderStore.pages()[0];
+    const documentBefore = builderStore.siteConfig();
+
+    expect(builderStore.updatePageSlug(page?.id ?? '', 'builder')).toBe(false);
+    expect(builderStore.siteConfig()).toBe(documentBefore);
+    expect(builderStore.pageError()).toBe('Этот адрес страницы зарезервирован системой.');
+    expect(builderStore.canUndo()).toBe(false);
+
+    expect(builderStore.removePage(page?.id ?? '')).toBe(false);
+    expect(builderStore.siteConfig()).toBe(documentBefore);
+    expect(builderStore.pageError()).toBe('Нельзя удалить единственную страницу.');
+  });
 });
 
 function createProjectFile(service: ProjectTransferService, siteConfig: SiteConfig): File {

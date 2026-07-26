@@ -36,6 +36,10 @@ export interface BlockDefinition<TType extends BlockType = BlockType> {
   readonly variants: readonly BlockVariantOption[];
 }
 
+export interface CloneBlockOptions {
+  readonly preserveAnchor?: boolean;
+}
+
 const DEFAULT_HERO_STYLES: HeroBlockStyles = {
   backgroundColor: '#f5f7fb',
   textColor: '#111827',
@@ -580,12 +584,16 @@ export function createDefaultBlock(
 export function cloneRegisteredBlock(
   block: PageBlockConfig,
   currentBlocks: readonly PageBlockConfig[],
+  options: CloneBlockOptions = {},
 ): PageBlockConfig {
   const id = createBlockId(block.type);
-  const anchor = createBlockAnchor(
-    block.type,
-    currentBlocks.map((currentBlock) => currentBlock.anchor),
-  );
+  const anchor =
+    options.preserveAnchor === true
+      ? block.anchor
+      : createBlockAnchor(
+          block.type,
+          currentBlocks.map((currentBlock) => currentBlock.anchor),
+        );
 
   switch (block.type) {
     case 'siteHeader':

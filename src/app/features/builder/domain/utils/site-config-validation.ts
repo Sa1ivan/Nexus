@@ -1,6 +1,7 @@
 import { SITE_CONFIG_SCHEMA_VERSION } from '../models';
 import type { LinkConfig, MediaAsset, PageBlockConfig, SiteConfig } from '../models';
 import { isSafeLinkTarget } from './link-target';
+import { isReservedPageSlug, normalizePageSlug } from './page-slug';
 
 export interface SiteConfigValidationResult {
   readonly valid: boolean;
@@ -28,7 +29,6 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
     errors.push('У сайта должна быть хотя бы одна страница.');
   }
 
-  const anchors = new Set<string>();
   const blockIds = new Set<string>();
   const pageIds = new Set<string>();
   const pageSlugs = new Set<string>();
@@ -40,7 +40,11 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
 
     if (!page.slug.trim()) {
       errors.push(`У страницы "${page.title}" отсутствует slug.`);
+    } else if (page.slug !== normalizePageSlug(page.slug) || isReservedPageSlug(page.slug)) {
+      errors.push(`У страницы "${page.title}" некорректный slug "${page.slug}".`);
     }
+
+    validatePageSeo(page.title, page.seo, errors);
 
     if (pageIds.has(page.id)) {
       errors.push(`Дублируется id страницы "${page.id}".`);
@@ -53,6 +57,8 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
     pageIds.add(page.id);
     pageSlugs.add(page.slug);
 
+    const pageAnchors = new Set<string>();
+
     for (const block of page.blocks) {
       validateBlock(block, errors);
 
@@ -60,12 +66,12 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
         errors.push(`Дублируется id блока "${block.id}".`);
       }
 
-      if (anchors.has(block.anchor)) {
-        errors.push(`Дублируется anchor блока "${block.anchor}".`);
+      if (pageAnchors.has(block.anchor)) {
+        errors.push(`На странице "${page.title}" дублируется anchor "${block.anchor}".`);
       }
 
       blockIds.add(block.id);
-      anchors.add(block.anchor);
+      pageAnchors.add(block.anchor);
     }
   }
 
@@ -359,19 +365,34 @@ function validateSiteMetadata(siteConfig: SiteConfig, errors: string[]): void {
   validateText(siteConfig.business.brandName, siteBlockId, 'бренд', errors);
   validateLinks(siteConfig.business.messengers, siteBlockId, 'мессенджеры', errors, false);
   validateLinks(siteConfig.business.socialLinks, siteBlockId, 'социальные ссылки', errors, false);
-  validateText(siteConfig.seo.title, siteBlockId, 'SEO title', errors);
   validateText(siteConfig.seo.language, siteBlockId, 'язык сайта', errors);
 
   if (siteConfig.business.logo !== null) {
     validateMedia(siteConfig.business.logo, siteBlockId, 'логотип', errors);
   }
 
-  if (siteConfig.seo.socialImage !== null) {
-    validateMedia(siteConfig.seo.socialImage, siteBlockId, 'social image', errors);
-  }
-
   if (siteConfig.seo.favicon !== null) {
     validateMedia(siteConfig.seo.favicon, siteBlockId, 'favicon', errors);
+  }
+}
+
+function validatePageSeo(
+  pageTitle: string,
+  seo: SiteConfig['pages'][number]['seo'],
+  errors: string[],
+): void {
+  const titleLength = seo.title.trim().length;
+
+  if (titleLength < 1 || titleLength > 70) {
+    errors.push(`У страницы "${pageTitle}" SEO title должен содержать от 1 до 70 символов.`);
+  }
+
+  if (seo.description.length > 180) {
+    errors.push(`У страницы "${pageTitle}" SEO description не должен превышать 180 символов.`);
+  }
+
+  if (seo.socialImage !== null) {
+    validateMedia(seo.socialImage, `page:${pageTitle}`, 'social image', errors);
   }
 }
 

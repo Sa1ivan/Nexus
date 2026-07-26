@@ -26,6 +26,16 @@ import {
   removeCollectionItem,
 } from '../domain/utils/collection-update';
 import { normalizeAnchor } from '../domain/utils/builder-ids';
+import {
+  createPage as createPageConfig,
+  duplicatePage as duplicatePageConfig,
+  movePage as movePageConfig,
+  removePage as removePageConfig,
+  renamePage as renamePageConfig,
+  updatePageSeo as updatePageSeoConfig,
+  updatePageSlug as updatePageSlugConfig,
+  type PageMutationResult,
+} from '../domain/utils/page-config-update';
 import type {
   BlockAppearanceOverrides,
   BlockType,
@@ -53,6 +63,7 @@ import type {
   OfferListItemUpdate,
   PageBlockConfig,
   PageConfig,
+  PageSeoConfig,
   Project,
   SiteBusinessConfig,
   SiteConfig,
@@ -78,10 +89,11 @@ export class BuilderStore {
   private readonly projectTransferService = inject(ProjectTransferService);
 
   private readonly siteConfigSignal = signal<SiteConfig>(DEFAULT_SITE_CONFIG);
-  private readonly activePageSlugSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.slug ?? '');
+  private readonly activePageIdSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.id ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(
     DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
   );
+  private readonly pageErrorSignal = signal<string | null>(null);
   private fallbackElementId = 0;
   private projectImportSequence = 0;
   private projectImportInProgress = false;
@@ -89,18 +101,20 @@ export class BuilderStore {
   readonly currentProject = this.projectStore.currentProject;
   readonly saveStatus = this.projectStore.saveStatus;
   readonly projectError = this.projectStore.projectError;
+  readonly pageError = this.pageErrorSignal.asReadonly();
   readonly siteConfig = computed<SiteConfig>(() => this.siteConfigSignal());
   readonly pages = computed<readonly PageConfig[]>(() => this.siteConfig().pages);
-  readonly activePageSlug = computed<string>(() => this.activePageSlugSignal());
+  readonly activePageId = computed<string>(() => this.activePageIdSignal());
+  readonly activePage = computed<PageConfig | null>(() => {
+    const activePageId = this.activePageId();
+
+    return this.pages().find((page) => page.id === activePageId) ?? null;
+  });
+  readonly activePageSlug = computed<string>(() => this.activePage()?.slug ?? '');
   readonly selectedBlockId = computed<string | null>(() => this.selectedBlockIdSignal());
   readonly canUndo = this.historyStore.canUndo;
   readonly canRedo = this.historyStore.canRedo;
   readonly publishedUrl = this.projectStore.publishedUrl;
-  readonly activePage = computed<PageConfig | null>(() => {
-    const activeSlug = this.activePageSlug();
-
-    return this.pages().find((page) => page.slug === activeSlug) ?? null;
-  });
   readonly activeBlocks = computed<readonly PageBlockConfig[]>(
     () => this.activePage()?.blocks ?? [],
   );
@@ -118,8 +132,9 @@ export class BuilderStore {
       return false;
     }
 
-    this.activePageSlugSignal.set(slug);
+    this.activePageIdSignal.set(page.id);
     this.selectedBlockIdSignal.set(page.blocks[0]?.id ?? null);
+    this.pageErrorSignal.set(null);
 
     return true;
   }
@@ -201,6 +216,34 @@ export class BuilderStore {
     } finally {
       this.projectImportInProgress = false;
     }
+  }
+
+  addPage(title: string): boolean {
+    return this.applyPageMutation(createPageConfig(this.pages(), title));
+  }
+
+  renamePage(pageId: string, title: string): boolean {
+    return this.applyPageMutation(renamePageConfig(this.pages(), pageId, title));
+  }
+
+  updatePageSlug(pageId: string, slug: string): boolean {
+    return this.applyPageMutation(updatePageSlugConfig(this.pages(), pageId, slug));
+  }
+
+  updatePageSeo(pageId: string, update: Partial<PageSeoConfig>): boolean {
+    return this.applyPageMutation(updatePageSeoConfig(this.pages(), pageId, update));
+  }
+
+  duplicatePage(pageId: string): boolean {
+    return this.applyPageMutation(duplicatePageConfig(this.pages(), pageId));
+  }
+
+  movePage(pageId: string, direction: MoveDirection): boolean {
+    return this.applyPageMutation(movePageConfig(this.pages(), pageId, direction));
+  }
+
+  removePage(pageId: string): boolean {
+    return this.applyPageMutation(removePageConfig(this.pages(), pageId));
   }
 
   updateSiteName(name: string): boolean {
@@ -288,8 +331,8 @@ export class BuilderStore {
 
   updateBlockAnchor(blockId: string, anchor: string): boolean {
     const normalizedAnchor = normalizeAnchor(anchor);
-    const duplicateAnchor = this.pages().some((page) =>
-      page.blocks.some((block) => block.id !== blockId && block.anchor === normalizedAnchor),
+    const duplicateAnchor = this.activeBlocks().some(
+      (block) => block.id !== blockId && block.anchor === normalizedAnchor,
     );
 
     if (duplicateAnchor) {
@@ -1667,9 +1710,54 @@ export class BuilderStore {
 
   private hydrateSiteConfig(siteConfig: SiteConfig): void {
     this.siteConfigSignal.set(siteConfig);
-    this.activePageSlugSignal.set(siteConfig.pages[0]?.slug ?? '');
+    this.activePageIdSignal.set(siteConfig.pages[0]?.id ?? '');
     this.selectedBlockIdSignal.set(siteConfig.pages[0]?.blocks[0]?.id ?? null);
+    this.pageErrorSignal.set(null);
     this.historyStore.reset();
+  }
+
+  private applyPageMutation(result: PageMutationResult): boolean {
+    if (!result.ok) {
+      this.pageErrorSignal.set(this.getPageMutationError(result.reason));
+      return false;
+    }
+
+    const didCommit = this.commitSiteConfig({
+      ...this.siteConfig(),
+      pages: result.pages,
+    });
+
+    if (!didCommit) {
+      this.pageErrorSignal.set(null);
+      return false;
+    }
+
+    this.activePageIdSignal.set(result.activePageId);
+    this.pageErrorSignal.set(null);
+    this.reconcileTransientState();
+
+    return true;
+  }
+
+  private getPageMutationError(
+    reason: Extract<PageMutationResult, { readonly ok: false }>['reason'],
+  ): string {
+    switch (reason) {
+      case 'not-found':
+        return 'Страница не найдена.';
+      case 'last-page':
+        return 'Нельзя удалить единственную страницу.';
+      case 'empty-title':
+        return 'Введите название страницы.';
+      case 'empty-slug':
+        return 'Введите адрес страницы.';
+      case 'reserved-slug':
+        return 'Этот адрес страницы зарезервирован системой.';
+      case 'duplicate-slug':
+        return 'Страница с таким адресом уже существует.';
+      case 'boundary':
+        return 'Страницу нельзя переместить дальше.';
+    }
   }
 
   private getProjectImportError(reason: ProjectTransferDecodeFailureReason): string {
@@ -1713,17 +1801,17 @@ export class BuilderStore {
   private reconcileTransientState(): void {
     const siteConfig = this.siteConfig();
     const activePage =
-      siteConfig.pages.find((page) => page.slug === this.activePageSlug()) ??
+      siteConfig.pages.find((page) => page.id === this.activePageId()) ??
       siteConfig.pages[0] ??
       null;
 
     if (activePage === null) {
-      this.activePageSlugSignal.set('');
+      this.activePageIdSignal.set('');
       this.selectedBlockIdSignal.set(null);
       return;
     }
 
-    this.activePageSlugSignal.set(activePage.slug);
+    this.activePageIdSignal.set(activePage.id);
 
     if (!activePage.blocks.some((block) => block.id === this.selectedBlockId())) {
       this.selectedBlockIdSignal.set(activePage.blocks[0]?.id ?? null);

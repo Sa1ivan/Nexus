@@ -351,16 +351,18 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
       radius: selection.design.templateStyle === 'editorial' ? 2 : 8,
     },
     business,
-    seo: {
-      ...DEFAULT_SITE_SEO,
-      title: `${brandName} - ${preset.siteName}`,
-      description: heroSubtitle,
-    },
+    seo: DEFAULT_SITE_SEO,
     pages: [
       {
         id: 'page-home',
         slug: 'home',
         title: 'Главная',
+        seo: {
+          title: `${brandName} - ${preset.siteName}`,
+          description: heroSubtitle,
+          socialImage: null,
+          noIndex: false,
+        },
         blocks: [
           {
             id: 'header-main',

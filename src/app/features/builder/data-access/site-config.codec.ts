@@ -51,6 +51,7 @@ import type {
   OfferListItem,
   PageBlockConfig,
   PageConfig,
+  PageSeoConfig,
   SectionSpacing,
   SiteBusinessConfig,
   SiteConfig,
@@ -110,6 +111,7 @@ export class SiteConfigCodec {
     if (
       typeof schemaVersion === 'number' &&
       schemaVersion !== 1 &&
+      schemaVersion !== 2 &&
       schemaVersion !== SITE_CONFIG_SCHEMA_VERSION
     ) {
       return { ok: false, reason: 'unsupported-schema' };
@@ -131,12 +133,18 @@ export class SiteConfigCodec {
 
     const schemaVersion = record['schemaVersion'];
 
-    if (schemaVersion !== 1 && schemaVersion !== SITE_CONFIG_SCHEMA_VERSION) {
+    if (
+      schemaVersion !== 1 &&
+      schemaVersion !== 2 &&
+      schemaVersion !== SITE_CONFIG_SCHEMA_VERSION
+    ) {
       return null;
     }
 
+    const isLegacySchema = schemaVersion === 1 || schemaVersion === 2;
+    const legacySeo = isLegacySchema ? record['seo'] : undefined;
     const pages = this.asArray(record['pages'])
-      .map((page) => this.normalizePage(page))
+      .map((page) => this.normalizePage(page, isLegacySchema, legacySeo))
       .filter((page): page is PageConfig => page !== null);
 
     if (pages.length === 0) {
@@ -151,22 +159,29 @@ export class SiteConfigCodec {
       name,
       theme: this.readTheme(record['theme']),
       business: this.readBusiness(record['business']),
-      seo: this.readSeo(record['seo'], name),
+      seo: this.readSeo(record['seo']),
       pages,
     };
   }
 
-  private normalizePage(value: unknown): PageConfig | null {
+  private normalizePage(
+    value: unknown,
+    isLegacySchema: boolean,
+    legacySeo?: unknown,
+  ): PageConfig | null {
     const record = this.asRecord(value);
 
     if (record === null) {
       return null;
     }
 
+    const title = this.readString(record['title'], 'Главная');
+
     return {
       id: this.readString(record['id'], this.createId('page')),
       slug: this.readString(record['slug'], 'home'),
-      title: this.readString(record['title'], 'Главная'),
+      title,
+      seo: this.readPageSeo(isLegacySchema ? legacySeo : record['seo'], title, isLegacySchema),
       blocks: this.asArray(record['blocks'])
         .map((block) => this.normalizeBlock(block))
         .filter((block): block is PageBlockConfig => block !== null),
@@ -766,22 +781,40 @@ export class SiteConfigCodec {
     };
   }
 
-  private readSeo(value: unknown, fallbackTitle: string): SiteSeoConfig {
+  private readSeo(value: unknown): SiteSeoConfig {
+    const record = this.asRecord(value);
+
+    if (record === null) {
+      return { ...DEFAULT_SITE_SEO };
+    }
+
+    return {
+      language: this.readString(record['language'], DEFAULT_SITE_SEO.language),
+      favicon: this.readMedia(record['favicon']) ?? null,
+    };
+  }
+
+  private readPageSeo(
+    value: unknown,
+    fallbackTitle: string,
+    forceIndexable: boolean,
+  ): PageSeoConfig {
     const record = this.asRecord(value);
 
     if (record === null) {
       return {
-        ...DEFAULT_SITE_SEO,
         title: fallbackTitle,
+        description: '',
+        socialImage: null,
+        noIndex: false,
       };
     }
 
     return {
       title: this.readString(record['title'], fallbackTitle),
       description: this.readOptionalString(record['description']),
-      language: this.readString(record['language'], DEFAULT_SITE_SEO.language),
       socialImage: this.readMedia(record['socialImage']) ?? null,
-      favicon: this.readMedia(record['favicon']) ?? null,
+      noIndex: forceIndexable ? false : record['noIndex'] === true,
     };
   }
 
