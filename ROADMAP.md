@@ -241,7 +241,7 @@ Backend-модули:
 
 Инфраструктура:
 
-- отдельный репозиторий `Nexus.Backend`;
+- отдельный репозиторий `Sa1ivan/Nexus-Backend`;
 - модульный монолит NestJS с направлениями
   `api → application → domain` и infrastructure-adapter на границе;
 - PostgreSQL и Prisma, Railway application service и managed database;
