@@ -4,9 +4,21 @@ test('edit, save, publish and submit a lead', async ({ page }) => {
   await page.goto('/builder');
 
   await page.getByRole('textbox', { name: 'Заголовок' }).fill('Проверенный E2E лендинг');
+  await page.getByRole('tab', { name: 'Слои' }).click();
+  await page.getByRole('button', { name: 'Добавить страницу' }).click();
+  await page.locator('#page-title').fill('О компании');
+  await page.locator('#page-title').press('Tab');
+  await page.locator('#page-slug').fill('about');
+  await page.locator('#page-slug').press('Tab');
+  await page.locator('#page-seo-title').fill('О компании — E2E');
+  await page.locator('#page-seo-title').press('Tab');
+  await page.getByRole('button', { name: 'Открыть страницу Главная' }).click();
   await page.getByRole('button', { name: 'Сохранить проект' }).click();
   await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
   await page.reload();
+  await page.getByRole('tab', { name: 'Слои' }).click();
+  await expect(page.getByRole('button', { name: 'Открыть страницу Главная' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Открыть страницу О компании' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Проверенный E2E лендинг' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Опубликовать локальное демо' }).click();

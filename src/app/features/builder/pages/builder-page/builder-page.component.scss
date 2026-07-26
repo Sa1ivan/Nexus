@@ -141,7 +141,6 @@
 }
 
 .builder-page__palette-item,
-.builder-page__pages button,
 .builder-page__layer-main {
   display: grid;
   width: 100%;
@@ -194,27 +193,6 @@
     color: #7b8492;
     font-size: 10px;
     line-height: 1.3;
-  }
-}
-
-.builder-page__pages {
-  display: grid;
-  gap: 4px;
-  padding: 4px 0 12px;
-  border-bottom: 1px solid #edf0f3;
-
-  button {
-    grid-template-columns: 22px minmax(0, 1fr);
-    min-height: 38px;
-    padding: 0 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 720;
-  }
-
-  button.is-active {
-    background: #edf4ff;
-    color: #175cd3;
   }
 }
 

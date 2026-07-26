@@ -17,6 +17,7 @@ import {
 } from '../../domain/registry/block-registry';
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockInspectorComponent } from '../../ui/block-inspector/block-inspector.component';
+import { PageManagerComponent } from '../../ui/page-manager/page-manager.component';
 import { SiteSettingsEditorComponent } from '../../ui/site-settings-editor/site-settings-editor.component';
 
 type CanvasMode = 'edit' | 'preview';
@@ -42,6 +43,7 @@ interface PaletteGroup {
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    PageManagerComponent,
     RouterLink,
     SiteSettingsEditorComponent,
   ],
@@ -56,8 +58,6 @@ export class BuilderPageComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly siteConfig = this.builderStore.siteConfig;
-  readonly pages = this.builderStore.pages;
-  readonly activePageSlug = this.builderStore.activePageSlug;
   readonly activePage = this.builderStore.activePage;
   readonly activeBlocks = this.builderStore.activeBlocks;
   readonly selectedBlock = this.builderStore.selectedBlock;
@@ -80,10 +80,6 @@ export class BuilderPageComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.builderStore.initialize(this.route.snapshot.paramMap.get('projectId') ?? undefined);
-  }
-
-  selectPage(slug: string): void {
-    this.builderStore.selectPage(slug);
   }
 
   selectBlock(blockId: string): void {
