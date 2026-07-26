@@ -99,3 +99,55 @@ test('exports and imports a project in a fresh browser context', async ({
     await importContext.close();
   }
 });
+
+test('saves and publishes a project recovered from schema version 2', async ({ page }) => {
+  await page.goto('/builder');
+  await page.getByRole('textbox', { name: 'Заголовок' }).fill('Проект до миграции');
+  await page.getByRole('button', { name: 'Сохранить проект' }).click();
+  await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
+
+  await page.evaluate(() => {
+    const storageKey = 'nexus.builder.projects.v1';
+    const serializedState = localStorage.getItem(storageKey);
+
+    if (serializedState === null) {
+      throw new Error('Project storage fixture is missing.');
+    }
+
+    const state = JSON.parse(serializedState) as {
+      projects: {
+        draft: { schemaVersion: number };
+        releases: { siteConfig: { schemaVersion: number } }[];
+        revisions: { siteConfig: { schemaVersion: number } }[];
+      }[];
+    };
+
+    for (const project of state.projects) {
+      project.draft.schemaVersion = 2;
+
+      for (const release of project.releases) {
+        release.siteConfig.schemaVersion = 2;
+      }
+
+      for (const revision of project.revisions) {
+        revision.siteConfig.schemaVersion = 2;
+      }
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  });
+
+  await page.reload();
+  await page.getByRole('tab', { name: 'Слои' }).click();
+  await page.getByRole('button', { name: /Hero Проект до миграции/u }).click();
+  await page.getByRole('textbox', { name: 'Заголовок' }).fill('Проект после миграции');
+  await page.getByRole('button', { name: 'Сохранить проект' }).click();
+  await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Проект после миграции' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Опубликовать локальное демо' }).click();
+  await page.getByRole('button', { name: 'Еще действия' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Локальная ссылка' })).toBeVisible();
+});
