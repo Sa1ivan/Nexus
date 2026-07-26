@@ -18,8 +18,12 @@ async function importTypeScriptModule(path) {
   return import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
 }
 
-test('CI installs the Playwright Chromium runtime before browser tests', async () => {
-  const workflow = await source('.github/workflows/pages.yml');
+test('Pages CI uses the pinned runtime and installs Chromium before browser tests', async () => {
+  const [workflow, nodeVersion, packageJsonSource] = await Promise.all([
+    source('.github/workflows/pages.yml'),
+    source('.nvmrc'),
+    source('package.json'),
+  ]);
   const buildJobStart = workflow.indexOf('  build:\n');
   const nextJobStart = workflow.indexOf('\n  deploy:\n', buildJobStart);
   const buildJob = workflow.slice(buildJobStart, nextJobStart);
@@ -34,8 +38,35 @@ test('CI installs the Playwright Chromium runtime before browser tests', async (
   assert.notEqual(installBrowserStep, -1);
   assert.notEqual(runBrowserTestsStep, -1);
   assert.equal(installBrowserStep + 1, runBrowserTestsStep);
-  assert.match(buildJob, /^\s+uses: actions\/checkout@v5$/m);
-  assert.match(buildJob, /^\s+uses: actions\/setup-node@v5$/m);
+  assert.match(buildJob, /^\s+uses: actions\/checkout@v6$/m);
+  assert.match(buildJob, /^\s+uses: actions\/setup-node@v6$/m);
+  assert.match(buildJob, /^\s+node-version: 24$/m);
+  assert.equal(nodeVersion.trim(), '24');
+  assert.equal(JSON.parse(packageJsonSource).engines.node, '>=24 <25');
+});
+
+test('CI runs the complete verification gate on Node.js 24', async () => {
+  const workflow = await source('.github/workflows/ci.yml').catch(() => '');
+  const runCommands = workflow
+    .split('\n')
+    .flatMap((line) => line.match(/^\s+- run:\s*(.+)$/)?.[1].trim() ?? []);
+
+  assert.match(workflow, /^name: CI$/m);
+  assert.match(workflow, /^\s+pull_request:$/m);
+  assert.match(workflow, /^\s+- develop$/m);
+  assert.match(workflow, /^\s+- main$/m);
+  assert.match(workflow, /^\s+- uses: actions\/checkout@v6$/m);
+  assert.match(workflow, /^\s+- uses: actions\/setup-node@v6$/m);
+  assert.match(workflow, /^\s+node-version: 24$/m);
+  assert.deepEqual(runCommands, [
+    'npm ci',
+    'npx playwright install --with-deps chromium',
+    'npm run verify',
+  ]);
+  assert.match(workflow, /^\s+- uses: actions\/upload-artifact@v4$/m);
+  assert.match(workflow, /^\s+if: failure\(\)$/m);
+  assert.match(workflow, /^\s+playwright-report$/m);
+  assert.match(workflow, /^\s+test-results$/m);
 });
 
 test('domain model includes publishable MVP contracts', async () => {

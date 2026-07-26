@@ -6,6 +6,7 @@ test('edit, autosave, publish and submit a lead', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Заголовок' }).fill('Проверенный E2E лендинг');
   await page.getByRole('tab', { name: 'Слои' }).click();
   await page.getByRole('button', { name: 'Добавить страницу' }).click();
+  await expect(page.locator('#page-title')).toHaveValue('Новая страница');
   await page.locator('#page-title').fill('О компании');
   await page.locator('#page-title').press('Tab');
   await page.locator('#page-slug').fill('about');
