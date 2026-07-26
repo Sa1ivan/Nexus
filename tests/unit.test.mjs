@@ -69,6 +69,53 @@ test('CI runs the complete verification gate on Node.js 24', async () => {
   assert.match(workflow, /^\s+test-results$/m);
 });
 
+test('workspace and GitHub Pages use the Nexus.UI technical identity', async () => {
+  const [angularSource, packageSource, lockSource, workflow, index, readme] = await Promise.all([
+    source('angular.json'),
+    source('package.json'),
+    source('package-lock.json'),
+    source('.github/workflows/pages.yml'),
+    source('src/index.html'),
+    source('README.md'),
+  ]);
+  const angularConfig = JSON.parse(angularSource);
+  const packageJson = JSON.parse(packageSource);
+  const packageLock = JSON.parse(lockSource);
+  const uiProject = angularConfig.projects['nexus.ui'];
+
+  assert.equal(packageJson.name, 'nexus.ui');
+  assert.equal(packageLock.name, 'nexus.ui');
+  assert.equal(packageLock.packages[''].name, 'nexus.ui');
+  assert.ok(uiProject);
+  assert.equal(angularConfig.projects.nexus, undefined);
+  assert.equal(
+    uiProject.architect.serve.configurations.production.buildTarget,
+    'nexus.ui:build:production',
+  );
+  assert.equal(
+    uiProject.architect.serve.configurations.development.buildTarget,
+    'nexus.ui:build:development',
+  );
+  assert.match(workflow, /npm run build -- --base-href=\/Nexus\.UI\//u);
+  assert.match(workflow, /dist\/nexus\.ui\/browser/u);
+  assert.match(index, /<title>Nexus\.UI<\/title>/u);
+  assert.match(readme, /^# Nexus\.UI$/m);
+});
+
+test('cloud plan targets the separate Nexus.BC repository', async () => {
+  const [roadmap, phaseOnePlan] = await Promise.all([
+    source('ROADMAP.md'),
+    source('docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md'),
+  ]);
+
+  assert.match(roadmap, /`Sa1ivan\/Nexus\.BC`/u);
+  assert.match(phaseOnePlan, /Frontend остаётся в `Sa1ivan\/Nexus\.UI`/u);
+  assert.match(phaseOnePlan, /backend — только в `Sa1ivan\/Nexus\.BC`/u);
+  assert.match(phaseOnePlan, /git clone git@github\.com:Sa1ivan\/Nexus\.BC\.git/u);
+  assert.match(phaseOnePlan, /Backend local path: sibling `\.\.\/Nexus\.BC`/u);
+  assert.doesNotMatch(phaseOnePlan, /Nexus(?:-Backend|\.Backend)/u);
+});
+
 test('domain model includes publishable MVP contracts', async () => {
   const [siteConfig, blockType, blockConfig, projectModel] = await Promise.all([
     source('src/app/features/builder/domain/models/site-config.model.ts'),
@@ -478,24 +525,24 @@ test('landing fragment links keep the current published route', async () => {
     '/p/project-1?preview=1#offers',
   );
   assert.equal(
-    resolveLandingHref('#offers', '/Nexus/p/project-1', '', '/Nexus/'),
-    '/Nexus/p/project-1#offers',
+    resolveLandingHref('#offers', '/Nexus.UI/p/project-1', '', '/Nexus.UI/'),
+    '/Nexus.UI/p/project-1#offers',
   );
   assert.equal(
-    resolveLandingHref('/pricing', '/Nexus/p/project-1', '', '/Nexus/'),
-    '/Nexus/p/project-1/pricing',
+    resolveLandingHref('/pricing', '/Nexus.UI/p/project-1', '', '/Nexus.UI/'),
+    '/Nexus.UI/p/project-1/pricing',
   );
   assert.equal(
-    resolveLandingHref('https://example.com', '/Nexus/p/project-1', '', '/Nexus/'),
+    resolveLandingHref('https://example.com', '/Nexus.UI/p/project-1', '', '/Nexus.UI/'),
     'https://example.com',
   );
   assert.equal(
-    resolveLandingHref('//evil.example', '/Nexus/p/project-1', '', '/Nexus/'),
-    '/Nexus/p/project-1#',
+    resolveLandingHref('//evil.example', '/Nexus.UI/p/project-1', '', '/Nexus.UI/'),
+    '/Nexus.UI/p/project-1#',
   );
   assert.equal(
-    resolveLandingHref('javascript:alert(1)', '/Nexus/p/project-1', '', '/Nexus/'),
-    '/Nexus/p/project-1#',
+    resolveLandingHref('javascript:alert(1)', '/Nexus.UI/p/project-1', '', '/Nexus.UI/'),
+    '/Nexus.UI/p/project-1#',
   );
   assert.match(directive, /get resolvedHref\(\)/);
   assert.doesNotMatch(directive, /computed\(/);

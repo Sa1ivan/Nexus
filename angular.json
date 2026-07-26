@@ -28,7 +28,7 @@
     }
   },
   "projects": {
-    "nexus": {
+    "nexus.ui": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -88,10 +88,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "nexus:build:production"
+              "buildTarget": "nexus.ui:build:production"
             },
             "development": {
-              "buildTarget": "nexus:build:development"
+              "buildTarget": "nexus.ui:build:development"
             }
           },
           "defaultConfiguration": "development"
