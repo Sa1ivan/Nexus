@@ -245,6 +245,32 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.projectError()).toBeNull();
   });
 
+  it('increments document revision for edits, undo and redo but not initialization or selection', async () => {
+    const initialProject = createProject(DEFAULT_SITE_CONFIG, 'initial-project');
+    vi.mocked(repository.getActiveProject).mockResolvedValue(initialProject);
+
+    expect(builderStore.documentRevision()).toBe(0);
+
+    await builderStore.initialize();
+    builderStore.selectBlock(builderStore.activeBlocks()[0]?.id ?? '');
+
+    expect(builderStore.documentRevision()).toBe(0);
+
+    expect(builderStore.updateSiteName('First revision')).toBe(true);
+    expect(builderStore.documentRevision()).toBe(1);
+    expect(builderStore.updateSiteName('First revision')).toBe(false);
+    expect(builderStore.documentRevision()).toBe(1);
+
+    expect(builderStore.undo()).toBe(true);
+    expect(builderStore.documentRevision()).toBe(2);
+    expect(builderStore.redo()).toBe(true);
+    expect(builderStore.documentRevision()).toBe(3);
+
+    await builderStore.initialize();
+
+    expect(builderStore.documentRevision()).toBe(3);
+  });
+
   it('adds and edits a page while selecting it by stable id', () => {
     expect(builderStore.addPage('О компании')).toBe(true);
 

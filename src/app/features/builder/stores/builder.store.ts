@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal, type Signal } from '@angular/core';
 
 import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
 import { buildLandingDraft } from '../data-access/landing-draft.factory';
@@ -94,6 +94,7 @@ export class BuilderStore {
     DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
   );
   private readonly pageErrorSignal = signal<string | null>(null);
+  private readonly documentRevisionSignal = signal(0);
   private fallbackElementId = 0;
   private projectImportSequence = 0;
   private projectImportInProgress = false;
@@ -102,6 +103,7 @@ export class BuilderStore {
   readonly saveStatus = this.projectStore.saveStatus;
   readonly projectError = this.projectStore.projectError;
   readonly pageError = this.pageErrorSignal.asReadonly();
+  readonly documentRevision: Signal<number> = this.documentRevisionSignal.asReadonly();
   readonly siteConfig = computed<SiteConfig>(() => this.siteConfigSignal());
   readonly pages = computed<readonly PageConfig[]>(() => this.siteConfig().pages);
   readonly activePageId = computed<string>(() => this.activePageIdSignal());
@@ -2010,6 +2012,7 @@ export class BuilderStore {
   }
 
   private markDirty(): void {
+    this.documentRevisionSignal.update((revision) => revision + 1);
     this.projectStore.markDirty();
   }
 }

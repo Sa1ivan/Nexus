@@ -53,7 +53,10 @@ describe('BuilderProjectStore', () => {
 
     expect(projectStore.currentProject()?.draftVersion).toBe(2);
     expect(projectStore.saveStatus()).toBe('error');
-    expect(projectStore.projectError()).toContain('другой вкладке');
+    expect(projectStore.projectError()).toBe(
+      'Проект изменён в другой вкладке. Экспортируйте текущую версию или перезагрузите последнюю сохранённую.',
+    );
+    expect(repository.saveDraft).toHaveBeenCalledTimes(1);
   });
 
   it('ignores an older initialization that resolves after a newer project', async () => {
