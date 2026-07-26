@@ -87,7 +87,10 @@ export class BuilderProjectStore {
     }
   }
 
-  async create(siteConfig: SiteConfig): Promise<Project | null> {
+  async create(
+    siteConfig: SiteConfig,
+    canApply: () => boolean = () => true,
+  ): Promise<Project | null> {
     const writeId = this.beginWrite();
 
     if (writeId === null) {
@@ -102,7 +105,8 @@ export class BuilderProjectStore {
     try {
       const project = await this.repository.createProject({ siteConfig });
 
-      if (!this.isCurrentSession(sessionEpoch)) {
+      if (!this.isCurrentSession(sessionEpoch) || !canApply()) {
+        await this.restoreCurrentProjectActivation();
         return null;
       }
 
@@ -221,6 +225,14 @@ export class BuilderProjectStore {
     this.projectErrorSignal.set(null);
   }
 
+  reportError(message: string, preserveSaveStatus = false): void {
+    if (!preserveSaveStatus) {
+      this.saveStatusSignal.set('error');
+    }
+
+    this.projectErrorSignal.set(message);
+  }
+
   private applyProject(project: Project, saveStatus: ProjectSaveStatus): void {
     this.currentProjectSignal.set(project);
     this.saveStatusSignal.set(saveStatus);
@@ -232,6 +244,14 @@ export class BuilderProjectStore {
     this.activationQueue = activation.catch(() => undefined);
 
     return activation;
+  }
+
+  private async restoreCurrentProjectActivation(): Promise<void> {
+    const currentProjectId = this.currentProject()?.id;
+
+    if (currentProjectId !== undefined) {
+      await this.activateProject(currentProjectId);
+    }
   }
 
   private beginWrite(): number | null {
