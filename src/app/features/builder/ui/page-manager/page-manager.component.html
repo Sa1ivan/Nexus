@@ -1,0 +1,130 @@
+<section class="page-manager">
+  <header class="page-manager__header">
+    <h2>Страницы</h2>
+    <button mat-icon-button type="button" aria-label="Добавить страницу" (click)="addPage()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </header>
+
+  <nav class="page-manager__pages" aria-label="Страницы сайта">
+    @for (page of pages(); track page.id) {
+      <div class="page-manager__page-row" [class.is-active]="page.id === activePageId()">
+        <button
+          type="button"
+          class="page-manager__page-select"
+          [attr.aria-label]="'Открыть страницу ' + page.title"
+          [attr.aria-current]="page.id === activePageId() ? 'page' : null"
+          (click)="selectPage(page)"
+        >
+          <mat-icon aria-hidden="true">article</mat-icon>
+          <span>{{ page.title }}</span>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          [attr.aria-label]="'Действия страницы ' + page.title"
+          [matMenuTriggerFor]="pageActions"
+        >
+          <mat-icon>more_horiz</mat-icon>
+        </button>
+        <mat-menu #pageActions="matMenu">
+          <button
+            mat-menu-item
+            type="button"
+            [disabled]="!canMovePage(page.id, 'up')"
+            (click)="movePage(page.id, 'up')"
+          >
+            <mat-icon>arrow_upward</mat-icon><span>Переместить выше</span>
+          </button>
+          <button
+            mat-menu-item
+            type="button"
+            [disabled]="!canMovePage(page.id, 'down')"
+            (click)="movePage(page.id, 'down')"
+          >
+            <mat-icon>arrow_downward</mat-icon><span>Переместить ниже</span>
+          </button>
+          <button mat-menu-item type="button" (click)="duplicatePage(page.id)">
+            <mat-icon>content_copy</mat-icon><span>Дублировать</span>
+          </button>
+          <button
+            mat-menu-item
+            type="button"
+            [disabled]="pages().length === 1"
+            (click)="requestDelete(page.id)"
+          >
+            <mat-icon>delete</mat-icon><span>Удалить страницу</span>
+          </button>
+        </mat-menu>
+      </div>
+    }
+  </nav>
+
+  @if (pendingDeletePageId() !== null) {
+    <section
+      class="page-manager__confirmation"
+      role="alertdialog"
+      aria-label="Подтверждение удаления страницы"
+    >
+      <p>Удалить страницу без возможности восстановления?</p>
+      <div>
+        <button mat-stroked-button type="button" (click)="cancelDelete()">Отмена</button>
+        <button mat-flat-button type="button" color="warn" (click)="confirmDelete()">
+          Удалить
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (pageError(); as error) {
+    <p class="page-manager__error" role="alert">{{ error }}</p>
+  }
+
+  @if (activePage(); as page) {
+    <section class="page-manager__editor" aria-label="Настройки страницы">
+      <label for="page-title">Название</label>
+      <input
+        id="page-title"
+        type="text"
+        [value]="page.title"
+        (change)="renamePage(page.id, $event)"
+      />
+
+      <label for="page-slug">Адрес страницы</label>
+      <input
+        id="page-slug"
+        type="text"
+        [value]="page.slug"
+        (change)="updatePageSlug(page.id, $event)"
+      />
+
+      <label for="page-seo-title">SEO title</label>
+      <input
+        id="page-seo-title"
+        type="text"
+        maxlength="70"
+        [value]="page.seo.title"
+        (change)="updatePageSeo(page.id, 'title', $event)"
+      />
+
+      <label for="page-seo-description">SEO description</label>
+      <textarea
+        id="page-seo-description"
+        rows="3"
+        maxlength="180"
+        [value]="page.seo.description"
+        (change)="updatePageSeo(page.id, 'description', $event)"
+      ></textarea>
+
+      <label class="page-manager__checkbox" for="page-seo-noindex">
+        <input
+          id="page-seo-noindex"
+          type="checkbox"
+          [checked]="page.seo.noIndex"
+          (change)="updatePageNoIndex(page.id, $event)"
+        />
+        <span>Скрыть страницу от поисковых систем</span>
+      </label>
+    </section>
+  }
+</section>

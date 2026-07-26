@@ -92,17 +92,7 @@
           }
         }
         @case ('layers') {
-          <nav class="builder-page__pages" aria-label="Страницы">
-            @for (page of pages(); track page.slug) {
-              <button
-                type="button"
-                [class.is-active]="page.slug === activePageSlug()"
-                (click)="selectPage(page.slug)"
-              >
-                <mat-icon aria-hidden="true">article</mat-icon><span>{{ page.title }}</span>
-              </button>
-            }
-          </nav>
+          <app-page-manager />
           <div class="builder-page__layer-list">
             @for (block of activeBlocks(); track block.id) {
               <div
