@@ -1,11 +1,12 @@
 import { CdkDrag, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import type { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { BlockRendererComponent } from '../../../preview/ui/block-renderer/block-renderer.component';
 import type { BlockType, PageBlockConfig } from '../../domain/models';
@@ -50,7 +51,9 @@ interface PaletteGroup {
 })
 export class BuilderPageComponent implements OnInit {
   private readonly builderStore = inject(BuilderStore);
+  private readonly document = inject(DOCUMENT);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly pages = this.builderStore.pages;
@@ -97,6 +100,45 @@ export class BuilderPageComponent implements OnInit {
 
   async publishProject(): Promise<void> {
     await this.builderStore.publishCurrentProject();
+  }
+
+  exportProject(): void {
+    const { fileName, blob } = this.builderStore.exportCurrentProject();
+    const objectUrl = URL.createObjectURL(blob);
+    const downloadLink = this.document.createElement('a');
+
+    downloadLink.href = objectUrl;
+    downloadLink.download = fileName;
+    downloadLink.hidden = true;
+    this.document.body.append(downloadLink);
+
+    try {
+      downloadLink.click();
+    } finally {
+      downloadLink.remove();
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  async importProject(event: Event): Promise<void> {
+    const fileInput = event.currentTarget as HTMLInputElement;
+    const file = fileInput.files?.[0];
+
+    try {
+      if (file === undefined || !(await this.builderStore.importProjectFile(file))) {
+        return;
+      }
+
+      const projectId = this.builderStore.currentProject()?.id;
+
+      if (projectId !== undefined) {
+        await this.router.navigate(['/builder', projectId], {
+          replaceUrl: true,
+        });
+      }
+    } finally {
+      fileInput.value = '';
+    }
   }
 
   undo(): void {

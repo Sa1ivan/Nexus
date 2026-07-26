@@ -3,6 +3,10 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { DEFAULT_SITE_CONFIG } from '../data-access/default-site.config';
 import { buildLandingDraft } from '../data-access/landing-draft.factory';
 import {
+  ProjectTransferService,
+  type ProjectTransferDecodeFailureReason,
+} from '../data-access/project-transfer.service';
+import {
   DEFAULT_BLOCK_APPEARANCE,
   DEFAULT_LANDING_DESIGN_SETTINGS,
   getLandingAccentValue,
@@ -71,6 +75,7 @@ type FooterLinkCollection = 'links' | 'socialLinks';
 export class BuilderStore {
   private readonly projectStore = inject(BuilderProjectStore);
   private readonly historyStore = inject(BuilderHistoryStore);
+  private readonly projectTransferService = inject(ProjectTransferService);
 
   private readonly siteConfigSignal = signal<SiteConfig>(DEFAULT_SITE_CONFIG);
   private readonly activePageSlugSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.slug ?? '');
@@ -78,6 +83,8 @@ export class BuilderStore {
     DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
   );
   private fallbackElementId = 0;
+  private projectImportSequence = 0;
+  private projectImportInProgress = false;
 
   readonly currentProject = this.projectStore.currentProject;
   readonly saveStatus = this.projectStore.saveStatus;
@@ -130,6 +137,7 @@ export class BuilderStore {
   }
 
   async initialize(projectId?: string): Promise<void> {
+    this.projectImportSequence += 1;
     const siteConfig = await this.projectStore.initialize(projectId);
 
     if (siteConfig !== null) {
@@ -143,6 +151,56 @@ export class BuilderStore {
 
   async publishCurrentProject(): Promise<boolean> {
     return (await this.projectStore.publish(this.siteConfig())) !== null;
+  }
+
+  exportCurrentProject(): { readonly fileName: string; readonly blob: Blob } {
+    return this.projectTransferService.createDownload(this.siteConfig());
+  }
+
+  async importProjectFile(file: File): Promise<boolean> {
+    if (this.projectImportInProgress || this.saveStatus() === 'saving') {
+      this.projectStore.reportError('Дождитесь завершения текущего сохранения или импорта.', true);
+      return false;
+    }
+
+    this.projectImportInProgress = true;
+
+    try {
+      const importSequence = ++this.projectImportSequence;
+      const projectBeforeImport = this.currentProject();
+      const documentBeforeImport = this.siteConfig();
+      const decodedProject = await this.projectTransferService.readFile(file);
+
+      if (!this.isCurrentProjectImport(importSequence, projectBeforeImport, documentBeforeImport)) {
+        return false;
+      }
+
+      if (!decodedProject.ok) {
+        this.projectStore.reportError(this.getProjectImportError(decodedProject.reason));
+        return false;
+      }
+
+      const project = await this.projectStore.create(decodedProject.value, () =>
+        this.isCurrentProjectImport(importSequence, projectBeforeImport, documentBeforeImport),
+      );
+
+      if (project === null) {
+        if (
+          !this.isCurrentProjectImport(importSequence, projectBeforeImport, documentBeforeImport)
+        ) {
+          return false;
+        }
+
+        this.projectStore.reportError('Не удалось создать проект из импортированного файла.');
+        return false;
+      }
+
+      this.hydrateSiteConfig(project.draft);
+
+      return true;
+    } finally {
+      this.projectImportInProgress = false;
+    }
   }
 
   updateSiteName(name: string): boolean {
@@ -1612,6 +1670,30 @@ export class BuilderStore {
     this.activePageSlugSignal.set(siteConfig.pages[0]?.slug ?? '');
     this.selectedBlockIdSignal.set(siteConfig.pages[0]?.blocks[0]?.id ?? null);
     this.historyStore.reset();
+  }
+
+  private getProjectImportError(reason: ProjectTransferDecodeFailureReason): string {
+    switch (reason) {
+      case 'file-too-large':
+        return 'Файл проекта превышает допустимый размер 5 МБ.';
+      case 'unsupported-format':
+      case 'unsupported-site-schema':
+        return 'Версия файла проекта не поддерживается.';
+      default:
+        return 'Не удалось импортировать проект. Проверьте файл и повторите попытку.';
+    }
+  }
+
+  private isCurrentProjectImport(
+    importSequence: number,
+    project: Project | null,
+    siteConfig: SiteConfig,
+  ): boolean {
+    return (
+      importSequence === this.projectImportSequence &&
+      project === this.currentProject() &&
+      siteConfig === this.siteConfig()
+    );
   }
 
   private commitSiteConfig(siteConfig: SiteConfig): boolean {

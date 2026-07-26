@@ -263,6 +263,13 @@
         >
           <mat-icon aria-hidden="true">publish</mat-icon><span>Демо-публикация</span>
         </button>
+        <input
+          #projectFileInput
+          hidden
+          type="file"
+          accept=".json,.nexus.json,application/json"
+          (change)="importProject($event)"
+        />
         <button
           mat-icon-button
           type="button"
@@ -279,6 +286,12 @@
           <a mat-menu-item routerLink="/create"
             ><mat-icon>add</mat-icon><span>Новый лендинг</span></a
           >
+          <button mat-menu-item type="button" (click)="exportProject()">
+            <mat-icon>download</mat-icon><span>Экспортировать проект</span>
+          </button>
+          <button mat-menu-item type="button" (click)="projectFileInput.click()">
+            <mat-icon>upload</mat-icon><span>Импортировать проект</span>
+          </button>
           @if (publishedUrl(); as url) {
             <a mat-menu-item [routerLink]="url"
               ><mat-icon>open_in_new</mat-icon><span>Локальная ссылка</span></a

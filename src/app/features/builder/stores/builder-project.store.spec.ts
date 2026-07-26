@@ -164,6 +164,28 @@ describe('BuilderProjectStore', () => {
     delayedCreation.resolve(createProject(1));
     await save;
   });
+
+  it('restores the current project activation when a stale creation resolves', async () => {
+    const projectA = createProject(1, 'project-a');
+    const projectB = createProject(1, 'project-b');
+    const importedProject = createProject(1, 'imported-project');
+    const delayedCreation = createDeferred<Project>();
+    vi.mocked(repository.getProject).mockImplementation(async (projectId) =>
+      projectId === projectA.id ? projectA : projectB,
+    );
+    vi.mocked(repository.createProject).mockReturnValue(delayedCreation.promise);
+
+    await projectStore.initialize(projectA.id);
+    const createImport = projectStore.create(importedProject.draft);
+    await Promise.resolve();
+    await projectStore.initialize(projectB.id);
+    delayedCreation.resolve(importedProject);
+
+    await expect(createImport).resolves.toBeNull();
+    expect(projectStore.currentProject()?.id).toBe(projectB.id);
+    expect(repository.setActiveProject).toHaveBeenCalledTimes(3);
+    expect(repository.setActiveProject).toHaveBeenLastCalledWith(projectB.id);
+  });
 });
 
 function createProject(draftVersion: number, id = 'project-1'): Project {
