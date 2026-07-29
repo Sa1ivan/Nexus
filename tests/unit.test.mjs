@@ -636,3 +636,20 @@ test('workspace chrome uses one font system and container-aware topbar controls'
   assert.match(builderStyles, /@container builder-workspace \(max-width: 1400px\)/);
   assert.match(builderStyles, /\.builder-page__action-button/);
 });
+
+test('workspace projects keep creation actions contextual and icons compact', async () => {
+  const [shellTemplate, projectsTemplate, projectsStyles] = await Promise.all([
+    source('src/app/features/workspace/ui/app-shell/app-shell.component.html'),
+    source('src/app/features/workspace/pages/projects-page/projects-page.component.html'),
+    source('src/app/features/workspace/pages/projects-page/projects-page.component.scss'),
+  ]);
+
+  assert.doesNotMatch(shellTemplate, /app-shell__actions/u);
+  assert.match(projectsTemplate, /class="projects-page__head-action"/u);
+  assert.match(projectsTemplate, /class="projects-page__empty-icon"/u);
+  assert.match(projectsStyles, /\.projects-page__empty-icon\s*\{[\s\S]*font-size: 36px;/u);
+  assert.doesNotMatch(
+    projectsStyles,
+    /\.projects-page__empty\s*\{[\s\S]*?mat-icon\s*\{[\s\S]*?font-size: 48px;/u,
+  );
+});

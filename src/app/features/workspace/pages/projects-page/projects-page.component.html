@@ -6,10 +6,12 @@
       <p>Лендинги, черновики, версии, публикации и заявки по каждому проекту.</p>
     </div>
 
-    <a mat-flat-button color="primary" routerLink="/create">
-      <mat-icon aria-hidden="true">add</mat-icon>
-      Новый лендинг
-    </a>
+    @if (projects().length > 0) {
+      <a class="projects-page__head-action" mat-flat-button color="primary" routerLink="/create">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Новый лендинг
+      </a>
+    }
   </header>
 
   @if (projects().length > 0) {
@@ -95,7 +97,7 @@
     </section>
   } @else {
     <section class="projects-page__empty">
-      <mat-icon aria-hidden="true">folder_off</mat-icon>
+      <mat-icon class="projects-page__empty-icon" aria-hidden="true">folder_off</mat-icon>
       <h2>Проектов пока нет</h2>
       <p>Создайте первый лендинг через мастер или откройте конструктор для ручной сборки.</p>
       <div>

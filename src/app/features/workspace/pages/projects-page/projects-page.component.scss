@@ -167,13 +167,6 @@
   color: #6b7280;
   text-align: center;
 
-  mat-icon {
-    width: 48px;
-    height: 48px;
-    color: #111827;
-    font-size: 48px;
-  }
-
   h2 {
     margin: 0;
     color: #111827;
@@ -192,6 +185,13 @@
     gap: 10px;
     margin-top: 6px;
   }
+}
+
+.projects-page__empty-icon {
+  width: 36px;
+  height: 36px;
+  color: #111827;
+  font-size: 36px;
 }
 
 @media (max-width: 1000px) {

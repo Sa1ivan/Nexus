@@ -164,13 +164,6 @@
   }
 }
 
-.app-shell__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -215,13 +208,5 @@
   .app-shell__topbar {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .app-shell__actions {
-    width: 100%;
-
-    a {
-      flex: 1 1 170px;
-    }
   }
 }
