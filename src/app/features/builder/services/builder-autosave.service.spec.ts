@@ -126,6 +126,74 @@ describe('BuilderAutosaveService', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('retries the same revision on manual flush after a transient repository failure', async () => {
+    const project = createProject(DEFAULT_SITE_CONFIG, 2);
+    const savedProject = createProject({ ...DEFAULT_SITE_CONFIG, name: 'Retry this revision' }, 3);
+    save.mockRestore();
+    vi.mocked(repository.getActiveProject).mockResolvedValue(project);
+    vi.mocked(repository.saveDraft)
+      .mockRejectedValueOnce(new Error('Temporary storage failure.'))
+      .mockResolvedValueOnce(savedProject);
+    await builderStore.initialize();
+    autosave.start();
+    TestBed.tick();
+
+    builderStore.updateSiteName('Retry this revision');
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(800);
+
+    expect(repository.saveDraft).toHaveBeenCalledTimes(1);
+    expect(projectStore.saveStatus()).toBe('error');
+
+    await autosave.flush();
+
+    expect(repository.saveDraft).toHaveBeenCalledTimes(2);
+    expect(repository.saveDraft).toHaveBeenLastCalledWith({
+      projectId: project.id,
+      expectedDraftVersion: 2,
+      siteConfig: expect.objectContaining({ name: 'Retry this revision' }),
+    });
+    expect(projectStore.saveStatus()).toBe('saved');
+  });
+
+  it('does not flush a project when an explicit route initialization failed', async () => {
+    save.mockRestore();
+    vi.mocked(repository.getProject).mockRejectedValue(new Error('Project loading failed.'));
+
+    await builderStore.initialize('missing-project');
+    await autosave.flushPending();
+
+    expect(repository.createProject).not.toHaveBeenCalled();
+    expect(projectStore.saveStatus()).toBe('error');
+    expect(projectStore.projectError()).toBe('Project loading failed.');
+  });
+
+  it('retries creating a dirty new project after a transient save failure', async () => {
+    const savedProject = createProject(
+      { ...DEFAULT_SITE_CONFIG, name: 'Retry new project' },
+      1,
+      'created-project',
+    );
+    save.mockRestore();
+    vi.mocked(repository.createProject)
+      .mockRejectedValueOnce(new Error('Temporary storage failure.'))
+      .mockResolvedValueOnce(savedProject);
+    autosave.start();
+    TestBed.tick();
+
+    builderStore.updateSiteName('Retry new project');
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(800);
+
+    expect(repository.createProject).toHaveBeenCalledTimes(1);
+    expect(projectStore.saveStatus()).toBe('error');
+
+    await autosave.flush();
+
+    expect(repository.createProject).toHaveBeenCalledTimes(2);
+    expect(projectStore.saveStatus()).toBe('saved');
+  });
+
   it('does not retry a conflicting document revision', async () => {
     const project = createProject(DEFAULT_SITE_CONFIG, 2);
     save.mockRestore();

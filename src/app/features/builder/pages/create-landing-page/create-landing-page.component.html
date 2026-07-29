@@ -402,6 +402,10 @@
         </section>
       </div>
 
+      @if (projectError(); as error) {
+        <p class="wizard__error" role="alert">{{ error }}</p>
+      }
+
       <footer class="wizard__actions">
         <button
           mat-button

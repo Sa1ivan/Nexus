@@ -46,7 +46,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           buttonHref: '#lead-form',
           secondaryButton: createLink('Посмотреть блоки', '#lead-form'),
           media: {
-            src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+            src: 'images/landing/office-studio.webp',
             alt: 'Рабочая зона конструктора сайтов',
             focalPoint: { x: 50, y: 50 },
           },

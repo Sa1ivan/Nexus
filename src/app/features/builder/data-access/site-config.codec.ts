@@ -69,6 +69,27 @@ export type SiteConfigDecodeResult =
       readonly reason: 'invalid-json' | 'invalid-shape' | 'unsupported-schema';
     };
 
+const BUNDLED_IMAGE_BY_UNSPLASH_PATH: Readonly<Record<string, string>> = {
+  'photo-1497366754035-f200968a6e72': 'images/landing/office-studio.webp',
+  'photo-1497366811353-6870744d04b2': 'images/landing/office-open.webp',
+  'photo-1504674900247-0877df9cc836': 'images/landing/restaurant-2.webp',
+  'photo-1516321318423-f06f85e504b3': 'images/landing/product-3.webp',
+  'photo-1517248135467-4c7edcad34c4': 'images/landing/restaurant-1.webp',
+  'photo-1519389950473-47ba0277781c': 'images/landing/education-3.webp',
+  'photo-1519415510236-718bdfcd89c8': 'images/landing/beauty-1.webp',
+  'photo-1521590832167-7bcbfaa6381f': 'images/landing/beauty-3.webp',
+  'photo-1521737711867-e3b97375f902': 'images/landing/office-collaboration.webp',
+  'photo-1522202176988-66273c2fd55f': 'images/landing/education-1.webp',
+  'photo-1522337360788-8b13dee7a37e': 'images/landing/beauty-2.webp',
+  'photo-1523240795612-9a054b0db644': 'images/landing/education-2.webp',
+  'photo-1551434678-e076c223a692': 'images/landing/product-2.webp',
+  'photo-1556761175-b413da4baf72': 'images/landing/product-1.webp',
+  'photo-1559339352-11d035aa65de': 'images/landing/restaurant-3.webp',
+  'photo-1566073771259-6a8506099945': 'images/landing/hotel-1.webp',
+  'photo-1578683010236-d716f9a3f461': 'images/landing/hotel-2.webp',
+  'photo-1582719478250-c89cae4dc85b': 'images/landing/hotel-3.webp',
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -494,7 +515,7 @@ export class SiteConfigCodec {
       return undefined;
     }
 
-    const src = this.readString(record['src'], '');
+    const src = this.migrateBuiltInMediaSource(this.readString(record['src'], ''));
 
     if (!src || !isSafeMediaSource(src)) {
       return undefined;
@@ -505,6 +526,13 @@ export class SiteConfigCodec {
       alt: this.readString(record['alt'], 'Изображение блока'),
       focalPoint: this.readFocalPoint(record['focalPoint']),
     };
+  }
+
+  private migrateBuiltInMediaSource(src: string): string {
+    const match = /^https:\/\/images\.unsplash\.com\/(photo-[a-z0-9-]+)(?:\?|$)/iu.exec(src.trim());
+    const unsplashPath = match?.[1];
+
+    return unsplashPath === undefined ? src : (BUNDLED_IMAGE_BY_UNSPLASH_PATH[unsplashPath] ?? src);
   }
 
   private readBooking(value: unknown): HeaderBookingConfig | undefined {

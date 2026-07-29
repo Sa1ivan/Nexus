@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_SITE_CONFIG } from '../../data-access/default-site.config';
 import { duplicatePage } from './page-config-update';
-import { validateSiteConfig } from './site-config-validation';
+import { isSafeMediaSource, validateSiteConfig } from './site-config-validation';
 
 describe('site config validation', () => {
   it('allows the same anchors on different pages', () => {
@@ -84,5 +84,11 @@ describe('site config validation', () => {
         expect.stringContaining('social image'),
       ]),
     );
+  });
+
+  it('allows bundled image paths without allowing path traversal', () => {
+    expect(isSafeMediaSource('images/landing/restaurant-1.webp')).toBe(true);
+    expect(isSafeMediaSource('./images/landing/product-hero.webp')).toBe(true);
+    expect(isSafeMediaSource('../private/image.webp')).toBe(false);
   });
 });

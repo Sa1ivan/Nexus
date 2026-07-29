@@ -297,11 +297,14 @@ function validateHref(value: string, blockId: string, label: string, errors: str
 export function isSafeMediaSource(value: string): boolean {
   const normalizedValue = value.trim();
   const lowerCaseValue = normalizedValue.toLowerCase();
+  const bundledImagePath =
+    /^(?:\.\/)?(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.(?:avif|gif|jpe?g|png|svg|webp)$/iu;
 
   if (
     lowerCaseValue.startsWith('http://') ||
     lowerCaseValue.startsWith('https://') ||
-    normalizedValue.startsWith('#')
+    normalizedValue.startsWith('#') ||
+    bundledImagePath.test(normalizedValue)
   ) {
     return true;
   }

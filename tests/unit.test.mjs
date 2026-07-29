@@ -501,6 +501,52 @@ test('local Material Icons font remains deployable from a GitHub Pages subpath',
   assert.doesNotMatch(globalStyles, /url\(['"]\/fonts\/material-icons\.woff2['"]\)/);
 });
 
+test('built-in landing images are bundled for GitHub Pages instead of hotlinked', async () => {
+  const builtInMediaSources = await Promise.all(
+    [
+      'src/app/features/builder/data-access/default-site.config.ts',
+      'src/app/features/builder/data-access/landing-draft.factory.ts',
+      'src/app/features/builder/domain/registry/block-registry.ts',
+      'src/app/features/builder/stores/builder.store.ts',
+    ].map(source),
+  );
+  const combinedSources = builtInMediaSources.join('\n');
+  const bundledImagePaths = [
+    ...combinedSources.matchAll(/['"]((?:\.\/)?images\/landing\/[^'"]+\.webp)['"]/g),
+  ].map((match) => match[1].replace(/^\.\//u, ''));
+
+  assert.doesNotMatch(combinedSources, /https:\/\/images\.unsplash\.com/u);
+  assert.ok(bundledImagePaths.length >= 18);
+
+  for (const imagePath of new Set(bundledImagePaths)) {
+    const image = await readFile(new URL(`../public/${imagePath}`, import.meta.url));
+
+    assert.ok(image.byteLength > 0, `${imagePath} must not be empty`);
+  }
+});
+
+test('landing creation surfaces repository and validation errors in the wizard', async () => {
+  const [component, template] = await Promise.all([
+    source('src/app/features/builder/pages/create-landing-page/create-landing-page.component.ts'),
+    source('src/app/features/builder/pages/create-landing-page/create-landing-page.component.html'),
+  ]);
+
+  assert.match(component, /readonly projectError = this\.builderStore\.projectError/u);
+  assert.match(template, /@if \(projectError\(\); as error\)/u);
+  assert.match(template, /role="alert"/u);
+});
+
+test('builder teardown stops debounce before flushing the pending edit', async () => {
+  const builderPage = await source(
+    'src/app/features/builder/pages/builder-page/builder-page.component.ts',
+  );
+
+  assert.match(
+    builderPage,
+    /ngOnDestroy\(\): void \{[\s\S]*this\.autosave\.stop\(\);[\s\S]*void this\.autosave\.flushPending\(\);[\s\S]*\}/u,
+  );
+});
+
 test('landing fragment links keep the current published route', async () => {
   const directive = await source(
     'src/app/features/preview/ui/landing-link/landing-link.directive.ts',

@@ -87,7 +87,8 @@
         id="page-title"
         type="text"
         [value]="page.title"
-        (change)="renamePage(page.id, $event)"
+        (input)="renamePage(page.id, $event)"
+        (blur)="restorePageIdentity(page.id, 'title', $event)"
       />
 
       <label for="page-slug">Адрес страницы</label>
@@ -95,7 +96,8 @@
         id="page-slug"
         type="text"
         [value]="page.slug"
-        (change)="updatePageSlug(page.id, $event)"
+        (input)="updatePageSlug(page.id, $event)"
+        (blur)="restorePageIdentity(page.id, 'slug', $event)"
       />
 
       <label for="page-seo-title">SEO title</label>
@@ -104,7 +106,7 @@
         type="text"
         maxlength="70"
         [value]="page.seo.title"
-        (change)="updatePageSeo(page.id, 'title', $event)"
+        (input)="updatePageSeo(page.id, 'title', $event)"
       />
 
       <label for="page-seo-description">SEO description</label>
@@ -113,7 +115,7 @@
         rows="3"
         maxlength="180"
         [value]="page.seo.description"
-        (change)="updatePageSeo(page.id, 'description', $event)"
+        (input)="updatePageSeo(page.id, 'description', $event)"
       ></textarea>
 
       <label class="page-manager__checkbox" for="page-seo-noindex">

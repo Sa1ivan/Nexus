@@ -97,6 +97,7 @@ export class BuilderStore {
   private readonly documentRevisionSignal = signal(0);
   private fallbackElementId = 0;
   private projectImportSequence = 0;
+  private projectInitializationSequence = 0;
   private projectImportInProgress = false;
 
   readonly currentProject = this.projectStore.currentProject;
@@ -155,10 +156,22 @@ export class BuilderStore {
 
   async initialize(projectId?: string): Promise<void> {
     this.projectImportSequence += 1;
+    const initializationSequence = ++this.projectInitializationSequence;
+
+    if (projectId !== undefined) {
+      this.hydrateSiteConfig(DEFAULT_SITE_CONFIG);
+    }
+
     const siteConfig = await this.projectStore.initialize(projectId);
+
+    if (initializationSequence !== this.projectInitializationSequence) {
+      return;
+    }
 
     if (siteConfig !== null) {
       this.hydrateSiteConfig(siteConfig);
+    } else if (projectId !== undefined && this.currentProject() === null) {
+      this.hydrateSiteConfig(DEFAULT_SITE_CONFIG);
     }
   }
 
@@ -833,7 +846,7 @@ export class BuilderStore {
             price: 'от 0 ₽',
             badge: 'Новое',
             image: {
-              src: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
+              src: 'images/landing/product-1.webp',
               alt: 'Новый пункт предложения',
             },
             cta: createLink('Подробнее', '#lead-form'),
@@ -953,7 +966,7 @@ export class BuilderStore {
               {
                 id: this.createElementId('gallery'),
                 image: {
-                  src: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80',
+                  src: 'images/landing/product-2.webp',
                   alt: 'Новый кадр галереи',
                   focalPoint: { x: 50, y: 50 },
                 },

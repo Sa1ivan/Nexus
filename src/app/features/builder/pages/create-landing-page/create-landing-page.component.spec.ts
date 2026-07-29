@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,24 +10,32 @@ import { CreateLandingPageComponent } from './create-landing-page.component';
 describe('CreateLandingPageComponent', () => {
   const createLandingDraft = vi.fn();
   const navigate = vi.fn();
+  const projectError = signal<string | null>(null);
   let component: CreateLandingPageComponent;
 
   beforeEach(() => {
     createLandingDraft.mockReset();
     navigate.mockReset();
+    projectError.set(null);
     TestBed.configureTestingModule({
       providers: [
-        { provide: BuilderStore, useValue: { createLandingDraft } },
+        {
+          provide: BuilderStore,
+          useValue: {
+            createLandingDraft,
+            projectError: projectError.asReadonly(),
+          },
+        },
         { provide: Router, useValue: { navigate } },
       ],
     });
     component = TestBed.runInInjectionContext(() => new CreateLandingPageComponent());
     component.selection.set({
-      industry: component.industryOptions[0].id,
-      tone: component.toneOptions[0].id,
-      header: component.headerOptions[0].id,
-      offerList: component.offerListOptions[0].id,
-      footer: component.footerOptions[0].id,
+      industry: 'restaurant',
+      tone: 'premium',
+      header: 'centeredHero',
+      offerList: 'menuGrid',
+      footer: 'contactMap',
     });
   });
 

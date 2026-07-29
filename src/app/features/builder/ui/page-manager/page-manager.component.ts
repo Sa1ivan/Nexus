@@ -34,7 +34,7 @@ export class PageManagerComponent {
   renamePage(pageId: string, event: Event): void {
     const input = this.readControl(event);
 
-    if (!this.builderStore.renamePage(pageId, input.value)) {
+    if (!this.builderStore.renamePage(pageId, input.value) && this.pageError() !== null) {
       input.value = this.findPage(pageId)?.title ?? '';
     }
   }
@@ -42,9 +42,15 @@ export class PageManagerComponent {
   updatePageSlug(pageId: string, event: Event): void {
     const input = this.readControl(event);
 
-    if (!this.builderStore.updatePageSlug(pageId, input.value)) {
+    if (!this.builderStore.updatePageSlug(pageId, input.value) && this.pageError() !== null) {
       input.value = this.findPage(pageId)?.slug ?? '';
     }
+  }
+
+  restorePageIdentity(pageId: string, field: 'title' | 'slug', event: Event): void {
+    const page = this.findPage(pageId);
+
+    this.readControl(event).value = page?.[field] ?? '';
   }
 
   updatePageSeo(pageId: string, field: 'title' | 'description', event: Event): void {

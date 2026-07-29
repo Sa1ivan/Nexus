@@ -99,6 +99,7 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroyed = true;
     this.autosave.stop();
+    void this.autosave.flushPending();
   }
 
   selectBlock(blockId: string): void {

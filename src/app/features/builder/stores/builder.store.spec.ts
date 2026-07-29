@@ -271,6 +271,54 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.documentRevision()).toBe(3);
   });
 
+  it('clears another project document when explicit route initialization fails', async () => {
+    const firstConfig = {
+      ...DEFAULT_SITE_CONFIG,
+      name: 'First project',
+    };
+    const firstProject = createProject(firstConfig, 'first-project');
+    vi.mocked(repository.getProject)
+      .mockResolvedValueOnce(firstProject)
+      .mockRejectedValueOnce(new Error('Project loading failed.'));
+
+    await builderStore.initialize(firstProject.id);
+    expect(builderStore.siteConfig().name).toBe('First project');
+
+    await builderStore.initialize('second-project');
+
+    expect(builderStore.currentProject()).toBeNull();
+    expect(builderStore.siteConfig()).toBe(DEFAULT_SITE_CONFIG);
+    expect(builderStore.projectError()).toBe('Project loading failed.');
+  });
+
+  it('clears another project document before an explicit route lookup resolves', async () => {
+    const firstConfig = {
+      ...DEFAULT_SITE_CONFIG,
+      name: 'First project',
+    };
+    const firstProject = createProject(firstConfig, 'first-project');
+    const secondLookup = createDeferred<Project | null>();
+    vi.mocked(repository.getProject)
+      .mockResolvedValueOnce(firstProject)
+      .mockReturnValueOnce(secondLookup.promise);
+
+    await builderStore.initialize(firstProject.id);
+    builderStore.updateSiteName('Unsaved stale edit');
+    const secondInitialization = builderStore.initialize('second-project');
+
+    expect(builderStore.currentProject()).toBeNull();
+    expect(builderStore.siteConfig()).toBe(DEFAULT_SITE_CONFIG);
+    expect(builderStore.activePageId()).toBe(DEFAULT_SITE_CONFIG.pages[0]?.id);
+    expect(builderStore.selectedBlockId()).toBe(DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id);
+    expect(builderStore.canUndo()).toBe(false);
+
+    secondLookup.resolve(null);
+    await secondInitialization;
+
+    expect(builderStore.siteConfig()).toBe(DEFAULT_SITE_CONFIG);
+    expect(builderStore.projectError()).toBe('Проект не найден.');
+  });
+
   it('adds and edits a page while selecting it by stable id', () => {
     expect(builderStore.addPage('О компании')).toBe(true);
 

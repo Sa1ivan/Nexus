@@ -36,6 +36,10 @@ export class BuilderAutosaveService {
     this.subscription = null;
   }
 
+  flushPending(): Promise<void> {
+    return this.projectStore.saveStatus() === 'dirty' ? this.flush() : this.saveQueue;
+  }
+
   flush(): Promise<void> {
     const revision = this.builderStore.documentRevision();
 
@@ -43,7 +47,11 @@ export class BuilderAutosaveService {
       return this.saveQueue;
     }
 
-    if (this.projectStore.currentProject() !== null && this.projectStore.saveStatus() !== 'dirty') {
+    if (
+      this.projectStore.currentProject() !== null &&
+      this.projectStore.saveStatus() !== 'dirty' &&
+      this.projectStore.saveStatus() !== 'error'
+    ) {
       return this.saveQueue;
     }
 
@@ -59,7 +67,15 @@ export class BuilderAutosaveService {
     this.saveQueue = this.saveQueue
       .catch(() => undefined)
       .then(async () => {
-        await this.projectStore.save(snapshot);
+        const savedProject = await this.projectStore.save(snapshot);
+
+        if (
+          savedProject === null &&
+          !this.projectStore.hasVersionConflict() &&
+          this.lastQueuedRevision === revision
+        ) {
+          this.lastQueuedRevision = null;
+        }
 
         if (this.builderStore.documentRevision() !== revision) {
           this.projectStore.markDirty();

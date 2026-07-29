@@ -143,6 +143,7 @@ export class CreateLandingPageComponent {
   readonly currentStepIndex = signal<number>(0);
   readonly isPreviewOpen = signal<boolean>(false);
   readonly creating = signal(false);
+  readonly projectError = this.builderStore.projectError;
   private previewTrigger: HTMLElement | null = null;
   readonly designByStep = signal<LandingDesignByStep>(
     createDesignByStep(DEFAULT_LANDING_DESIGN_SETTINGS),

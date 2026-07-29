@@ -193,29 +193,29 @@ const NAVIGATION_TARGETS: Readonly<Record<LandingIndustry, readonly string[]>> =
 
 const OFFER_IMAGE_URLS: Readonly<Record<LandingIndustry, readonly string[]>> = {
   restaurant: [
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80',
+    'images/landing/restaurant-1.webp',
+    'images/landing/restaurant-2.webp',
+    'images/landing/restaurant-3.webp',
   ],
   hotel: [
-    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80',
+    'images/landing/hotel-1.webp',
+    'images/landing/hotel-2.webp',
+    'images/landing/hotel-3.webp',
   ],
   beauty: [
-    'https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=900&q=80',
+    'images/landing/beauty-1.webp',
+    'images/landing/beauty-2.webp',
+    'images/landing/beauty-3.webp',
   ],
   product: [
-    'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
+    'images/landing/product-1.webp',
+    'images/landing/product-2.webp',
+    'images/landing/product-3.webp',
   ],
   education: [
-    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80',
+    'images/landing/education-1.webp',
+    'images/landing/education-2.webp',
+    'images/landing/education-3.webp',
   ],
 };
 

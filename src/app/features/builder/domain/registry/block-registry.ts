@@ -410,7 +410,7 @@ export function createDefaultBlock(
         buttonHref: '#lead-form',
         secondaryButton: createLink('Посмотреть предложения', '#offers'),
         media: {
-          src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+          src: 'images/landing/office-studio.webp',
           alt: 'Рабочее пространство и экран конструктора',
           focalPoint: { x: 50, y: 50 },
         },
@@ -430,7 +430,7 @@ export function createDefaultBlock(
         body: 'Расскажите о подходе, продукте или команде без общих фраз. Добавьте факты, процесс и понятный следующий шаг.',
         cta: createLink('Узнать подробнее', '#lead-form'),
         media: {
-          src: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80',
+          src: 'images/landing/office-collaboration.webp',
           alt: 'Команда обсуждает проект за общим столом',
           focalPoint: { x: 50, y: 50 },
         },
@@ -792,7 +792,7 @@ export function createDefaultOffers(): readonly OfferListItem[] {
       price: 'от 4 900 ₽',
       badge: 'Популярно',
       image: {
-        src: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
+        src: 'images/landing/product-1.webp',
         alt: 'Пример продукта или услуги',
       },
       cta: createLink('Подробнее', '#lead-form'),
@@ -804,7 +804,7 @@ export function createDefaultOffers(): readonly OfferListItem[] {
       meta: 'Про',
       price: 'от 9 900 ₽',
       image: {
-        src: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80',
+        src: 'images/landing/office-open.webp',
         alt: 'Карточка предложения с рабочими материалами',
       },
       cta: createLink('Выбрать', '#lead-form'),
@@ -816,7 +816,7 @@ export function createDefaultOffers(): readonly OfferListItem[] {
       meta: 'Плюс',
       price: 'индивидуально',
       image: {
-        src: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
+        src: 'images/landing/product-3.webp',
         alt: 'Команда обсуждает предложение',
       },
       cta: createLink('Обсудить', '#lead-form'),
@@ -855,7 +855,7 @@ export function createDefaultGalleryItems(): readonly GalleryItem[] {
     {
       id: createElementId('gallery'),
       image: {
-        src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+        src: 'images/landing/office-studio.webp',
         alt: 'Светлое рабочее пространство современной студии',
         focalPoint: { x: 50, y: 50 },
       },
@@ -864,7 +864,7 @@ export function createDefaultGalleryItems(): readonly GalleryItem[] {
     {
       id: createElementId('gallery'),
       image: {
-        src: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80',
+        src: 'images/landing/office-open.webp',
         alt: 'Команда работает в открытом офисе',
         focalPoint: { x: 50, y: 50 },
       },
@@ -873,7 +873,7 @@ export function createDefaultGalleryItems(): readonly GalleryItem[] {
     {
       id: createElementId('gallery'),
       image: {
-        src: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80',
+        src: 'images/landing/product-1.webp',
         alt: 'Совместное обсуждение проекта за столом',
         focalPoint: { x: 50, y: 50 },
       },
@@ -882,7 +882,7 @@ export function createDefaultGalleryItems(): readonly GalleryItem[] {
     {
       id: createElementId('gallery'),
       image: {
-        src: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80',
+        src: 'images/landing/product-2.webp',
         alt: 'Специалисты обсуждают результаты на экране',
         focalPoint: { x: 50, y: 50 },
       },

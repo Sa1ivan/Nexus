@@ -457,6 +457,16 @@
   color: #ffffff;
 }
 
+.wizard__error {
+  margin: 0;
+  padding: 12px clamp(20px, 3.2vw, 38px);
+  border-top: 1px solid rgba(185, 28, 28, 0.18);
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .wizard__actions {
   display: flex;
   align-items: center;

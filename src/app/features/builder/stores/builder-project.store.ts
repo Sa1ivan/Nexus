@@ -19,6 +19,7 @@ export class BuilderProjectStore {
   private readonly currentProjectSignal = signal<Project | null>(null);
   private readonly saveStatusSignal = signal<ProjectSaveStatus>('idle');
   private readonly projectErrorSignal = signal<string | null>(null);
+  private readonly versionConflictSignal = signal(false);
   private readonly initializedSignal = signal(false);
   private sessionEpoch = 0;
   private documentGeneration = 0;
@@ -29,6 +30,7 @@ export class BuilderProjectStore {
   readonly currentProject = this.currentProjectSignal.asReadonly();
   readonly saveStatus = this.saveStatusSignal.asReadonly();
   readonly projectError = this.projectErrorSignal.asReadonly();
+  readonly hasVersionConflict = this.versionConflictSignal.asReadonly();
   readonly initialized = this.initializedSignal.asReadonly();
   readonly publishedUrl = computed(() => {
     const project = this.currentProject();
@@ -41,6 +43,12 @@ export class BuilderProjectStore {
     this.activeWriteId = null;
     this.initializedSignal.set(false);
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
+
+    if (projectId !== undefined) {
+      this.currentProjectSignal.set(null);
+      this.saveStatusSignal.set('idle');
+    }
 
     try {
       const project =
@@ -102,6 +110,7 @@ export class BuilderProjectStore {
     const documentGeneration = this.documentGeneration;
     this.saveStatusSignal.set('saving');
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
 
     try {
       const project = await this.repository.createProject({ siteConfig });
@@ -138,6 +147,7 @@ export class BuilderProjectStore {
     const projectId = currentProject?.id ?? null;
     this.saveStatusSignal.set('saving');
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
 
     try {
       const project =
@@ -179,6 +189,7 @@ export class BuilderProjectStore {
     const documentGeneration = this.documentGeneration;
     this.saveStatusSignal.set('saving');
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
 
     try {
       const currentProject =
@@ -224,6 +235,7 @@ export class BuilderProjectStore {
     this.documentGeneration += 1;
     this.saveStatusSignal.set('dirty');
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
   }
 
   reportError(message: string, preserveSaveStatus = false): void {
@@ -232,12 +244,14 @@ export class BuilderProjectStore {
     }
 
     this.projectErrorSignal.set(message);
+    this.versionConflictSignal.set(false);
   }
 
   private applyProject(project: Project, saveStatus: ProjectSaveStatus): void {
     this.currentProjectSignal.set(project);
     this.saveStatusSignal.set(saveStatus);
     this.projectErrorSignal.set(null);
+    this.versionConflictSignal.set(false);
   }
 
   private activateProject(projectId: string): Promise<void> {
@@ -291,11 +305,12 @@ export class BuilderProjectStore {
   }
 
   private handleError(error: unknown): void {
+    const isVersionConflict = error instanceof ProjectVersionConflictError;
+
     this.saveStatusSignal.set('error');
+    this.versionConflictSignal.set(isVersionConflict);
     this.projectErrorSignal.set(
-      error instanceof ProjectVersionConflictError
-        ? CONFLICT_MESSAGE
-        : this.readErrorMessage(error),
+      isVersionConflict ? CONFLICT_MESSAGE : this.readErrorMessage(error),
     );
   }
 

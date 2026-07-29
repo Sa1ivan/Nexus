@@ -107,7 +107,7 @@ describe('PageManagerComponent', () => {
     expect(store.duplicatePage).toHaveBeenCalledWith(aboutPage.id);
   });
 
-  it('updates page identity only after a completed field change', () => {
+  it('updates page identity on input', () => {
     const fixture = TestBed.createComponent(PageManagerComponent);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
@@ -119,17 +119,61 @@ describe('PageManagerComponent', () => {
     slugInput.value = 'about-us';
     slugInput.dispatchEvent(new Event('input'));
 
-    expect(store.renamePage).not.toHaveBeenCalled();
-    expect(store.updatePageSlug).not.toHaveBeenCalled();
-
-    titleInput.dispatchEvent(new Event('change'));
-    slugInput.dispatchEvent(new Event('change'));
-
     expect(store.renamePage).toHaveBeenCalledWith(homePage.id, 'О студии');
     expect(store.updatePageSlug).toHaveBeenCalledWith(homePage.id, 'about-us');
   });
 
   it('restores accepted identity values when the store rejects a change', () => {
+    store.renamePage.mockImplementationOnce(() => {
+      pageError.set('Введите название страницы.');
+      return false;
+    });
+    store.updatePageSlug.mockImplementationOnce(() => {
+      pageError.set('Этот адрес страницы зарезервирован системой.');
+      return false;
+    });
+    const fixture = TestBed.createComponent(PageManagerComponent);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const titleInput = root.querySelector<HTMLInputElement>('#page-title')!;
+    const slugInput = root.querySelector<HTMLInputElement>('#page-slug')!;
+
+    titleInput.value = '';
+    titleInput.dispatchEvent(new Event('input'));
+    slugInput.value = 'builder';
+    slugInput.dispatchEvent(new Event('input'));
+
+    expect(titleInput.value).toBe('Главная');
+    expect(slugInput.value).toBe('home');
+  });
+
+  it('preserves incomplete separators while typing a title and slug', () => {
+    store.renamePage.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    store.updatePageSlug.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const fixture = TestBed.createComponent(PageManagerComponent);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const titleInput = root.querySelector<HTMLInputElement>('#page-title')!;
+    const slugInput = root.querySelector<HTMLInputElement>('#page-slug')!;
+
+    titleInput.value = 'Главная ';
+    titleInput.dispatchEvent(new Event('input'));
+    expect(titleInput.value).toBe('Главная ');
+
+    titleInput.value += 'страница';
+    titleInput.dispatchEvent(new Event('input'));
+    expect(store.renamePage).toHaveBeenLastCalledWith(homePage.id, 'Главная страница');
+
+    slugInput.value = 'home-';
+    slugInput.dispatchEvent(new Event('input'));
+    expect(slugInput.value).toBe('home-');
+
+    slugInput.value += 'page';
+    slugInput.dispatchEvent(new Event('input'));
+    expect(store.updatePageSlug).toHaveBeenLastCalledWith(homePage.id, 'home-page');
+  });
+
+  it('restores canonical page identity values after leaving an input', () => {
     store.renamePage.mockReturnValueOnce(false);
     store.updatePageSlug.mockReturnValueOnce(false);
     const fixture = TestBed.createComponent(PageManagerComponent);
@@ -138,16 +182,18 @@ describe('PageManagerComponent', () => {
     const titleInput = root.querySelector<HTMLInputElement>('#page-title')!;
     const slugInput = root.querySelector<HTMLInputElement>('#page-slug')!;
 
-    titleInput.value = '';
-    titleInput.dispatchEvent(new Event('change'));
-    slugInput.value = 'builder';
-    slugInput.dispatchEvent(new Event('change'));
+    titleInput.value = 'Главная ';
+    titleInput.dispatchEvent(new Event('input'));
+    titleInput.dispatchEvent(new Event('blur'));
+    slugInput.value = 'home-';
+    slugInput.dispatchEvent(new Event('input'));
+    slugInput.dispatchEvent(new Event('blur'));
 
     expect(titleInput.value).toBe('Главная');
     expect(slugInput.value).toBe('home');
   });
 
-  it('updates page SEO fields and noindex on change', () => {
+  it('updates page SEO fields on input and noindex on change', () => {
     const fixture = TestBed.createComponent(PageManagerComponent);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
@@ -156,9 +202,9 @@ describe('PageManagerComponent', () => {
     const noIndexInput = root.querySelector<HTMLInputElement>('#page-seo-noindex')!;
 
     titleInput.value = 'Главная — Nexus';
-    titleInput.dispatchEvent(new Event('change'));
+    titleInput.dispatchEvent(new Event('input'));
     descriptionInput.value = 'Описание главной страницы';
-    descriptionInput.dispatchEvent(new Event('change'));
+    descriptionInput.dispatchEvent(new Event('input'));
     noIndexInput.checked = true;
     noIndexInput.dispatchEvent(new Event('change'));
 
@@ -181,9 +227,9 @@ describe('PageManagerComponent', () => {
     const descriptionInput = root.querySelector<HTMLTextAreaElement>('#page-seo-description')!;
 
     titleInput.value = '   ';
-    titleInput.dispatchEvent(new Event('change'));
+    titleInput.dispatchEvent(new Event('input'));
     descriptionInput.value = 'A'.repeat(181);
-    descriptionInput.dispatchEvent(new Event('change'));
+    descriptionInput.dispatchEvent(new Event('input'));
 
     expect(store.updatePageSeo).not.toHaveBeenCalled();
     expect(titleInput.value).toBe('Главная');

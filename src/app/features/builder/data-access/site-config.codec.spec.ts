@@ -113,6 +113,46 @@ describe('SiteConfigCodec', () => {
     }
   });
 
+  it('migrates previously built-in Unsplash media to the bundled asset', () => {
+    const page = DEFAULT_SITE_CONFIG.pages[0];
+
+    if (page === undefined) {
+      throw new Error('Page fixture is missing.');
+    }
+
+    const value = {
+      ...DEFAULT_SITE_CONFIG,
+      pages: [
+        {
+          ...page,
+          blocks: page.blocks.map((block) =>
+            block.type === 'hero'
+              ? {
+                  ...block,
+                  media: {
+                    src: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+                    alt: 'Legacy built-in image',
+                  },
+                }
+              : block,
+          ),
+        },
+      ],
+    };
+
+    const result = codec.decode(JSON.stringify(value));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      const hero = result.value.pages[0]?.blocks.find((block) => block.type === 'hero');
+
+      expect(hero?.type === 'hero' ? hero.media?.src : null).toBe(
+        'images/landing/office-studio.webp',
+      );
+    }
+  });
+
   it('reports an invalid shape when normalization throws', () => {
     const page = DEFAULT_SITE_CONFIG.pages[0];
 
