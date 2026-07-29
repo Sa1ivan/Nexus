@@ -151,3 +151,60 @@ test('saves and publishes a project recovered from schema version 2', async ({ p
   await page.getByRole('button', { name: 'Еще действия' }).click();
   await expect(page.getByRole('menuitem', { name: 'Локальная ссылка' })).toBeVisible();
 });
+
+test('wizard and theme editor stay compact inside their own containers', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/create');
+
+  await page.getByRole('button', { name: /Отель/u }).click();
+  await page.getByRole('button', { name: 'Дальше' }).click();
+  await page.getByRole('button', { name: /Премиально/u }).click();
+  await page.getByRole('button', { name: 'Дальше' }).click();
+  await page.getByRole('button', { name: /Бургер-меню/u }).click();
+  await page.getByRole('button', { name: 'Дальше' }).click();
+  await page.getByRole('button', { name: /Карточки номеров/u }).click();
+  await page.getByRole('button', { name: 'Дальше' }).click();
+  await page.getByRole('button', { name: /Контакты \+ карта/u }).click();
+  await page.getByRole('button', { name: 'Дальше' }).click();
+
+  const summaryItems = page.locator('.wizard__summary-item');
+  await expect(summaryItems).toHaveCount(6);
+
+  for (const item of await summaryItems.all()) {
+    const labelBox = await item.locator('small').boundingBox();
+    const valueBox = await item.locator('strong').boundingBox();
+    const cardBox = await item.boundingBox();
+
+    expect(labelBox).not.toBeNull();
+    expect(valueBox).not.toBeNull();
+    expect(cardBox).not.toBeNull();
+    expect(valueBox!.y).toBeGreaterThanOrEqual(labelBox!.y + labelBox!.height);
+    expect(cardBox!.height).toBeLessThan(120);
+  }
+
+  const previewBody = page.locator('.wizard-preview__body');
+  const previewGeometry = await previewBody.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(previewGeometry.scrollWidth).toBeLessThanOrEqual(previewGeometry.clientWidth);
+
+  const heroTitleSize = await page
+    .locator('.wizard__preview .hero-block__title')
+    .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(heroTitleSize).toBeLessThanOrEqual(38);
+
+  await page.goto('/builder');
+  await page.getByRole('tab', { name: 'Тема' }).click();
+
+  const themeFields = page.locator('.site-editor__grid .site-editor__field');
+  const firstField = await themeFields.nth(0).boundingBox();
+  const secondField = await themeFields.nth(1).boundingBox();
+
+  expect(firstField).not.toBeNull();
+  expect(secondField).not.toBeNull();
+  expect(secondField!.y).toBeGreaterThanOrEqual(firstField!.y + firstField!.height);
+
+  await page.getByLabel('Акцент: значение RGB').fill('rgb(12, 34, 56)');
+  await expect(page.getByLabel('Акцент: палитра')).toHaveValue('#0c2238');
+});

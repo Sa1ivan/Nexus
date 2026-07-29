@@ -57,7 +57,7 @@ header > p:last-child,
   place-items: center;
   border-radius: 50%;
   background: var(--block-accent);
-  color: #fff;
+  color: var(--block-accent-contrast, #fff);
   font-weight: 800;
 }
 h3 {

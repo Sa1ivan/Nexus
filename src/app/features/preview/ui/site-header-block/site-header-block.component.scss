@@ -110,7 +110,7 @@
 .site-header__cta {
   padding: 0 20px;
   background: var(--landing-accent, #111827);
-  color: #ffffff;
+  color: var(--landing-accent-contrast, #ffffff);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--landing-accent, #111827), transparent 72%);
   overflow-wrap: anywhere;
   text-align: center;
@@ -213,7 +213,7 @@
   border-radius: min(calc(var(--landing-radius, 8px) + 3px), 13px);
   background: var(--landing-accent, #2563eb);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--landing-accent, #2563eb), transparent 76%);
-  color: #ffffff;
+  color: var(--landing-accent-contrast, #ffffff);
   font-size: 14px;
   font-weight: 800;
   line-height: 1;
@@ -452,6 +452,13 @@
     text-align: center;
   }
 
+  .site-header__brand {
+    overflow: hidden;
+    font-size: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .site-header__nav {
     justify-content: center;
   }
@@ -477,7 +484,7 @@
   }
 
   .site-header--booking .site-header__shell {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     justify-items: stretch;
   }
 
@@ -491,7 +498,7 @@
   }
 
   .site-header--booking .site-header__cta {
-    width: auto;
+    width: 100%;
     min-height: 38px;
     padding-inline: 12px;
   }
@@ -516,6 +523,24 @@
 
   .site-header--burger.site-header--menu-open .site-header__cta {
     display: inline-flex;
+  }
+}
+
+@container site-preview (max-width: 380px) {
+  .site-header {
+    padding: 10px;
+  }
+
+  .site-header__shell {
+    padding: 8px;
+  }
+
+  .site-header__booking-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-header__booking-action {
+    grid-column: auto;
   }
 }
 

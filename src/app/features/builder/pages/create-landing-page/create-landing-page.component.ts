@@ -35,6 +35,7 @@ import type {
   CompleteLandingWizardSelection,
   LandingBlueprintItem,
   LandingAccentColor,
+  LandingAccentRgb,
   LandingDensity,
   LandingDesignOption,
   LandingDesignSettings,
@@ -50,7 +51,12 @@ import type {
   LandingWizardStep,
   LandingWizardStepId,
 } from '../../domain/models';
-import { DEFAULT_LANDING_DESIGN_SETTINGS } from '../../domain/models';
+import {
+  DEFAULT_LANDING_DESIGN_SETTINGS,
+  getLandingAccentRgb,
+  getLandingAccentValue,
+  rgbChannelsToAccent,
+} from '../../domain/models';
 import { BuilderStore } from '../../stores/builder.store';
 import { lockDocumentScroll } from '../../../../shared/utils/document-scroll-lock';
 import { LandingWizardPreviewComponent } from './landing-wizard-preview/landing-wizard-preview.component';
@@ -73,6 +79,15 @@ interface LandingBusinessDetails {
 const REQUIRED_STEP_COUNT = 5;
 const UNSELECTED_LABEL = 'Не выбрано';
 const DEFAULT_PREVIEW_INDUSTRY: LandingIndustry = 'product';
+const LANDING_RGB_CHANNELS: readonly {
+  readonly id: LandingAccentRgbChannel;
+  readonly shortLabel: string;
+  readonly label: string;
+}[] = [
+  { id: 'red', shortLabel: 'R', label: 'Красный' },
+  { id: 'green', shortLabel: 'G', label: 'Зеленый' },
+  { id: 'blue', shortLabel: 'B', label: 'Синий' },
+];
 const DEFAULT_BUSINESS_DETAILS: LandingBusinessDetails = {
   brandName: 'Nexus Studio',
   heroTitle: 'Лендинг, который понятно объясняет ценность',
@@ -94,6 +109,7 @@ type LandingChoiceId =
   | LandingDensity
   | LandingTemplateStyle;
 type BusinessDetailsField = keyof LandingBusinessDetails;
+type LandingAccentRgbChannel = keyof LandingAccentRgb;
 
 type LandingDesignByStep = Readonly<Record<LandingWizardStepId, LandingDesignSettings>>;
 
@@ -139,6 +155,7 @@ export class CreateLandingPageComponent {
   readonly fontOptions = LANDING_FONT_OPTIONS;
   readonly densityOptions = LANDING_DENSITY_OPTIONS;
   readonly templateStyleOptions = LANDING_TEMPLATE_STYLE_OPTIONS;
+  readonly accentRgbChannels = LANDING_RGB_CHANNELS;
 
   readonly currentStepIndex = signal<number>(0);
   readonly isPreviewOpen = signal<boolean>(false);
@@ -170,9 +187,11 @@ export class CreateLandingPageComponent {
   readonly currentStep = computed<LandingWizardStep>(
     () => this.stepDefinitions[this.currentStepIndex()] ?? this.stepDefinitions[0],
   );
-  readonly design = computed<LandingDesignSettings>(
-    () => this.designByStep()[this.currentStep().id],
-  );
+  readonly design = computed<LandingDesignSettings>(() => {
+    const stepId = this.currentStep().id;
+
+    return this.designByStep()[stepId === 'summary' ? 'industry' : stepId];
+  });
   readonly currentIndustry = computed<LandingIndustry | null>(() => this.selection().industry);
   readonly industryRecommendation = computed(
     () => LANDING_INDUSTRY_RECOMMENDATIONS[this.currentIndustry() ?? DEFAULT_PREVIEW_INDUSTRY],
@@ -335,7 +354,7 @@ export class CreateLandingPageComponent {
       header: selection.header ?? recommendation.header,
       offerList: selection.offerList ?? recommendation.offerList,
       footer: selection.footer ?? recommendation.footer,
-      design: this.design(),
+      design: this.designByStep().industry,
       stepDesigns: this.designByStep(),
       ...this.businessDetails(),
     };
@@ -427,6 +446,31 @@ export class CreateLandingPageComponent {
       ...design,
       accentColor,
     }));
+  }
+
+  updateAccentRgbChannel(channel: LandingAccentRgbChannel, event: Event): void {
+    const value = Number(this.readInputValue(event));
+
+    if (!Number.isFinite(value)) {
+      return;
+    }
+
+    const rgb = getLandingAccentRgb(this.design().accentColor);
+
+    this.selectAccentColor(
+      rgbChannelsToAccent({
+        ...rgb,
+        [channel]: value,
+      }),
+    );
+  }
+
+  getAccentRgbChannel(channel: LandingAccentRgbChannel): number {
+    return getLandingAccentRgb(this.design().accentColor)[channel];
+  }
+
+  getAccentValue(accentColor: LandingAccentColor): string {
+    return getLandingAccentValue(accentColor);
   }
 
   selectFontPairing(fontPairing: LandingFontPairing): void {
@@ -591,7 +635,7 @@ export class CreateLandingPageComponent {
       header,
       offerList,
       footer,
-      design: this.design(),
+      design: this.designByStep().industry,
       stepDesigns: this.designByStep(),
       ...this.businessDetails(),
     };
@@ -602,10 +646,49 @@ export class CreateLandingPageComponent {
   ): void {
     const stepId = this.currentStep().id;
 
+    if (stepId === 'industry' || stepId === 'summary') {
+      this.designByStep.update((designByStep) => {
+        const previousBase = designByStep.industry;
+        const nextBase = updater(previousBase);
+
+        return {
+          industry: nextBase,
+          tone: this.inheritBaseDesignUpdate(designByStep.tone, previousBase, nextBase),
+          header: this.inheritBaseDesignUpdate(designByStep.header, previousBase, nextBase),
+          offerList: this.inheritBaseDesignUpdate(designByStep.offerList, previousBase, nextBase),
+          footer: this.inheritBaseDesignUpdate(designByStep.footer, previousBase, nextBase),
+          summary: nextBase,
+        };
+      });
+      return;
+    }
+
     this.designByStep.update((designByStep) => ({
       ...designByStep,
       [stepId]: updater(designByStep[stepId]),
     }));
+  }
+
+  private inheritBaseDesignUpdate(
+    current: LandingDesignSettings,
+    previousBase: LandingDesignSettings,
+    nextBase: LandingDesignSettings,
+  ): LandingDesignSettings {
+    return {
+      accentColor:
+        current.accentColor === previousBase.accentColor
+          ? nextBase.accentColor
+          : current.accentColor,
+      fontPairing:
+        current.fontPairing === previousBase.fontPairing
+          ? nextBase.fontPairing
+          : current.fontPairing,
+      density: current.density === previousBase.density ? nextBase.density : current.density,
+      templateStyle:
+        current.templateStyle === previousBase.templateStyle
+          ? nextBase.templateStyle
+          : current.templateStyle,
+    };
   }
 
   private getOptionsByIds<TValue extends string>(

@@ -367,8 +367,36 @@
 }
 
 .wizard__summary-item {
-  min-height: 150px;
-  padding: 16px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-height: 76px;
+  padding: 14px;
+
+  > mat-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+  }
+
+  > span {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  small,
+  strong {
+    display: block;
+    min-width: 0;
+  }
+
+  strong {
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    line-height: 1.28;
+  }
 }
 
 .wizard__summary-item.is-complete {
@@ -400,7 +428,7 @@
 
 .wizard__editor-grid {
   display: grid;
-  grid-template-columns: minmax(138px, 0.72fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
@@ -422,8 +450,8 @@
 }
 
 .wizard__swatch {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   cursor: pointer;
 }
@@ -449,12 +477,76 @@
   font-size: 13px;
   font-weight: 760;
   cursor: pointer;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    font-size: 18px;
+  }
+
+  span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 .wizard__segments button.is-selected {
   border-color: rgba(17, 17, 19, 0.5);
   background: #111113;
   color: #ffffff;
+}
+
+.wizard__rgb {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+
+  label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 32px;
+    padding: 3px 5px 3px 7px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #ffffff;
+  }
+
+  span {
+    color: #61666d;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #111113;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    outline: 0;
+    appearance: textfield;
+  }
+
+  input::-webkit-inner-spin-button,
+  input::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  label:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
 }
 
 .wizard__error {

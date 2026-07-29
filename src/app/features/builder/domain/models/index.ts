@@ -36,11 +36,20 @@ export type {
 export type { CompleteLandingWizardSelection } from './landing-wizard.model';
 export {
   DEFAULT_LANDING_DESIGN_SETTINGS,
+  formatLandingAccentRgb,
+  getLandingAccentRgb,
   getLandingAccentValue,
   getLandingFontFamily,
   getLandingHeaderPaddingY,
   getLandingRadiusValue,
+  getReadableTextColor,
   getLandingSectionPaddingY,
+  isCustomAccentColor,
+  isLandingAccentPreset,
+  LANDING_ACCENT_VALUES,
+  LANDING_FONT_FAMILIES,
+  parseLandingRgbColor,
+  rgbChannelsToAccent,
 } from './landing-design.model';
 export type {
   HeroBlockConfig,
@@ -51,6 +60,9 @@ export type {
 export type { LinkConfig, LinkConfigUpdate, LinkKind } from './link-config.model';
 export type {
   LandingAccentColor,
+  LandingAccentPreset,
+  LandingAccentRgb,
+  CustomAccentColor,
   LandingDensity,
   LandingDesignOption,
   LandingDesignSettings,

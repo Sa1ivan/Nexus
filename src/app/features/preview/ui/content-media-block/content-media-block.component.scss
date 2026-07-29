@@ -43,7 +43,7 @@ h2 {
   padding: 13px 18px;
   border-radius: var(--site-button-radius);
   background: var(--block-accent);
-  color: #fff;
+  color: var(--block-accent-contrast, #fff);
   font-weight: 750;
   text-decoration: none;
 }

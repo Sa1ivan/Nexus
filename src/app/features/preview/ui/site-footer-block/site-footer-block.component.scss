@@ -66,7 +66,7 @@
   border: 1px solid transparent;
   border-radius: calc(var(--landing-radius, 8px) + 999px);
   background: var(--landing-accent, #f97316);
-  color: #ffffff;
+  color: var(--landing-accent-contrast, #ffffff);
   box-shadow: 0 16px 40px color-mix(in srgb, var(--landing-accent, #f97316), transparent 68%);
   display: inline-flex;
   align-items: center;

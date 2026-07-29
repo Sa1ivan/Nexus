@@ -3,6 +3,8 @@ import {
   DEFAULT_SITE_SEO,
   DEFAULT_SITE_THEME,
   getLandingAccentValue,
+  getLandingRadiusValue,
+  getReadableTextColor,
   SITE_CONFIG_SCHEMA_VERSION,
 } from '../domain/models';
 import {
@@ -12,10 +14,12 @@ import {
   createMapSearchUrl,
 } from '../domain/registry/block-registry';
 import type {
+  BlockAppearanceOverrides,
   CompleteLandingWizardSelection,
   HeroContentAlignment,
   HeroBlockStyles,
   LandingDensity,
+  LandingDesignSettings,
   LandingHeaderVariant,
   LandingIndustry,
   LandingTemplateStyle,
@@ -297,6 +301,24 @@ function getHeroBackgroundColor(
   return fallback;
 }
 
+function getDesignAppearanceOverrides(
+  design: LandingDesignSettings,
+  baseDesign: LandingDesignSettings,
+): BlockAppearanceOverrides {
+  return {
+    accentColor:
+      design.accentColor === baseDesign.accentColor
+        ? undefined
+        : getLandingAccentValue(design.accentColor),
+    fontPairing: design.fontPairing === baseDesign.fontPairing ? undefined : design.fontPairing,
+    spacing: design.density === baseDesign.density ? undefined : design.density,
+    radius:
+      design.templateStyle === baseDesign.templateStyle
+        ? undefined
+        : Number.parseFloat(getLandingRadiusValue(design.templateStyle)),
+  };
+}
+
 export function buildLandingDraft(selection: CompleteLandingWizardSelection): SiteConfig {
   const preset = INDUSTRY_PRESETS[selection.industry];
   const toneStyles = TONE_STYLES[selection.tone];
@@ -312,7 +334,13 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
     selection.stepDesigns?.tone ?? selection.stepDesigns?.industry ?? selection.design;
   const offerListDesign = selection.stepDesigns?.offerList ?? selection.design;
   const footerDesign = selection.stepDesigns?.footer ?? selection.design;
-  const accentColor = getLandingAccentValue(heroDesign.accentColor);
+  const themeAccentColor = getLandingAccentValue(selection.design.accentColor);
+  const heroAccentColor = getLandingAccentValue(heroDesign.accentColor);
+  const heroBackgroundColor = getHeroBackgroundColor(
+    selection.tone,
+    heroDesign.templateStyle,
+    toneStyles.backgroundColor,
+  );
   const heroAlignment = getHeroAlignment(
     selection.header,
     heroDesign.templateStyle,
@@ -344,11 +372,11 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
     name: brandName,
     theme: {
       ...DEFAULT_SITE_THEME,
-      accentColor,
+      accentColor: themeAccentColor,
       fontPairing: selection.design.fontPairing,
       sectionSpacing: selection.design.density,
       typeScale: selection.design.templateStyle === 'editorial' ? 'display' : 'balanced',
-      radius: selection.design.templateStyle === 'editorial' ? 2 : 8,
+      radius: Number.parseFloat(getLandingRadiusValue(selection.design.templateStyle)),
     },
     business,
     seo: DEFAULT_SITE_SEO,
@@ -368,7 +396,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'header-main',
             anchor: 'header',
             type: 'siteHeader',
-            appearance: DEFAULT_BLOCK_APPEARANCE,
+            appearance: getDesignAppearanceOverrides(headerDesign, selection.design),
             hidden: false,
             design: headerDesign,
             inheritBusiness: true,
@@ -385,7 +413,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'hero-main',
             anchor: 'hero',
             type: 'hero',
-            appearance: DEFAULT_BLOCK_APPEARANCE,
+            appearance: getDesignAppearanceOverrides(heroDesign, selection.design),
             hidden: false,
             design: heroDesign,
             title: heroTitle,
@@ -400,12 +428,10 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             },
             styles: {
               ...toneStyles,
-              backgroundColor: getHeroBackgroundColor(
-                selection.tone,
-                heroDesign.templateStyle,
-                toneStyles.backgroundColor,
-              ),
-              buttonBackgroundColor: accentColor,
+              backgroundColor: heroBackgroundColor,
+              textColor: getReadableTextColor(heroBackgroundColor),
+              buttonBackgroundColor: heroAccentColor,
+              buttonTextColor: getReadableTextColor(heroAccentColor),
               minHeight: getHeroMinHeight(heroDesign.density),
               alignment: heroAlignment,
             },
@@ -451,7 +477,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'offers-main',
             anchor: 'offers',
             type: 'offerList',
-            appearance: DEFAULT_BLOCK_APPEARANCE,
+            appearance: getDesignAppearanceOverrides(offerListDesign, selection.design),
             hidden: false,
             design: offerListDesign,
             variant: selection.offerList,
@@ -613,7 +639,7 @@ export function buildLandingDraft(selection: CompleteLandingWizardSelection): Si
             id: 'footer-main',
             anchor: 'contact',
             type: 'siteFooter',
-            appearance: DEFAULT_BLOCK_APPEARANCE,
+            appearance: getDesignAppearanceOverrides(footerDesign, selection.design),
             hidden: false,
             design: footerDesign,
             inheritBusiness: true,

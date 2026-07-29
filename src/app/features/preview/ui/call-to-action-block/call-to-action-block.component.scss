@@ -1,5 +1,11 @@
 :host {
   display: block;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+:host * {
+  box-sizing: inherit;
 }
 .cta {
   position: relative;
@@ -20,6 +26,7 @@
   margin: auto;
 }
 .cta__copy {
+  min-width: 0;
   max-width: 680px;
 }
 .cta__copy p {
@@ -31,6 +38,7 @@
 }
 .cta h2 {
   margin: 0 0 14px;
+  overflow-wrap: anywhere;
   font-size: 42px;
   line-height: 1.08;
 }
@@ -43,6 +51,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 .cta__actions a {
   display: inline-flex;
@@ -50,7 +59,7 @@
   border: 1px solid var(--block-accent);
   border-radius: var(--site-button-radius);
   background: var(--block-accent);
-  color: #fff;
+  color: var(--block-accent-contrast, #fff);
   font-weight: 750;
   text-decoration: none;
 }
@@ -139,6 +148,7 @@
   }
   .cta__actions a {
     width: 100%;
+    min-width: 0;
     justify-content: center;
   }
   .cta h2 {

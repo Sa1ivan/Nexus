@@ -151,7 +151,7 @@
   border: 0;
   border-radius: calc(var(--landing-radius, 8px) + 999px);
   background: var(--landing-accent, #0f766e);
-  color: #ffffff;
+  color: var(--landing-accent-contrast, #ffffff);
   font: inherit;
   font-size: 15px;
   font-weight: 820;

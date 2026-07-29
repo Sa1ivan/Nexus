@@ -38,46 +38,26 @@
         </label>
 
         <div class="site-editor__color-grid">
-          <label class="site-editor__color">
-            <span>Фон страницы</span>
-            <input
-              type="color"
-              [value]="siteConfig().theme.pageBackground"
-              (input)="updateThemeColor('pageBackground', $event)"
-            />
-          </label>
-          <label class="site-editor__color">
-            <span>Поверхности</span>
-            <input
-              type="color"
-              [value]="siteConfig().theme.surfaceColor"
-              (input)="updateThemeColor('surfaceColor', $event)"
-            />
-          </label>
-          <label class="site-editor__color">
-            <span>Текст</span>
-            <input
-              type="color"
-              [value]="siteConfig().theme.textColor"
-              (input)="updateThemeColor('textColor', $event)"
-            />
-          </label>
-          <label class="site-editor__color">
-            <span>Вторичный текст</span>
-            <input
-              type="color"
-              [value]="siteConfig().theme.mutedTextColor"
-              (input)="updateThemeColor('mutedTextColor', $event)"
-            />
-          </label>
-          <label class="site-editor__color">
-            <span>Акцент</span>
-            <input
-              type="color"
-              [value]="siteConfig().theme.accentColor"
-              (input)="updateThemeColor('accentColor', $event)"
-            />
-          </label>
+          @for (option of themeColorOptions; track option.field) {
+            <label class="site-editor__color">
+              <span>{{ option.label }}</span>
+              <input
+                type="color"
+                [attr.aria-label]="option.label + ': палитра'"
+                [value]="themeColor(option.field)"
+                (input)="updateThemeColor(option.field, $event)"
+              />
+              <input
+                class="site-editor__rgb-input"
+                type="text"
+                inputmode="numeric"
+                placeholder="rgb(0, 0, 0)"
+                [attr.aria-label]="option.label + ': значение RGB'"
+                [value]="themeColorRgb(option.field)"
+                (input)="updateThemeRgbColor(option.field, $event)"
+              />
+            </label>
+          }
         </div>
       </section>
 
@@ -86,9 +66,9 @@
           <label class="site-editor__field">
             <span>Шрифтовая пара</span>
             <select [value]="siteConfig().theme.fontPairing" (change)="updateThemeFont($event)">
-              <option value="grotesk">Гротеск</option>
-              <option value="serif">Антиква</option>
-              <option value="rounded">Округлый</option>
+              @for (option of fontOptions; track option.id) {
+                <option [value]="option.id">{{ option.title }}</option>
+              }
             </select>
           </label>
           <label class="site-editor__field">

@@ -2,6 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
+import { LANDING_FONT_OPTIONS } from '../../data-access/landing-wizard-options';
+import {
+  formatLandingAccentRgb,
+  isCustomAccentColor,
+  parseLandingRgbColor,
+} from '../../domain/models';
 import type {
   ButtonShape,
   ContentWidth,
@@ -27,6 +33,17 @@ type SeoTextField = 'language';
 type BusinessLinkCollection = 'messengers' | 'socialLinks';
 type LinkTextField = 'label' | 'target';
 
+const THEME_COLOR_OPTIONS: readonly {
+  readonly field: ThemeColorField;
+  readonly label: string;
+}[] = [
+  { field: 'pageBackground', label: 'Фон страницы' },
+  { field: 'surfaceColor', label: 'Поверхности' },
+  { field: 'textColor', label: 'Текст' },
+  { field: 'mutedTextColor', label: 'Вторичный текст' },
+  { field: 'accentColor', label: 'Акцент' },
+];
+
 @Component({
   selector: 'app-site-settings-editor',
   standalone: true,
@@ -41,6 +58,8 @@ export class SiteSettingsEditorComponent {
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly activeTab = signal<SettingsTab>('theme');
+  readonly themeColorOptions = THEME_COLOR_OPTIONS;
+  readonly fontOptions = LANDING_FONT_OPTIONS;
 
   setTab(tab: SettingsTab): void {
     this.activeTab.set(tab);
@@ -52,6 +71,24 @@ export class SiteSettingsEditorComponent {
 
   updateThemeColor(field: ThemeColorField, event: Event): void {
     this.builderStore.updateSiteTheme({ [field]: this.readValue(event) });
+  }
+
+  updateThemeRgbColor(field: ThemeColorField, event: Event): void {
+    const color = parseLandingRgbColor(this.readValue(event));
+
+    if (color !== null) {
+      this.builderStore.updateSiteTheme({ [field]: color });
+    }
+  }
+
+  themeColor(field: ThemeColorField): string {
+    return this.siteConfig().theme[field];
+  }
+
+  themeColorRgb(field: ThemeColorField): string {
+    const color = this.themeColor(field);
+
+    return isCustomAccentColor(color) ? formatLandingAccentRgb(color) : '';
   }
 
   updateThemeFont(event: Event): void {

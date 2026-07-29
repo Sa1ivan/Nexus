@@ -293,7 +293,7 @@
 
 @container site-preview (max-width: 520px) {
   .hero-block {
-    padding: 52px 16px;
+    padding: 38px 14px;
   }
 
   .hero-block::before {
@@ -302,16 +302,27 @@
   }
 
   .hero-block__title {
-    font-size: clamp(38px, 13cqw, 56px);
+    font-size: clamp(28px, 9.5cqw, 42px);
+    line-height: 1.02;
   }
 
   .hero-block__subtitle {
-    margin-top: 20px;
+    margin-top: 16px;
+    font-size: clamp(15px, 4.8cqw, 18px);
+    line-height: 1.45;
   }
 
   .hero-block__button {
-    width: 100%;
-    max-width: 320px;
+    width: auto;
+    max-width: 100%;
+    min-height: 44px;
+    padding-inline: 18px;
+    font-size: 14px;
+  }
+
+  .hero-block__actions {
+    gap: 8px;
+    margin-top: 24px;
   }
 
   .hero-block__layout {
@@ -323,10 +334,14 @@
   }
 
   .hero-block--cover {
-    min-height: 520px;
+    min-height: 460px;
 
     .hero-block__media {
       min-height: 100%;
+    }
+
+    .hero-block__content {
+      padding-block: 42px;
     }
   }
 }

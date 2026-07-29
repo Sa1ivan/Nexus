@@ -1,5 +1,5 @@
 import type {
-  LandingAccentColor,
+  LandingAccentPreset,
   LandingDensity,
   LandingDesignOption,
   LandingDesignSettings,
@@ -208,7 +208,7 @@ export const LANDING_FOOTER_OPTIONS: readonly LandingOption<LandingFooterVariant
   },
 ] as const;
 
-export const LANDING_ACCENT_OPTIONS: readonly LandingDesignOption<LandingAccentColor>[] = [
+export const LANDING_ACCENT_OPTIONS: readonly LandingDesignOption<LandingAccentPreset>[] = [
   {
     id: 'teal',
     title: 'Тил',
@@ -239,6 +239,36 @@ export const LANDING_ACCENT_OPTIONS: readonly LandingDesignOption<LandingAccentC
     description: 'Теплый премиальный акцент.',
     icon: 'palette',
   },
+  {
+    id: 'indigo',
+    title: 'Индиго',
+    description: 'Глубокий продуктовый акцент.',
+    icon: 'palette',
+  },
+  {
+    id: 'cyan',
+    title: 'Циан',
+    description: 'Свежий цифровой акцент.',
+    icon: 'palette',
+  },
+  {
+    id: 'emerald',
+    title: 'Изумрудный',
+    description: 'Уверенный природный акцент.',
+    icon: 'palette',
+  },
+  {
+    id: 'orange',
+    title: 'Оранжевый',
+    description: 'Энергичный акцент для действий.',
+    icon: 'palette',
+  },
+  {
+    id: 'magenta',
+    title: 'Маджента',
+    description: 'Яркий креативный акцент.',
+    icon: 'palette',
+  },
 ] as const;
 
 export const LANDING_FONT_OPTIONS: readonly LandingDesignOption<LandingFontPairing>[] = [
@@ -259,6 +289,24 @@ export const LANDING_FONT_OPTIONS: readonly LandingDesignOption<LandingFontPairi
     title: 'Мягкий',
     description: 'Дружелюбный ритм.',
     icon: 'text_fields',
+  },
+  {
+    id: 'geometric',
+    title: 'Геометрический',
+    description: 'Четкий современный ритм.',
+    icon: 'text_fields',
+  },
+  {
+    id: 'humanist',
+    title: 'Гуманист',
+    description: 'Живая и спокойная подача.',
+    icon: 'text_fields',
+  },
+  {
+    id: 'mono',
+    title: 'Моно',
+    description: 'Технический характер и точность.',
+    icon: 'code',
   },
 ] as const;
 

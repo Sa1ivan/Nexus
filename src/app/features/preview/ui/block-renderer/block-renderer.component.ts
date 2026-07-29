@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import {
   DEFAULT_SITE_THEME,
   getLandingFontFamily,
+  getReadableTextColor,
   resolveBlockAppearance,
 } from '../../../builder/domain/models';
 import type {
@@ -176,6 +177,10 @@ export class BlockRendererComponent {
 
   blockAccent(block: PageBlockConfig): string {
     return resolveBlockAppearance(this.theme(), block.appearance).accentColor;
+  }
+
+  blockAccentContrast(block: PageBlockConfig): string {
+    return getReadableTextColor(this.blockAccent(block));
   }
 
   blockContentWidth(block: PageBlockConfig): string {

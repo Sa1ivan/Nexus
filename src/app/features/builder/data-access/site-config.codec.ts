@@ -19,6 +19,8 @@ import {
   DEFAULT_SITE_BUSINESS,
   DEFAULT_SITE_SEO,
   DEFAULT_SITE_THEME,
+  isCustomAccentColor,
+  isLandingAccentPreset,
   SITE_CONFIG_SCHEMA_VERSION,
 } from '../domain/models';
 import type {
@@ -964,17 +966,20 @@ export class SiteConfigCodec {
   }
 
   private readAccentColor(value: unknown): LandingAccentColor {
-    return value === 'blue' ||
-      value === 'rose' ||
-      value === 'violet' ||
-      value === 'amber' ||
-      value === 'teal'
+    return typeof value === 'string' && (isLandingAccentPreset(value) || isCustomAccentColor(value))
       ? value
       : 'teal';
   }
 
   private readFontPairing(value: unknown): LandingFontPairing {
-    return value === 'serif' || value === 'rounded' || value === 'grotesk' ? value : 'grotesk';
+    return value === 'serif' ||
+      value === 'rounded' ||
+      value === 'geometric' ||
+      value === 'humanist' ||
+      value === 'mono' ||
+      value === 'grotesk'
+      ? value
+      : 'grotesk';
   }
 
   private readTypeScale(value: unknown): TypeScale {

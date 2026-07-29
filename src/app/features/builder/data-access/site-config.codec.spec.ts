@@ -113,6 +113,83 @@ describe('SiteConfigCodec', () => {
     }
   });
 
+  it('round-trips custom design colors and additional font stacks', () => {
+    const page = DEFAULT_SITE_CONFIG.pages[0];
+
+    if (page === undefined) {
+      throw new Error('Page fixture is missing.');
+    }
+
+    const value = {
+      ...DEFAULT_SITE_CONFIG,
+      theme: {
+        ...DEFAULT_SITE_CONFIG.theme,
+        accentColor: '#0c2238',
+        fontPairing: 'humanist',
+      },
+      pages: [
+        {
+          ...page,
+          blocks: page.blocks.map((block) => ({
+            ...block,
+            design: {
+              accentColor: '#0c2238',
+              fontPairing: 'humanist',
+              density: 'balanced',
+              templateStyle: 'classic',
+            },
+          })),
+        },
+      ],
+    };
+
+    const result = codec.decode(JSON.stringify(value));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      expect(result.value.theme.fontPairing).toBe('humanist');
+      expect(result.value.pages[0]?.blocks[0]?.design).toMatchObject({
+        accentColor: '#0c2238',
+        fontPairing: 'humanist',
+      });
+    }
+  });
+
+  it('falls back from malformed custom design colors', () => {
+    const page = DEFAULT_SITE_CONFIG.pages[0];
+
+    if (page === undefined) {
+      throw new Error('Page fixture is missing.');
+    }
+
+    const value = {
+      ...DEFAULT_SITE_CONFIG,
+      pages: [
+        {
+          ...page,
+          blocks: page.blocks.map((block) => ({
+            ...block,
+            design: {
+              accentColor: '#oops',
+              fontPairing: 'grotesk',
+              density: 'balanced',
+              templateStyle: 'classic',
+            },
+          })),
+        },
+      ],
+    };
+
+    const result = codec.decode(JSON.stringify(value));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      expect(result.value.pages[0]?.blocks[0]?.design?.accentColor).toBe('teal');
+    }
+  });
+
   it('migrates previously built-in Unsplash media to the bundled asset', () => {
     const page = DEFAULT_SITE_CONFIG.pages[0];
 

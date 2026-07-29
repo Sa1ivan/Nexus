@@ -153,7 +153,7 @@
   padding: 0 16px;
   border-radius: calc(var(--landing-radius, 8px) + 999px);
   background: var(--landing-accent, #0f766e);
-  color: #ffffff;
+  color: var(--landing-accent-contrast, #ffffff);
   display: inline-flex;
   align-items: center;
   font-size: 14px;

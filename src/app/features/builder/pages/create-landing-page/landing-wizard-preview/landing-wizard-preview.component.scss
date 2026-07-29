@@ -5,6 +5,7 @@
 }
 
 .wizard-preview {
+  container: wizard-preview / inline-size;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
@@ -71,11 +72,27 @@
 }
 
 .wizard-preview__status strong {
+  flex-shrink: 0;
   min-width: 84px;
   color: #1d1d1f;
   font-size: 12px;
   font-weight: 760;
   text-align: right;
+}
+
+@container wizard-preview (max-width: 360px) {
+  .wizard-preview__status {
+    padding-inline: 12px;
+  }
+
+  .wizard-preview__status span {
+    font-size: 10px;
+  }
+
+  .wizard-preview__status strong {
+    min-width: auto;
+    font-size: 11px;
+  }
 }
 
 .wizard-preview__body {

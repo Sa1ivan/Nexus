@@ -344,9 +344,25 @@
                     type="button"
                     [class.is-selected]="design().accentColor === option.id"
                     [attr.aria-label]="option.title"
-                    [attr.data-accent]="option.id"
+                    [style.background-color]="getAccentValue(option.id)"
                     (click)="selectAccentColor(option.id)"
                   ></button>
+                }
+              </div>
+              <div class="wizard__rgb" aria-label="Свой цвет RGB">
+                @for (channel of accentRgbChannels; track channel.id) {
+                  <label>
+                    <span>{{ channel.shortLabel }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="255"
+                      step="1"
+                      [attr.aria-label]="channel.label + ' канал RGB'"
+                      [value]="getAccentRgbChannel(channel.id)"
+                      (input)="updateAccentRgbChannel(channel.id, $event)"
+                    />
+                  </label>
                 }
               </div>
             </div>
@@ -455,16 +471,8 @@
 
     <aside class="wizard__preview" aria-label="Предпросмотр лендинга">
       <app-landing-wizard-preview
-        [brandName]="businessDetails().brandName"
-        [offerName]="businessDetails().heroSubtitle"
-        [title]="businessDetails().heroTitle"
+        [selection]="previewSelection()"
         [stepLabel]="currentQuestionCopy().title"
-        [industry]="previewSelection().industry"
-        [tone]="previewSelection().tone"
-        [header]="previewSelection().header"
-        [offerList]="previewSelection().offerList"
-        [footer]="previewSelection().footer"
-        [design]="design()"
       />
     </aside>
   </section>
@@ -503,16 +511,8 @@
         </header>
 
         <app-landing-wizard-preview
-          [brandName]="businessDetails().brandName"
-          [offerName]="businessDetails().heroSubtitle"
-          [title]="businessDetails().heroTitle"
+          [selection]="previewSelection()"
           [stepLabel]="currentQuestionCopy().title"
-          [industry]="previewSelection().industry"
-          [tone]="previewSelection().tone"
-          [header]="previewSelection().header"
-          [offerList]="previewSelection().offerList"
-          [footer]="previewSelection().footer"
-          [design]="design()"
         />
       </div>
     </section>
