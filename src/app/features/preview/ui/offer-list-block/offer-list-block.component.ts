@@ -8,12 +8,13 @@ import {
   getLandingRadiusValue,
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
+import { ButtonAppearanceDirective } from '../button-appearance/button-appearance.directive';
 import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-offer-list-block',
   standalone: true,
-  imports: [LandingLinkDirective],
+  imports: [ButtonAppearanceDirective, LandingLinkDirective],
   templateUrl: './offer-list-block.component.html',
   styleUrl: './offer-list-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

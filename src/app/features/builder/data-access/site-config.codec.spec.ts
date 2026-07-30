@@ -156,8 +156,12 @@ describe('SiteConfigCodec', () => {
     }
   });
 
-  it('preserves a supported hero button variant', () => {
-    const value = withHeroStyles({ buttonVariant: 'outline' });
+  it('migrates the legacy hero button style into the shared appearance contract', () => {
+    const value = withLegacyHeroStyles({
+      buttonVariant: 'outline',
+      buttonBackgroundColor: '#102030',
+      buttonTextColor: '#f0f1f2',
+    });
 
     const result = codec.decode(JSON.stringify(value));
 
@@ -166,12 +170,52 @@ describe('SiteConfigCodec', () => {
     if (result.ok) {
       const hero = result.value.pages[0]?.blocks.find((block) => block.type === 'hero');
 
-      expect(hero?.type === 'hero' ? hero.styles.buttonVariant : null).toBe('outline');
+      expect(hero?.type === 'hero' ? hero.primaryButtonAppearance : null).toEqual({
+        variant: 'outline',
+        backgroundColor: '#102030',
+        textColor: '#f0f1f2',
+        borderColor: '#102030',
+      });
     }
   });
 
-  it('defaults an unsupported hero button variant to filled', () => {
-    const value = withHeroStyles({ buttonVariant: 'neon' });
+  it('normalizes independent appearances for primary and secondary actions', () => {
+    const page = DEFAULT_SITE_CONFIG.pages[0];
+
+    if (page === undefined) {
+      throw new Error('Page fixture is missing.');
+    }
+
+    const value = {
+      ...DEFAULT_SITE_CONFIG,
+      pages: [
+        {
+          ...page,
+          blocks: page.blocks.map((block) =>
+            block.type === 'hero'
+              ? {
+                  ...block,
+                  primaryButtonAppearance: {
+                    variant: 'ghost',
+                    backgroundColor: '#112233',
+                    textColor: '#abcdef',
+                    borderColor: '#445566',
+                  },
+                  secondaryButton: {
+                    ...block.secondaryButton,
+                    appearance: {
+                      variant: 'outline',
+                      backgroundColor: '#778899',
+                      textColor: '#010203',
+                      borderColor: '#aabbcc',
+                    },
+                  },
+                }
+              : block,
+          ),
+        },
+      ],
+    };
 
     const result = codec.decode(JSON.stringify(value));
 
@@ -180,7 +224,18 @@ describe('SiteConfigCodec', () => {
     if (result.ok) {
       const hero = result.value.pages[0]?.blocks.find((block) => block.type === 'hero');
 
-      expect(hero?.type === 'hero' ? hero.styles.buttonVariant : null).toBe('filled');
+      expect(hero?.type === 'hero' ? hero.primaryButtonAppearance : null).toEqual({
+        variant: 'ghost',
+        backgroundColor: '#112233',
+        textColor: '#abcdef',
+        borderColor: '#445566',
+      });
+      expect(hero?.type === 'hero' ? hero.secondaryButton?.appearance : null).toEqual({
+        variant: 'outline',
+        backgroundColor: '#778899',
+        textColor: '#010203',
+        borderColor: '#aabbcc',
+      });
     }
   });
 
@@ -293,7 +348,7 @@ describe('SiteConfigCodec', () => {
   });
 });
 
-function withHeroStyles(styles: Readonly<Record<string, unknown>>) {
+function withLegacyHeroStyles(styles: Readonly<Record<string, unknown>>) {
   const page = DEFAULT_SITE_CONFIG.pages[0];
 
   if (page === undefined) {
@@ -307,13 +362,17 @@ function withHeroStyles(styles: Readonly<Record<string, unknown>>) {
         ...page,
         blocks: page.blocks.map((block) =>
           block.type === 'hero'
-            ? {
-                ...block,
-                styles: {
-                  ...block.styles,
-                  ...styles,
-                },
-              }
+            ? (({ primaryButtonAppearance, ...legacyBlock }) => {
+                void primaryButtonAppearance;
+
+                return {
+                  ...legacyBlock,
+                  styles: {
+                    ...block.styles,
+                    ...styles,
+                  },
+                };
+              })(block)
             : block,
         ),
       },

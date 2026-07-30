@@ -31,6 +31,10 @@ export class LeadFormBlockMutationsService {
         title: update.title ?? block.title,
         description: update.description ?? block.description,
         submitText: update.submitText ?? block.submitText,
+        submitAppearance: this.merge.mergeButtonAppearance(
+          block.submitAppearance,
+          update.submitAppearance,
+        ),
         successMessage: update.successMessage ?? block.successMessage,
         fields: update.fields ?? block.fields,
       };

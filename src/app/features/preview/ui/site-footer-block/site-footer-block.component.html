@@ -18,6 +18,7 @@
       </div>
       <a
         class="site-footer__cta"
+        [appButtonAppearance]="block().cta.appearance"
         [appLandingLink]="block().cta.target"
         [attr.target]="block().cta.openInNewTab ? '_blank' : null"
         [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"

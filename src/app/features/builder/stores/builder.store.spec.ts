@@ -400,6 +400,23 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.pages()[0]).toBe(homePage);
   });
 
+  it('keeps a customized hero button when the block accent changes', () => {
+    const hero = builderStore.activeBlocks().find((block) => block.type === 'hero');
+
+    if (hero?.type !== 'hero' || hero.primaryButtonAppearance === undefined) {
+      throw new Error('Hero fixture with a customized primary button is missing.');
+    }
+
+    const appearanceBefore = hero.primaryButtonAppearance;
+
+    expect(builderStore.updateBlockDesign(hero.id, { accentColor: 'rose' })).toBe(true);
+
+    const updatedHero = builderStore.activeBlocks().find((block) => block.id === hero.id);
+    expect(updatedHero?.type === 'hero' ? updatedHero.primaryButtonAppearance : null).toBe(
+      appearanceBefore,
+    );
+  });
+
   it('reports page errors in Russian without changing the document', () => {
     const page = builderStore.pages()[0];
     const documentBefore = builderStore.siteConfig();

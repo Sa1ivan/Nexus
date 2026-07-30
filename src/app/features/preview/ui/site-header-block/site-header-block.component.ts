@@ -19,12 +19,13 @@ import {
 } from '../../../builder/domain/models';
 import type { SiteHeaderBlockConfig } from '../../../builder/domain/models';
 import { BookingSelectionService } from '../../data-access/booking-selection.service';
+import { ButtonAppearanceDirective } from '../button-appearance/button-appearance.directive';
 import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-site-header-block',
   standalone: true,
-  imports: [LandingLinkDirective],
+  imports: [ButtonAppearanceDirective, LandingLinkDirective],
   templateUrl: './site-header-block.component.html',
   styleUrl: './site-header-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

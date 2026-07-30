@@ -1,6 +1,7 @@
 import {
   DEFAULT_BLOCK_APPEARANCE,
   DEFAULT_LANDING_DESIGN_SETTINGS,
+  DEFAULT_PRIMARY_BUTTON_APPEARANCE,
   DEFAULT_SITE_BUSINESS,
   DEFAULT_SITE_SEO,
   DEFAULT_SITE_THEME,
@@ -44,6 +45,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           subtitle: 'Чистая основа для визуального конструктора лендингов и сайтов.',
           buttonText: 'Начать сборку',
           buttonHref: '#lead-form',
+          primaryButtonAppearance: DEFAULT_PRIMARY_BUTTON_APPEARANCE,
           secondaryButton: createLink('Посмотреть блоки', '#lead-form'),
           media: {
             src: 'images/landing/office-studio.webp',
@@ -53,9 +55,6 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           styles: {
             backgroundColor: '#f5f7fb',
             textColor: '#111827',
-            buttonVariant: 'filled',
-            buttonBackgroundColor: '#2563eb',
-            buttonTextColor: '#ffffff',
             minHeight: '520px',
             alignment: 'center',
           },

@@ -46,7 +46,12 @@
         </label>
       }
 
-      <button class="lead-form__submit" type="submit" [disabled]="status() === 'submitting'">
+      <button
+        class="lead-form__submit"
+        type="submit"
+        [appButtonAppearance]="block().submitAppearance"
+        [disabled]="status() === 'submitting'"
+      >
         {{ status() === 'submitting' ? 'Сохраняем...' : block().submitText }}
       </button>
 

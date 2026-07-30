@@ -42,7 +42,10 @@ describe('buildLandingDraft', () => {
         contrastRatio(hero.styles.backgroundColor, hero.styles.textColor),
       ).toBeGreaterThanOrEqual(4.5);
       expect(
-        contrastRatio(hero.styles.buttonBackgroundColor, hero.styles.buttonTextColor),
+        contrastRatio(
+          hero.primaryButtonAppearance?.backgroundColor ?? '',
+          hero.primaryButtonAppearance?.textColor ?? '',
+        ),
       ).toBeGreaterThanOrEqual(4.5);
     },
   );
@@ -53,7 +56,7 @@ describe('buildLandingDraft', () => {
     const hero = getHero(draft);
 
     expect(draft.theme.accentColor).toBe('#0c2238');
-    expect(hero.styles.buttonBackgroundColor).toBe('#0c2238');
+    expect(hero.primaryButtonAppearance?.backgroundColor).toBe('#0c2238');
   });
 
   it('writes per-step design differences as block appearance overrides', () => {
@@ -82,7 +85,7 @@ describe('buildLandingDraft', () => {
     });
     expect(header?.appearance?.accentColor).toBeUndefined();
     expect(hero.appearance?.accentColor).toBe('#ff375f');
-    expect(hero.styles.buttonBackgroundColor).toBe('#ff375f');
+    expect(hero.primaryButtonAppearance?.backgroundColor).toBe('#ff375f');
   });
 });
 

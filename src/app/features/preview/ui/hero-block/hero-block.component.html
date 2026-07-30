@@ -17,11 +17,8 @@
       <div class="hero-block__actions">
         <a
           class="hero-block__button"
-          [class.hero-block__button--outline]="block().styles.buttonVariant === 'outline'"
-          [class.hero-block__button--ghost]="block().styles.buttonVariant === 'ghost'"
+          [appButtonAppearance]="block().primaryButtonAppearance"
           [appLandingLink]="block().buttonHref"
-          [style.--hero-button-background]="block().styles.buttonBackgroundColor"
-          [style.--hero-button-text]="block().styles.buttonTextColor"
         >
           {{ block().buttonText }}
         </a>
@@ -29,6 +26,7 @@
         @if (block().secondaryButton; as secondaryButton) {
           <a
             class="hero-block__button hero-block__button--secondary"
+            [appButtonAppearance]="secondaryButton.appearance"
             [appLandingLink]="secondaryButton.target"
             [attr.target]="secondaryButton.openInNewTab ? '_blank' : null"
             [attr.rel]="secondaryButton.openInNewTab ? 'noopener noreferrer' : null"

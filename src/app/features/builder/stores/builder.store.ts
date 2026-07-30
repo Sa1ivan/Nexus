@@ -6,11 +6,7 @@ import {
   ProjectTransferService,
   type ProjectTransferDecodeFailureReason,
 } from '../data-access/project-transfer.service';
-import {
-  DEFAULT_BLOCK_APPEARANCE,
-  DEFAULT_LANDING_DESIGN_SETTINGS,
-  getLandingAccentValue,
-} from '../domain/models';
+import { DEFAULT_BLOCK_APPEARANCE, DEFAULT_LANDING_DESIGN_SETTINGS } from '../domain/models';
 import {
   cloneRegisteredBlock,
   createDefaultBlock as createRegisteredDefaultBlock,
@@ -493,20 +489,9 @@ export class BuilderStore {
         update,
       );
 
-      if (block.type !== 'hero' || update.accentColor === undefined) {
-        return {
-          ...block,
-          design,
-        };
-      }
-
       return {
         ...block,
         design,
-        styles: {
-          ...block.styles,
-          buttonBackgroundColor: getLandingAccentValue(update.accentColor),
-        },
       };
     });
   }

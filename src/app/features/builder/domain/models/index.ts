@@ -1,6 +1,16 @@
 export type { BlockAnchor, BlockConfig, BlockId } from './block-config.model';
 export { DEFAULT_BLOCK_APPEARANCE, resolveBlockAppearance } from './block-appearance.model';
 export type { BlockAppearanceOverrides, ResolvedBlockAppearance } from './block-appearance.model';
+export {
+  DEFAULT_PRIMARY_BUTTON_APPEARANCE,
+  DEFAULT_SECONDARY_BUTTON_APPEARANCE,
+  resolveButtonAppearance,
+} from './button-appearance.model';
+export type {
+  ButtonAppearance,
+  ButtonAppearanceUpdate,
+  ButtonVariant,
+} from './button-appearance.model';
 export type { BlockType } from './block-type.model';
 export type {
   CallToActionBlockConfig,
@@ -52,7 +62,6 @@ export {
   rgbChannelsToAccent,
 } from './landing-design.model';
 export type {
-  HeroButtonVariant,
   HeroBlockConfig,
   HeroBlockStyles,
   HeroBlockUpdate,

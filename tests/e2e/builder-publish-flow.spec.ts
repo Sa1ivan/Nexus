@@ -224,16 +224,39 @@ test('mobile builder always uses the mobile canvas without a viewport switcher',
   expect(canvasBox!.width).toBeLessThanOrEqual(390);
 });
 
-test('hero design editor changes the button variant and text color', async ({ page }) => {
+test('design editor customizes hero buttons independently', async ({ page }) => {
   await page.goto('/builder');
   await page.getByRole('tab', { name: 'Дизайн' }).click();
 
-  await page.getByLabel('Стиль кнопки').selectOption('outline');
-  await page.getByLabel('Текст кнопки').fill('#123456');
+  await page.getByLabel('Главная кнопка: тип').selectOption('outline');
+  await page.getByLabel('Главная кнопка: текст').fill('#123456');
+  await page.getByLabel('Дополнительная кнопка: тип').selectOption('ghost');
+  await page.getByLabel('Дополнительная кнопка: текст').fill('#654321');
 
-  const button = page.locator('.hero-block__button').first();
+  const primaryButton = page.locator('.hero-block__button').first();
+  const secondaryButton = page.locator('.hero-block__button').nth(1);
 
-  await expect(button).toHaveClass(/hero-block__button--outline/u);
-  await expect(button).toHaveCSS('color', 'rgb(18, 52, 86)');
-  await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(primaryButton).toHaveCSS('color', 'rgb(18, 52, 86)');
+  await expect(primaryButton).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(primaryButton).toHaveCSS('border-color', 'rgb(37, 99, 235)');
+  await primaryButton.focus();
+  await expect(primaryButton).not.toHaveCSS('box-shadow', 'none');
+  await expect(secondaryButton).toHaveCSS('color', 'rgb(101, 67, 33)');
+  await expect(secondaryButton).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(secondaryButton).toHaveCSS('border-color', 'rgba(0, 0, 0, 0)');
+});
+
+test('design editor customizes CTA buttons outside hero', async ({ page }) => {
+  await page.goto('/builder');
+  await page.getByRole('button', { name: /Хедер/u }).click();
+  await page.getByRole('tab', { name: 'Дизайн' }).click();
+
+  await page.getByLabel('CTA в хедере: тип').selectOption('filled');
+  await page.getByLabel('CTA в хедере: фон').fill('#123456');
+  await page.getByLabel('CTA в хедере: текст').fill('#fedcba');
+
+  const headerCta = page.locator('.site-header__cta');
+
+  await expect(headerCta).toHaveCSS('background-color', 'rgb(18, 52, 86)');
+  await expect(headerCta).toHaveCSS('color', 'rgb(254, 220, 186)');
 });

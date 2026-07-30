@@ -239,6 +239,66 @@ test('editable block models include richer Wix-like customization fields', async
   assert.match(leadFormModel, /order: number/);
 });
 
+test('landing CTA buttons share one typed appearance contract and focused editor', async () => {
+  const [
+    appearanceModel,
+    linkModel,
+    heroModel,
+    leadFormModel,
+    designInspector,
+    buttonInspector,
+    buttonEditor,
+    appearanceDirective,
+    renderedButtons,
+  ] = await Promise.all([
+    source('src/app/features/builder/domain/models/button-appearance.model.ts'),
+    source('src/app/features/builder/domain/models/link-config.model.ts'),
+    source('src/app/features/builder/domain/models/hero-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/lead-form-block-config.model.ts'),
+    source('src/app/features/builder/ui/block-inspector/block-design-inspector.component.html'),
+    source(
+      'src/app/features/builder/ui/block-inspector/block-button-design-inspector.component.html',
+    ),
+    source(
+      'src/app/features/builder/ui/button-appearance-editor/button-appearance-editor.component.ts',
+    ),
+    source('src/app/features/preview/ui/button-appearance/button-appearance.directive.ts'),
+    Promise.all(
+      [
+        'hero-block',
+        'site-header-block',
+        'content-media-block',
+        'offer-list-block',
+        'call-to-action-block',
+        'site-footer-block',
+        'lead-form-block',
+      ].map((name) => source(`src/app/features/preview/ui/${name}/${name}.component.html`)),
+    ).then((templates) => templates.join('\n')),
+  ]);
+
+  assert.match(appearanceModel, /export type ButtonVariant = 'filled' \| 'outline' \| 'ghost'/);
+  assert.match(appearanceModel, /export interface ButtonAppearance/);
+  assert.match(appearanceModel, /readonly backgroundColor: string/);
+  assert.match(appearanceModel, /readonly textColor: string/);
+  assert.match(appearanceModel, /readonly borderColor: string/);
+  assert.match(linkModel, /readonly appearance\?: ButtonAppearance/);
+  assert.match(heroModel, /readonly primaryButtonAppearance\?: ButtonAppearance/);
+  assert.match(leadFormModel, /readonly submitAppearance\?: ButtonAppearance/);
+  assert.match(designInspector, /app-block-button-design-inspector/);
+  assert.match(buttonInspector, /Главная кнопка/);
+  assert.match(buttonInspector, /Дополнительная кнопка/);
+  assert.match(buttonInspector, /Кнопка отправки/);
+  assert.match(buttonEditor, /input\.required<ButtonAppearance>/);
+  assert.match(appearanceDirective, /input<ButtonAppearance \| undefined>/);
+  assert.ok(renderedButtons.match(/appButtonAppearance/g)?.length >= 10);
+  assert.doesNotMatch(
+    [appearanceModel, linkModel, heroModel, leadFormModel, buttonEditor, appearanceDirective].join(
+      '\n',
+    ),
+    /\bany\b|\$any\(/,
+  );
+});
+
 test('storage normalization and validation harden local demo data', async () => {
   const [repository, projectStorageCodec, siteConfigCodec, validation] = await Promise.all([
     source('src/app/features/builder/data-access/local-project.repository.ts'),

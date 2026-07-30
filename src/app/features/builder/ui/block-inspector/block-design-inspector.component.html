@@ -110,33 +110,9 @@
         ><input
           type="color"
           [value]="currentBlock.styles.textColor"
-          (input)="updateHeroStyle('textColor', $event)" /></label
-      ><label class="inspector__color"
-        ><span>Кнопка</span
-        ><input
-          type="color"
-          [value]="currentBlock.styles.buttonBackgroundColor"
-          (input)="updateHeroStyle('buttonBackgroundColor', $event)"
-      /></label>
-      <label class="inspector__color"
-        ><span>Текст кнопки</span
-        ><input
-          type="color"
-          [value]="currentBlock.styles.buttonTextColor"
-          (input)="updateHeroStyle('buttonTextColor', $event)"
+          (input)="updateHeroStyle('textColor', $event)"
       /></label>
     </div>
-    <label class="inspector__field"
-      ><span>Стиль кнопки</span
-      ><select
-        [value]="currentBlock.styles.buttonVariant"
-        (change)="updateHeroButtonVariantSelection($event)"
-      >
-        @for (option of heroButtonVariants; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select></label
-    >
     <label class="inspector__field"
       ><span>Минимальная высота</span
       ><input
@@ -146,3 +122,4 @@
     /></label>
   }
 </section>
+<app-block-button-design-inspector [block]="currentBlock" />

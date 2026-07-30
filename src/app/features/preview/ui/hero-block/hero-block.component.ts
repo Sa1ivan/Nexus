@@ -7,13 +7,14 @@ import {
   getLandingRadiusValue,
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
+import { ButtonAppearanceDirective } from '../button-appearance/button-appearance.directive';
 import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 import type { HeroLayoutVariant } from './hero-block.types';
 
 @Component({
   selector: 'app-hero-block',
   standalone: true,
-  imports: [LandingLinkDirective],
+  imports: [ButtonAppearanceDirective, LandingLinkDirective],
   templateUrl: './hero-block.component.html',
   styleUrl: './hero-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

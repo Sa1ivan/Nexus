@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 
 import type {
+  ButtonAppearance,
+  ButtonAppearanceUpdate,
   HeaderBookingConfig,
   HeroBlockStyles,
   LandingDesignSettings,
@@ -11,6 +13,7 @@ import type {
   MediaAssetUpdate,
   SiteHeaderBlockUpdate,
 } from '../domain/models';
+import { DEFAULT_PRIMARY_BUTTON_APPEARANCE } from '../domain/models';
 import { createLink, normalizeLinkTarget } from '../domain/registry/block-registry';
 
 @Injectable({
@@ -39,7 +42,7 @@ export class BlockConfigMergeService {
 
     const target = normalizeLinkTarget(update.target ?? current.target);
 
-    return this.mergeRecord(current, {
+    const merged = this.mergeRecord(current, {
       label: update.label ?? current.label,
       target,
       kind:
@@ -54,7 +57,42 @@ export class BlockConfigMergeService {
                 ? 'external'
                 : 'internal'),
       openInNewTab: update.openInNewTab ?? current.openInNewTab,
+      appearance: this.mergeButtonAppearance(current.appearance, update.appearance),
     });
+
+    if (update.appearance !== null || current.appearance === undefined) {
+      return merged;
+    }
+
+    return {
+      id: merged.id,
+      label: merged.label,
+      target: merged.target,
+      kind: merged.kind,
+      openInNewTab: merged.openInNewTab,
+    };
+  }
+
+  mergeButtonAppearance(
+    current: ButtonAppearance | undefined,
+    update: ButtonAppearanceUpdate | null | undefined,
+  ): ButtonAppearance | undefined {
+    if (update === undefined) {
+      return current;
+    }
+
+    if (update === null) {
+      return undefined;
+    }
+
+    const fallback = current ?? DEFAULT_PRIMARY_BUTTON_APPEARANCE;
+
+    return {
+      variant: update.variant ?? fallback.variant,
+      backgroundColor: update.backgroundColor ?? fallback.backgroundColor,
+      textColor: update.textColor ?? fallback.textColor,
+      borderColor: update.borderColor ?? fallback.borderColor,
+    };
   }
 
   mergeOptionalLink(
@@ -118,9 +156,6 @@ export class BlockConfigMergeService {
     return {
       backgroundColor: update.backgroundColor ?? current.backgroundColor,
       textColor: update.textColor ?? current.textColor,
-      buttonVariant: update.buttonVariant ?? current.buttonVariant,
-      buttonBackgroundColor: update.buttonBackgroundColor ?? current.buttonBackgroundColor,
-      buttonTextColor: update.buttonTextColor ?? current.buttonTextColor,
       minHeight: update.minHeight ?? current.minHeight,
       alignment: update.alignment ?? current.alignment,
     };
@@ -141,6 +176,7 @@ export class BlockConfigMergeService {
     return {
       ...link,
       id,
+      appearance: link.appearance === undefined ? undefined : { ...link.appearance },
     };
   }
 

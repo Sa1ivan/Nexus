@@ -20,6 +20,7 @@
     </div>
     <div class="cta__actions">
       <a
+        [appButtonAppearance]="block().primaryAction.appearance"
         [appLandingLink]="block().primaryAction.target"
         [attr.target]="block().primaryAction.openInNewTab ? '_blank' : null"
         [attr.rel]="block().primaryAction.openInNewTab ? 'noopener noreferrer' : null"
@@ -28,6 +29,7 @@
       @if (block().secondaryAction; as action) {
         <a
           class="cta__secondary"
+          [appButtonAppearance]="action.appearance"
           [appLandingLink]="action.target"
           [attr.target]="action.openInNewTab ? '_blank' : null"
           [attr.rel]="action.openInNewTab ? 'noopener noreferrer' : null"

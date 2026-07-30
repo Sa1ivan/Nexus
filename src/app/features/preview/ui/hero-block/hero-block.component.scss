@@ -105,17 +105,6 @@
     transform 180ms ease;
 }
 
-.hero-block__button--outline,
-.hero-block__button--ghost {
-  background: transparent;
-  color: var(--hero-button-text, currentColor);
-  box-shadow: none;
-}
-
-.hero-block__button--ghost {
-  border-color: transparent;
-}
-
 .hero-block__button--secondary {
   background: color-mix(in srgb, currentColor, transparent 94%);
   color: currentColor;

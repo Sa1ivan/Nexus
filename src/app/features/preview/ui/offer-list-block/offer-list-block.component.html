@@ -43,6 +43,7 @@
             @if (item.cta; as cta) {
               <a
                 class="offer-list__cta"
+                [appButtonAppearance]="cta.appearance"
                 [appLandingLink]="cta.target"
                 [attr.target]="cta.openInNewTab ? '_blank' : null"
                 [attr.rel]="cta.openInNewTab ? 'noopener noreferrer' : null"

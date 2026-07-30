@@ -185,6 +185,21 @@ app-block-inspector {
   background: #fff;
   cursor: pointer;
 }
+.inspector__button-editor {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+}
+.inspector__button-editor legend {
+  padding: 0 5px;
+  color: #344054;
+  font-size: 11px;
+  font-weight: 760;
+}
 .inspector__check {
   display: flex;
   min-height: 34px;

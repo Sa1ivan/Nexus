@@ -1,0 +1,88 @@
+@let currentBlock = block();
+@if (supportsButtons()) {
+  <section class="inspector__section">
+    <h2>Кнопки</h2>
+    @switch (currentBlock.type) {
+      @case ('hero') {
+        <app-button-appearance-editor
+          label="Главная кнопка"
+          [appearance]="primaryAppearance(currentBlock.primaryButtonAppearance)"
+          (appearanceChange)="updateHeroPrimary($event)"
+        />
+        @if (currentBlock.secondaryButton; as secondaryButton) {
+          <app-button-appearance-editor
+            label="Дополнительная кнопка"
+            [appearance]="secondaryAppearance(secondaryButton.appearance)"
+            (appearanceChange)="updateHeroSecondary($event)"
+          />
+        }
+      }
+      @case ('siteHeader') {
+        <app-button-appearance-editor
+          label="CTA в хедере"
+          [appearance]="primaryAppearance(currentBlock.cta.appearance)"
+          (appearanceChange)="updateHeaderCta($event)"
+        />
+        @if (currentBlock.variant === 'reservationBar') {
+          @if (currentBlock.booking; as booking) {
+            <app-button-appearance-editor
+              label="Кнопка бронирования"
+              [appearance]="primaryAppearance(booking.action.appearance)"
+              (appearanceChange)="updateHeaderBooking($event)"
+            />
+          }
+        }
+      }
+      @case ('contentMedia') {
+        @if (currentBlock.cta; as cta) {
+          <app-button-appearance-editor
+            label="Кнопка блока"
+            [appearance]="primaryAppearance(cta.appearance)"
+            (appearanceChange)="updateContentMediaCta($event)"
+          />
+        }
+      }
+      @case ('offerList') {
+        @for (item of currentBlock.items; track item.id) {
+          @if (item.cta; as cta) {
+            <app-button-appearance-editor
+              [label]="'Кнопка «' + item.title + '»'"
+              [appearance]="primaryAppearance(cta.appearance)"
+              (appearanceChange)="updateOfferCta(item.id, $event)"
+            />
+          }
+        }
+      }
+      @case ('callToAction') {
+        <app-button-appearance-editor
+          label="Главная кнопка"
+          [appearance]="primaryAppearance(currentBlock.primaryAction.appearance)"
+          (appearanceChange)="updateCallToActionPrimary($event)"
+        />
+        @if (currentBlock.secondaryAction; as secondaryAction) {
+          <app-button-appearance-editor
+            label="Дополнительная кнопка"
+            [appearance]="secondaryAppearance(secondaryAction.appearance)"
+            (appearanceChange)="updateCallToActionSecondary($event)"
+          />
+        }
+      }
+      @case ('siteFooter') {
+        @if (currentBlock.variant !== 'compactLegal') {
+          <app-button-appearance-editor
+            label="CTA в футере"
+            [appearance]="primaryAppearance(currentBlock.cta.appearance)"
+            (appearanceChange)="updateFooterCta($event)"
+          />
+        }
+      }
+      @case ('leadForm') {
+        <app-button-appearance-editor
+          label="Кнопка отправки"
+          [appearance]="primaryAppearance(currentBlock.submitAppearance)"
+          (appearanceChange)="updateFormSubmit($event)"
+        />
+      }
+    }
+  </section>
+}

@@ -84,6 +84,7 @@
           </label>
           <a
             class="site-header__booking-action"
+            [appButtonAppearance]="booking.action.appearance"
             [appLandingLink]="booking.action.target"
             [attr.aria-disabled]="!bookingDate()"
             [attr.tabindex]="!bookingDate() ? -1 : null"
@@ -98,6 +99,7 @@
 
     <a
       class="site-header__cta"
+      [appButtonAppearance]="block().cta.appearance"
       [appLandingLink]="block().cta.target"
       [attr.target]="block().cta.openInNewTab ? '_blank' : null"
       [attr.rel]="block().cta.openInNewTab ? 'noopener noreferrer' : null"

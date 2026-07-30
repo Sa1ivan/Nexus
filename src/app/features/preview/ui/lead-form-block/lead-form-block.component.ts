@@ -17,12 +17,14 @@ import {
 } from '../../../builder/domain/models';
 import type { LeadFormBlockConfig, LeadFormFieldConfig } from '../../../builder/domain/models';
 import { BookingSelectionService } from '../../data-access/booking-selection.service';
+import { ButtonAppearanceDirective } from '../button-appearance/button-appearance.directive';
 import type { LeadFormStatus, LeadFormSubmitEvent } from './lead-form-block.types';
 export type { LeadFormSubmitEvent } from './lead-form-block.types';
 
 @Component({
   selector: 'app-lead-form-block',
   standalone: true,
+  imports: [ButtonAppearanceDirective],
   templateUrl: './lead-form-block.component.html',
   styleUrl: './lead-form-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

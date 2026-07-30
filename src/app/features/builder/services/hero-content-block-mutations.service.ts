@@ -29,6 +29,10 @@ export class HeroContentBlockMutationsService {
         buttonText: update.buttonText ?? block.buttonText,
         buttonHref: update.buttonHref ?? block.buttonHref,
         media: this.merge.mergeOptionalMedia(block.media, update.media),
+        primaryButtonAppearance: this.merge.mergeButtonAppearance(
+          block.primaryButtonAppearance,
+          update.primaryButtonAppearance,
+        ),
         secondaryButton: this.merge.mergeOptionalLink(
           block.secondaryButton,
           update.secondaryButton,

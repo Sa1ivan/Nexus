@@ -1,0 +1,44 @@
+<fieldset class="inspector__button-editor">
+  <legend>{{ label() }}</legend>
+  <label class="inspector__field">
+    <span>Тип</span>
+    <select
+      [attr.aria-label]="label() + ': тип'"
+      [value]="appearance().variant"
+      (change)="updateVariant($event)"
+    >
+      @for (option of variants; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <div class="inspector__color-grid">
+    <label class="inspector__color">
+      <span>Фон</span>
+      <input
+        type="color"
+        [attr.aria-label]="label() + ': фон'"
+        [value]="appearance().backgroundColor"
+        (input)="updateColor('backgroundColor', $event)"
+      />
+    </label>
+    <label class="inspector__color">
+      <span>Текст</span>
+      <input
+        type="color"
+        [attr.aria-label]="label() + ': текст'"
+        [value]="appearance().textColor"
+        (input)="updateColor('textColor', $event)"
+      />
+    </label>
+    <label class="inspector__color">
+      <span>Контур</span>
+      <input
+        type="color"
+        [attr.aria-label]="label() + ': контур'"
+        [value]="appearance().borderColor"
+        (input)="updateColor('borderColor', $event)"
+      />
+    </label>
+  </div>
+</fieldset>

@@ -1,6 +1,7 @@
 import {
   DEFAULT_BLOCK_APPEARANCE,
   DEFAULT_LANDING_DESIGN_SETTINGS,
+  DEFAULT_PRIMARY_BUTTON_APPEARANCE,
   getLandingAccentValue,
 } from '../models';
 import { createBlockAnchor, createBlockId } from '../utils/builder-ids';
@@ -28,9 +29,6 @@ export type {
 const DEFAULT_HERO_STYLES: HeroBlockStyles = {
   backgroundColor: '#f5f7fb',
   textColor: '#111827',
-  buttonVariant: 'filled',
-  buttonBackgroundColor: '#111827',
-  buttonTextColor: '#ffffff',
   minHeight: '520px',
   alignment: 'center',
 };
@@ -394,6 +392,7 @@ export function createDefaultBlock(
         subtitle: 'Опишите ценность, сценарий и следующий шаг для посетителя.',
         buttonText: 'Начать',
         buttonHref: '#lead-form',
+        primaryButtonAppearance: DEFAULT_PRIMARY_BUTTON_APPEARANCE,
         secondaryButton: createLink('Посмотреть предложения', '#offers'),
         media: {
           src: 'images/landing/office-studio.webp',
@@ -606,6 +605,10 @@ export function cloneRegisteredBlock(
         anchor,
         appearance: cloneAppearance(block.appearance),
         media: cloneMedia(block.media),
+        primaryButtonAppearance:
+          block.primaryButtonAppearance === undefined
+            ? undefined
+            : { ...block.primaryButtonAppearance },
         secondaryButton:
           block.secondaryButton === undefined ? undefined : cloneLink(block.secondaryButton),
         styles: {
@@ -709,6 +712,8 @@ export function cloneRegisteredBlock(
         id,
         anchor,
         appearance: cloneAppearance(block.appearance),
+        submitAppearance:
+          block.submitAppearance === undefined ? undefined : { ...block.submitAppearance },
         fields: block.fields.map((field) => ({ ...field })),
       };
   }
@@ -950,6 +955,7 @@ function cloneLink(link: LinkConfig): LinkConfig {
   return {
     ...link,
     id: createElementId('link'),
+    appearance: link.appearance === undefined ? undefined : { ...link.appearance },
   };
 }
 

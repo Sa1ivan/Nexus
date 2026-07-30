@@ -16,6 +16,7 @@ import {
 import { isSafeMediaSource } from '../domain/utils/site-config-validation';
 import {
   DEFAULT_BLOCK_APPEARANCE,
+  DEFAULT_PRIMARY_BUTTON_APPEARANCE,
   DEFAULT_SITE_BUSINESS,
   DEFAULT_SITE_SEO,
   DEFAULT_SITE_THEME,
@@ -25,6 +26,8 @@ import {
 } from '../domain/models';
 import type {
   BlockAppearanceOverrides,
+  ButtonAppearance,
+  ButtonVariant,
   ButtonShape,
   CallToActionVariant,
   ContentMediaVariant,
@@ -37,7 +40,6 @@ import type {
   GalleryItem,
   GalleryVariant,
   HeaderBookingConfig,
-  HeroButtonVariant,
   HeroContentAlignment,
   LandingAccentColor,
   LandingDensity,
@@ -255,13 +257,13 @@ export class SiteConfigCodec {
           buttonText: this.readString(record['buttonText'], 'Оставить заявку'),
           buttonHref: normalizeLinkTarget(this.readString(record['buttonHref'], '#lead-form')),
           media: this.readMedia(record['media']),
+          primaryButtonAppearance:
+            this.readButtonAppearance(record['primaryButtonAppearance']) ??
+            this.readLegacyHeroButtonAppearance(styles),
           secondaryButton: this.readOptionalLink(record['secondaryButton']),
           styles: {
             backgroundColor: this.readString(styles?.['backgroundColor'], '#f5f7fb'),
             textColor: this.readString(styles?.['textColor'], '#111827'),
-            buttonVariant: this.readHeroButtonVariant(styles?.['buttonVariant']),
-            buttonBackgroundColor: this.readString(styles?.['buttonBackgroundColor'], '#111827'),
-            buttonTextColor: this.readString(styles?.['buttonTextColor'], '#ffffff'),
             minHeight: this.readString(styles?.['minHeight'], '520px'),
             alignment: this.readHeroAlignment(styles?.['alignment']),
           },
@@ -396,6 +398,7 @@ export class SiteConfigCodec {
           title: this.readString(record['title'], 'Оставьте заявку'),
           description: this.readString(record['description'], ''),
           submitText: this.readString(record['submitText'], 'Отправить'),
+          submitAppearance: this.readButtonAppearance(record['submitAppearance']),
           successMessage: this.readString(record['successMessage'], 'Заявка сохранена.'),
           fields: this.readLeadFields(record['fields']),
         };
@@ -495,6 +498,48 @@ export class SiteConfigCodec {
                   ? 'external'
                   : 'internal',
       openInNewTab: record['openInNewTab'] === true,
+      appearance: this.readButtonAppearance(record['appearance']),
+    };
+  }
+
+  private readButtonAppearance(value: unknown): ButtonAppearance | undefined {
+    const record = this.asRecord(value);
+
+    if (record === null) {
+      return undefined;
+    }
+
+    return {
+      variant: this.readButtonVariant(record['variant']),
+      backgroundColor: this.readString(
+        record['backgroundColor'],
+        DEFAULT_PRIMARY_BUTTON_APPEARANCE.backgroundColor,
+      ),
+      textColor: this.readString(record['textColor'], DEFAULT_PRIMARY_BUTTON_APPEARANCE.textColor),
+      borderColor: this.readString(
+        record['borderColor'],
+        DEFAULT_PRIMARY_BUTTON_APPEARANCE.borderColor,
+      ),
+    };
+  }
+
+  private readLegacyHeroButtonAppearance(
+    styles: Record<string, unknown> | null,
+  ): ButtonAppearance | undefined {
+    if (
+      styles === null ||
+      !['buttonVariant', 'buttonBackgroundColor', 'buttonTextColor'].some((key) => key in styles)
+    ) {
+      return undefined;
+    }
+
+    const backgroundColor = this.readString(styles['buttonBackgroundColor'], '#111827');
+
+    return {
+      variant: this.readButtonVariant(styles['buttonVariant']),
+      backgroundColor,
+      textColor: this.readString(styles['buttonTextColor'], '#ffffff'),
+      borderColor: backgroundColor,
     };
   }
 
@@ -959,7 +1004,7 @@ export class SiteConfigCodec {
     return value === 'left' || value === 'right' ? value : 'center';
   }
 
-  private readHeroButtonVariant(value: unknown): HeroButtonVariant {
+  private readButtonVariant(value: unknown): ButtonVariant {
     return value === 'outline' || value === 'ghost' ? value : 'filled';
   }
 

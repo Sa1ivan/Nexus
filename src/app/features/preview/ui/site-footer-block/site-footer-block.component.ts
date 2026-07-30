@@ -8,12 +8,13 @@ import {
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
 import type { SiteFooterBlockConfig } from '../../../builder/domain/models';
+import { ButtonAppearanceDirective } from '../button-appearance/button-appearance.directive';
 import { LandingLinkDirective } from '../landing-link/landing-link.directive';
 
 @Component({
   selector: 'app-site-footer-block',
   standalone: true,
-  imports: [LandingLinkDirective],
+  imports: [ButtonAppearanceDirective, LandingLinkDirective],
   templateUrl: './site-footer-block.component.html',
   styleUrl: './site-footer-block.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
