@@ -52,6 +52,7 @@ export {
   rgbChannelsToAccent,
 } from './landing-design.model';
 export type {
+  HeroButtonVariant,
   HeroBlockConfig,
   HeroBlockStyles,
   HeroBlockUpdate,

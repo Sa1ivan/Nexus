@@ -53,6 +53,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
           styles: {
             backgroundColor: '#f5f7fb',
             textColor: '#111827',
+            buttonVariant: 'filled',
             buttonBackgroundColor: '#2563eb',
             buttonTextColor: '#ffffff',
             minHeight: '520px',

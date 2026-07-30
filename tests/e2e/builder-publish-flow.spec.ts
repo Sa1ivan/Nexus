@@ -208,3 +208,32 @@ test('wizard and theme editor stay compact inside their own containers', async (
   await page.getByLabel('Акцент: значение RGB').fill('rgb(12, 34, 56)');
   await expect(page.getByLabel('Акцент: палитра')).toHaveValue('#0c2238');
 });
+
+test('mobile builder always uses the mobile canvas without a viewport switcher', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/builder');
+
+  await expect(page.locator('.builder-page__segments--icons')).toBeHidden();
+
+  const canvas = page.locator('.builder-page__canvas');
+  const canvasBox = await canvas.boundingBox();
+
+  expect(canvasBox).not.toBeNull();
+  expect(canvasBox!.width).toBeLessThanOrEqual(390);
+});
+
+test('hero design editor changes the button variant and text color', async ({ page }) => {
+  await page.goto('/builder');
+  await page.getByRole('tab', { name: 'Дизайн' }).click();
+
+  await page.getByLabel('Стиль кнопки').selectOption('outline');
+  await page.getByLabel('Текст кнопки').fill('#123456');
+
+  const button = page.locator('.hero-block__button').first();
+
+  await expect(button).toHaveClass(/hero-block__button--outline/u);
+  await expect(button).toHaveCSS('color', 'rgb(18, 52, 86)');
+  await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+});

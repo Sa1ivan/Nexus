@@ -118,6 +118,7 @@ export class BlockConfigMergeService {
     return {
       backgroundColor: update.backgroundColor ?? current.backgroundColor,
       textColor: update.textColor ?? current.textColor,
+      buttonVariant: update.buttonVariant ?? current.buttonVariant,
       buttonBackgroundColor: update.buttonBackgroundColor ?? current.buttonBackgroundColor,
       buttonTextColor: update.buttonTextColor ?? current.buttonTextColor,
       minHeight: update.minHeight ?? current.minHeight,

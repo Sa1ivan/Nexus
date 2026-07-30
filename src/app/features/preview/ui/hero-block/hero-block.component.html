@@ -17,9 +17,11 @@
       <div class="hero-block__actions">
         <a
           class="hero-block__button"
+          [class.hero-block__button--outline]="block().styles.buttonVariant === 'outline'"
+          [class.hero-block__button--ghost]="block().styles.buttonVariant === 'ghost'"
           [appLandingLink]="block().buttonHref"
-          [style.background-color]="block().styles.buttonBackgroundColor"
-          [style.color]="block().styles.buttonTextColor"
+          [style.--hero-button-background]="block().styles.buttonBackgroundColor"
+          [style.--hero-button-text]="block().styles.buttonTextColor"
         >
           {{ block().buttonText }}
         </a>

@@ -37,6 +37,7 @@ import type {
   GalleryItem,
   GalleryVariant,
   HeaderBookingConfig,
+  HeroButtonVariant,
   HeroContentAlignment,
   LandingAccentColor,
   LandingDensity,
@@ -258,6 +259,7 @@ export class SiteConfigCodec {
           styles: {
             backgroundColor: this.readString(styles?.['backgroundColor'], '#f5f7fb'),
             textColor: this.readString(styles?.['textColor'], '#111827'),
+            buttonVariant: this.readHeroButtonVariant(styles?.['buttonVariant']),
             buttonBackgroundColor: this.readString(styles?.['buttonBackgroundColor'], '#111827'),
             buttonTextColor: this.readString(styles?.['buttonTextColor'], '#ffffff'),
             minHeight: this.readString(styles?.['minHeight'], '520px'),
@@ -955,6 +957,10 @@ export class SiteConfigCodec {
 
   private readHeroAlignment(value: unknown): HeroContentAlignment {
     return value === 'left' || value === 'right' ? value : 'center';
+  }
+
+  private readHeroButtonVariant(value: unknown): HeroButtonVariant {
+    return value === 'outline' || value === 'ghost' ? value : 'filled';
   }
 
   private readLeadFieldType(value: unknown): LeadFormFieldConfig['type'] {

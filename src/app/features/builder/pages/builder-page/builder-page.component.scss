@@ -703,12 +703,20 @@
     padding: 0 0 8px;
   }
 
+  .builder-page__segments--icons {
+    display: none;
+  }
+
   .builder-page__topbar {
     row-gap: 0;
   }
 
   .builder-page__canvas-shell {
     padding: 10px;
+  }
+
+  .builder-page__canvas {
+    width: min(100%, 390px);
   }
 
   .builder-page__block-toolbar {

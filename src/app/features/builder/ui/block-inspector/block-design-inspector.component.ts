@@ -9,6 +9,7 @@ import {
 import { DEFAULT_LANDING_DESIGN_SETTINGS, getLandingAccentValue } from '../../domain/models';
 import type {
   ContentWidth,
+  HeroButtonVariant,
   LandingAccentColor,
   LandingDensity,
   LandingFontPairing,
@@ -18,10 +19,19 @@ import type {
 } from '../../domain/models';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
 import { BuilderStore } from '../../stores/builder.store';
-import type { AppearanceColor, HeroStyleField } from './block-design-inspector.types';
+import type {
+  AppearanceColor,
+  HeroButtonVariantOption,
+  HeroStyleField,
+} from './block-design-inspector.types';
 
 const CONTENT_WIDTHS: readonly ContentWidth[] = ['narrow', 'wide', 'full'];
 const SECTION_SPACINGS: readonly SectionSpacing[] = ['compact', 'balanced', 'spacious'];
+const HERO_BUTTON_VARIANTS: readonly HeroButtonVariantOption[] = [
+  { value: 'filled', label: 'Обычная' },
+  { value: 'outline', label: 'Контурная' },
+  { value: 'ghost', label: 'Прозрачная' },
+];
 
 @Component({
   selector: 'app-block-design-inspector',
@@ -40,6 +50,7 @@ export class BlockDesignInspectorComponent {
   readonly fontOptions = LANDING_FONT_OPTIONS;
   readonly densityOptions = LANDING_DENSITY_OPTIONS;
   readonly templateStyleOptions = LANDING_TEMPLATE_STYLE_OPTIONS;
+  readonly heroButtonVariants = HERO_BUTTON_VARIANTS;
 
   updateAppearanceColor(field: AppearanceColor, event: Event): void {
     this.builderStore.updateBlockAppearance(this.block().id, { [field]: this.readValue(event) });
@@ -119,6 +130,17 @@ export class BlockDesignInspectorComponent {
     }
   }
 
+  updateHeroButtonVariantSelection(event: Event): void {
+    const variant = this.readOption(
+      event,
+      this.heroButtonVariants.map((option) => option.value),
+    );
+
+    if (variant !== null) {
+      this.updateHeroButtonVariant(variant);
+    }
+  }
+
   private updateBlockFont(fontPairing: LandingFontPairing): void {
     this.builderStore.updateBlockDesign(this.block().id, { fontPairing });
     this.builderStore.updateBlockAppearance(this.block().id, { fontPairing });
@@ -134,6 +156,16 @@ export class BlockDesignInspectorComponent {
     this.builderStore.updateBlockAppearance(this.block().id, {
       radius: templateStyle === 'editorial' ? 2 : templateStyle === 'conversion' ? 14 : 8,
     });
+  }
+
+  private updateHeroButtonVariant(buttonVariant: HeroButtonVariant): void {
+    const block = this.block();
+
+    if (block.type === 'hero') {
+      this.blockStore.updateHeroBlock(block.id, {
+        styles: { buttonVariant },
+      });
+    }
   }
 
   private readOption<TValue extends string>(

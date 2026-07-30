@@ -28,6 +28,7 @@ export type {
 const DEFAULT_HERO_STYLES: HeroBlockStyles = {
   backgroundColor: '#f5f7fb',
   textColor: '#111827',
+  buttonVariant: 'filled',
   buttonBackgroundColor: '#111827',
   buttonTextColor: '#ffffff',
   minHeight: '520px',

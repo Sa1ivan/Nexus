@@ -823,3 +823,13 @@ test('builder store is a facade over focused block mutation services', async () 
   assert.ok(blockStore.split('\n').length < 500);
   assert.ok(store.split('\n').length < 750);
 });
+
+test('mobile builder CSS removes viewport controls and constrains the canvas', async () => {
+  const styles = await source(
+    'src/app/features/builder/pages/builder-page/builder-page.component.scss',
+  );
+  const mobileMedia = styles.slice(styles.indexOf('@media (max-width: 900px)'));
+
+  assert.match(mobileMedia, /\.builder-page__segments--icons\s*\{\s*display:\s*none;\s*\}/u);
+  assert.match(mobileMedia, /\.builder-page__canvas\s*\{\s*width:\s*min\(100%,\s*390px\);\s*\}/u);
+});

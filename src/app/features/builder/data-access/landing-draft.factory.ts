@@ -213,6 +213,7 @@ const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   premium: {
     backgroundColor: '#111827',
     textColor: '#f8fafc',
+    buttonVariant: 'filled',
     buttonBackgroundColor: '#d7b46a',
     buttonTextColor: '#111827',
     minHeight: '520px',
@@ -221,6 +222,7 @@ const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   friendly: {
     backgroundColor: '#f7efe5',
     textColor: '#1f2937',
+    buttonVariant: 'filled',
     buttonBackgroundColor: '#0f766e',
     buttonTextColor: '#ffffff',
     minHeight: '520px',
@@ -229,6 +231,7 @@ const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   minimal: {
     backgroundColor: '#ffffff',
     textColor: '#111827',
+    buttonVariant: 'filled',
     buttonBackgroundColor: '#111827',
     buttonTextColor: '#ffffff',
     minHeight: '520px',
@@ -237,6 +240,7 @@ const TONE_STYLES: Readonly<Record<LandingTone, HeroBlockStyles>> = {
   bold: {
     backgroundColor: '#0f766e',
     textColor: '#ecfeff',
+    buttonVariant: 'filled',
     buttonBackgroundColor: '#f97316',
     buttonTextColor: '#ffffff',
     minHeight: '520px',

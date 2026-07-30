@@ -3,10 +3,12 @@ import type { LinkConfig, LinkConfigUpdate } from './link-config.model';
 import type { MediaAsset, MediaAssetUpdate } from './media-asset.model';
 
 export type HeroContentAlignment = 'left' | 'center' | 'right';
+export type HeroButtonVariant = 'filled' | 'outline' | 'ghost';
 
 export interface HeroBlockStyles {
   readonly backgroundColor: string;
   readonly textColor: string;
+  readonly buttonVariant: HeroButtonVariant;
   readonly buttonBackgroundColor: string;
   readonly buttonTextColor: string;
   readonly minHeight: string;

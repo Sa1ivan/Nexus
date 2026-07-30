@@ -81,8 +81,10 @@
 .hero-block__button {
   min-height: 52px;
   padding: 0 26px;
-  border: 1px solid color-mix(in srgb, currentColor, transparent 86%);
+  border: 1px solid var(--hero-button-background, currentColor);
   border-radius: calc(var(--landing-radius, 8px) + 999px);
+  background: var(--hero-button-background, currentColor);
+  color: var(--hero-button-text, #ffffff);
   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.16);
   display: inline-flex;
   align-items: center;
@@ -96,10 +98,22 @@
   cursor: pointer;
   text-decoration: none;
   transition:
+    background-color 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease,
     filter 180ms ease,
     transform 180ms ease;
+}
+
+.hero-block__button--outline,
+.hero-block__button--ghost {
+  background: transparent;
+  color: var(--hero-button-text, currentColor);
+  box-shadow: none;
+}
+
+.hero-block__button--ghost {
+  border-color: transparent;
 }
 
 .hero-block__button--secondary {

@@ -156,6 +156,34 @@ describe('SiteConfigCodec', () => {
     }
   });
 
+  it('preserves a supported hero button variant', () => {
+    const value = withHeroStyles({ buttonVariant: 'outline' });
+
+    const result = codec.decode(JSON.stringify(value));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      const hero = result.value.pages[0]?.blocks.find((block) => block.type === 'hero');
+
+      expect(hero?.type === 'hero' ? hero.styles.buttonVariant : null).toBe('outline');
+    }
+  });
+
+  it('defaults an unsupported hero button variant to filled', () => {
+    const value = withHeroStyles({ buttonVariant: 'neon' });
+
+    const result = codec.decode(JSON.stringify(value));
+
+    expect(result.ok).toBe(true);
+
+    if (result.ok) {
+      const hero = result.value.pages[0]?.blocks.find((block) => block.type === 'hero');
+
+      expect(hero?.type === 'hero' ? hero.styles.buttonVariant : null).toBe('filled');
+    }
+  });
+
   it('falls back from malformed custom design colors', () => {
     const page = DEFAULT_SITE_CONFIG.pages[0];
 
@@ -264,3 +292,31 @@ describe('SiteConfigCodec', () => {
     });
   });
 });
+
+function withHeroStyles(styles: Readonly<Record<string, unknown>>) {
+  const page = DEFAULT_SITE_CONFIG.pages[0];
+
+  if (page === undefined) {
+    throw new Error('Page fixture is missing.');
+  }
+
+  return {
+    ...DEFAULT_SITE_CONFIG,
+    pages: [
+      {
+        ...page,
+        blocks: page.blocks.map((block) =>
+          block.type === 'hero'
+            ? {
+                ...block,
+                styles: {
+                  ...block.styles,
+                  ...styles,
+                },
+              }
+            : block,
+        ),
+      },
+    ],
+  };
+}
