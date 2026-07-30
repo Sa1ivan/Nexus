@@ -4,15 +4,23 @@ import { MatIconModule } from '@angular/material/icon';
 
 import type { LeadFormBlockConfig, LeadFormFieldType } from '../../domain/models';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
+import { SettingsSelectComponent } from '../settings-select/settings-select.component';
+import type { SettingsSelectOption } from '../settings-select/settings-select.types';
 import { BlockItemActionsComponent } from './block-item-actions.component';
 import { readInputChecked, readInputValue } from './block-inspector-input';
 
 const LEAD_FORM_FIELD_TYPES: readonly LeadFormFieldType[] = ['text', 'email', 'tel', 'textarea'];
+const LEAD_FORM_FIELD_TYPE_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'text', label: 'Текст' },
+  { value: 'email', label: 'Email' },
+  { value: 'tel', label: 'Телефон' },
+  { value: 'textarea', label: 'Большой текст' },
+];
 
 @Component({
   selector: 'app-lead-form-content-inspector',
   standalone: true,
-  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule],
+  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule, SettingsSelectComponent],
   templateUrl: './lead-form-content-inspector.component.html',
   styles: ':host { display: contents; }',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,6 +29,7 @@ export class LeadFormContentInspectorComponent {
   private readonly builderStore = inject(BuilderBlockStore);
 
   readonly block = input.required<LeadFormBlockConfig>();
+  readonly fieldTypeOptions = LEAD_FORM_FIELD_TYPE_OPTIONS;
 
   updateLeadText(
     field: 'title' | 'description' | 'submitText' | 'successMessage',
@@ -31,8 +40,8 @@ export class LeadFormContentInspectorComponent {
   updateLeadField(id: string, field: 'label' | 'placeholder' | 'helpText', event: Event): void {
     this.builderStore.updateLeadFormField(this.block().id, id, { [field]: readInputValue(event) });
   }
-  updateLeadFieldType(id: string, event: Event): void {
-    const fieldType = LEAD_FORM_FIELD_TYPES.find((type) => type === readInputValue(event));
+  updateLeadFieldType(id: string, value: string): void {
+    const fieldType = LEAD_FORM_FIELD_TYPES.find((type) => type === value);
 
     if (fieldType !== undefined) {
       this.builderStore.updateLeadFormField(this.block().id, id, { type: fieldType });

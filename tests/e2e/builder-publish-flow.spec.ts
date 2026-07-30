@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+async function selectSettingOption(page: Page, label: string, option: string): Promise<void> {
+  await page.getByLabel(label, { exact: true }).click();
+  await page.getByRole('menuitemradio', { name: option, exact: true }).click();
+}
 
 test('edit, autosave, publish and submit a lead', async ({ page }) => {
   await page.goto('/builder');
@@ -228,9 +234,9 @@ test('design editor customizes hero buttons independently', async ({ page }) => 
   await page.goto('/builder');
   await page.getByRole('tab', { name: 'Дизайн' }).click();
 
-  await page.getByLabel('Главная кнопка: тип').selectOption('outline');
+  await selectSettingOption(page, 'Главная кнопка: тип', 'Контурная');
   await page.getByLabel('Главная кнопка: текст').fill('#123456');
-  await page.getByLabel('Дополнительная кнопка: тип').selectOption('ghost');
+  await selectSettingOption(page, 'Дополнительная кнопка: тип', 'Прозрачная');
   await page.getByLabel('Дополнительная кнопка: текст').fill('#654321');
 
   const primaryButton = page.locator('.hero-block__button').first();
@@ -246,12 +252,36 @@ test('design editor customizes hero buttons independently', async ({ page }) => 
   await expect(secondaryButton).toHaveCSS('border-color', 'rgba(0, 0, 0, 0)');
 });
 
+test('design editor restores the selected button type after switching tabs', async ({ page }) => {
+  await page.goto('/builder');
+  await page.getByRole('tab', { name: 'Дизайн' }).click();
+
+  await selectSettingOption(page, 'Главная кнопка: тип', 'Контурная');
+  await page.getByRole('tab', { name: 'Контент' }).click();
+  await page.getByRole('tab', { name: 'Дизайн' }).click();
+
+  await expect(page.getByLabel('Главная кнопка: тип')).toContainText('Контурная');
+});
+
+test('first secondary button patch preserves its contextual block colors', async ({ page }) => {
+  await page.goto('/builder');
+  await page.getByRole('tab', { name: 'Дизайн' }).click();
+  await page.getByRole('button', { name: 'Изумрудный' }).click();
+
+  await selectSettingOption(page, 'Дополнительная кнопка: тип', 'Обычная');
+
+  const secondaryButton = page.locator('.hero-block__button').nth(1);
+  await expect(secondaryButton).toHaveCSS('background-color', 'rgb(5, 150, 105)');
+  await expect(secondaryButton).toHaveCSS('color', 'rgb(17, 24, 39)');
+  await expect(secondaryButton).toHaveCSS('border-color', 'rgb(5, 150, 105)');
+});
+
 test('design editor customizes CTA buttons outside hero', async ({ page }) => {
   await page.goto('/builder');
   await page.getByRole('button', { name: /Хедер/u }).click();
   await page.getByRole('tab', { name: 'Дизайн' }).click();
 
-  await page.getByLabel('CTA в хедере: тип').selectOption('filled');
+  await selectSettingOption(page, 'CTA в хедере: тип', 'Обычная');
   await page.getByLabel('CTA в хедере: фон').fill('#123456');
   await page.getByLabel('CTA в хедере: текст').fill('#fedcba');
 

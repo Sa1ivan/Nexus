@@ -1,17 +1,14 @@
 <fieldset class="inspector__button-editor">
   <legend>{{ label() }}</legend>
-  <label class="inspector__field">
+  <div class="inspector__field">
     <span>Тип</span>
-    <select
-      [attr.aria-label]="label() + ': тип'"
+    <app-settings-select
+      [ariaLabel]="label() + ': тип'"
+      [options]="variants"
       [value]="appearance().variant"
-      (change)="updateVariant($event)"
-    >
-      @for (option of variants; track option.value) {
-        <option [value]="option.value">{{ option.label }}</option>
-      }
-    </select>
-  </label>
+      (valueChange)="updateVariant($event)"
+    />
+  </div>
   <div class="inspector__color-grid">
     <label class="inspector__color">
       <span>Фон</span>

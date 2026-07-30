@@ -18,15 +18,28 @@ import type {
 } from '../../domain/models';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
 import { BuilderStore } from '../../stores/builder.store';
+import { SettingsSelectComponent } from '../settings-select/settings-select.component';
+import type { SettingsSelectOption } from '../settings-select/settings-select.types';
 import type { AppearanceColor, HeroStyleField } from './block-design-inspector.types';
 import { BlockButtonDesignInspectorComponent } from './block-button-design-inspector.component';
 
 const CONTENT_WIDTHS: readonly ContentWidth[] = ['narrow', 'wide', 'full'];
 const SECTION_SPACINGS: readonly SectionSpacing[] = ['compact', 'balanced', 'spacious'];
+const CONTENT_WIDTH_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'narrow', label: 'Узкая' },
+  { value: 'wide', label: 'Широкая' },
+  { value: 'full', label: 'На всю ширину' },
+];
+const SECTION_SPACING_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'compact', label: 'Компактные' },
+  { value: 'balanced', label: 'Средние' },
+  { value: 'spacious', label: 'Просторные' },
+];
+
 @Component({
   selector: 'app-block-design-inspector',
   standalone: true,
-  imports: [BlockButtonDesignInspectorComponent],
+  imports: [BlockButtonDesignInspectorComponent, SettingsSelectComponent],
   templateUrl: './block-design-inspector.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -41,21 +54,38 @@ export class BlockDesignInspectorComponent {
   readonly fontOptions = LANDING_FONT_OPTIONS;
   readonly densityOptions = LANDING_DENSITY_OPTIONS;
   readonly templateStyleOptions = LANDING_TEMPLATE_STYLE_OPTIONS;
+  readonly contentWidthOptions = CONTENT_WIDTH_OPTIONS;
+  readonly sectionSpacingOptions = SECTION_SPACING_OPTIONS;
+  readonly fontSelectOptions: readonly SettingsSelectOption[] = this.fontOptions.map((option) => ({
+    value: option.id,
+    label: option.title,
+  }));
+  readonly densitySelectOptions: readonly SettingsSelectOption[] = this.densityOptions.map(
+    (option) => ({
+      value: option.id,
+      label: option.title,
+    }),
+  );
+  readonly templateStyleSelectOptions: readonly SettingsSelectOption[] =
+    this.templateStyleOptions.map((option) => ({
+      value: option.id,
+      label: option.title,
+    }));
 
   updateAppearanceColor(field: AppearanceColor, event: Event): void {
     this.builderStore.updateBlockAppearance(this.block().id, { [field]: this.readValue(event) });
   }
 
-  updateAppearanceWidth(event: Event): void {
-    const contentWidth = this.readOption(event, CONTENT_WIDTHS);
+  updateAppearanceWidth(value: string): void {
+    const contentWidth = this.findOption(value, CONTENT_WIDTHS);
 
     if (contentWidth !== null) {
       this.builderStore.updateBlockAppearance(this.block().id, { contentWidth });
     }
   }
 
-  updateAppearanceSpacing(event: Event): void {
-    const spacing = this.readOption(event, SECTION_SPACINGS);
+  updateAppearanceSpacing(value: string): void {
+    const spacing = this.findOption(value, SECTION_SPACINGS);
 
     if (spacing !== null) {
       this.builderStore.updateBlockAppearance(this.block().id, { spacing });
@@ -73,9 +103,9 @@ export class BlockDesignInspectorComponent {
     });
   }
 
-  updateBlockFontSelection(event: Event): void {
-    const option = this.readOption(
-      event,
+  updateBlockFontSelection(value: string): void {
+    const option = this.findOption(
+      value,
       this.fontOptions.map((item) => item.id),
     );
 
@@ -84,9 +114,9 @@ export class BlockDesignInspectorComponent {
     }
   }
 
-  updateBlockDensitySelection(event: Event): void {
-    const option = this.readOption(
-      event,
+  updateBlockDensitySelection(value: string): void {
+    const option = this.findOption(
+      value,
       this.densityOptions.map((item) => item.id),
     );
 
@@ -95,9 +125,9 @@ export class BlockDesignInspectorComponent {
     }
   }
 
-  updateBlockTemplateStyleSelection(event: Event): void {
-    const option = this.readOption(
-      event,
+  updateBlockTemplateStyleSelection(value: string): void {
+    const option = this.findOption(
+      value,
       this.templateStyleOptions.map((item) => item.id),
     );
 
@@ -137,21 +167,17 @@ export class BlockDesignInspectorComponent {
     });
   }
 
-  private readOption<TValue extends string>(
-    event: Event,
+  private findOption<TValue extends string>(
+    value: string,
     options: readonly TValue[],
   ): TValue | null {
-    const value = this.readValue(event);
-
     return options.find((option) => option === value) ?? null;
   }
 
   private readValue(event: Event): string {
     const target = event.target;
 
-    return target instanceof HTMLInputElement || target instanceof HTMLSelectElement
-      ? target.value
-      : '';
+    return target instanceof HTMLInputElement ? target.value : '';
   }
 
   private readNumber(event: Event): number {

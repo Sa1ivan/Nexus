@@ -299,6 +299,42 @@ test('landing CTA buttons share one typed appearance contract and focused editor
   );
 });
 
+test('builder settings use one custom dropdown instead of native selects', async () => {
+  const [templates, settingsSelect, settingsSelectStyles, inspectorStyles, siteSettingsStyles] =
+    await Promise.all([
+      Promise.all([
+        source(
+          'src/app/features/builder/ui/site-settings-editor/site-settings-editor.component.html',
+        ),
+        source(
+          'src/app/features/builder/ui/button-appearance-editor/button-appearance-editor.component.html',
+        ),
+        source('src/app/features/builder/ui/block-inspector/block-design-inspector.component.html'),
+        source(
+          'src/app/features/builder/ui/block-inspector/lead-form-content-inspector.component.html',
+        ),
+      ]),
+      source('src/app/features/builder/ui/settings-select/settings-select.component.ts'),
+      source('src/app/features/builder/ui/settings-select/settings-select.component.scss'),
+      source('src/app/features/builder/ui/block-inspector/block-inspector.component.scss'),
+      source(
+        'src/app/features/builder/ui/site-settings-editor/site-settings-editor.component.scss',
+      ),
+    ]);
+  const settingsMarkup = templates.join('\n');
+  const nativeControlStyles = `${inspectorStyles}\n${siteSettingsStyles}`;
+
+  assert.doesNotMatch(settingsMarkup, /<select\b/);
+  assert.match(settingsMarkup, /app-settings-select/);
+  assert.match(settingsSelect, /selectedOption = computed/);
+  assert.match(settingsSelect, /CdkMenuItemRadio/);
+  assert.match(settingsSelectStyles, /settings-select__menu/);
+  assert.match(nativeControlStyles, /appearance:\s*none/);
+  assert.match(nativeControlStyles, /::-webkit-slider-thumb/);
+  assert.match(nativeControlStyles, /:checked/);
+  assert.match(nativeControlStyles, /::-webkit-color-swatch/);
+});
+
 test('storage normalization and validation harden local demo data', async () => {
   const [repository, projectStorageCodec, siteConfigCodec, validation] = await Promise.all([
     source('src/app/features/builder/data-access/local-project.repository.ts'),

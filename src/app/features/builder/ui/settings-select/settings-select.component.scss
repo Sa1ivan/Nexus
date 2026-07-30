@@ -1,0 +1,100 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.settings-select__trigger {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #d8dde5;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #101828;
+  cursor: pointer;
+  font-size: 12px;
+  outline: none;
+  text-align: left;
+}
+
+.settings-select__trigger:hover {
+  border-color: #b6c0ce;
+}
+
+.settings-select__trigger:focus-visible,
+.settings-select__trigger.is-open {
+  border-color: #1769e0;
+  box-shadow: 0 0 0 3px rgba(23, 105, 224, 0.12);
+}
+
+.settings-select__trigger mat-icon {
+  width: 18px;
+  height: 18px;
+  color: #667085;
+  font-size: 18px;
+  transition: transform 160ms ease;
+}
+
+.settings-select__trigger.is-open mat-icon {
+  transform: rotate(180deg);
+}
+
+.settings-select__menu {
+  display: grid;
+  width: max(var(--settings-select-width), 180px);
+  max-width: min(320px, calc(100vw - 24px));
+  max-height: min(320px, calc(100vh - 24px));
+  gap: 2px;
+  box-sizing: border-box;
+  padding: 5px;
+  overflow: auto;
+  border: 1px solid #d8dde5;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow:
+    0 18px 36px rgba(16, 24, 40, 0.14),
+    0 2px 8px rgba(16, 24, 40, 0.08);
+  font-size: 12px;
+  outline: none;
+}
+
+.settings-select__option {
+  display: grid;
+  width: 100%;
+  min-height: 36px;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #344054;
+  cursor: pointer;
+  outline: none;
+  text-align: left;
+}
+
+.settings-select__option:hover,
+.settings-select__option:focus-visible {
+  background: #f2f6fc;
+  color: #174ea6;
+}
+
+.settings-select__option.is-selected {
+  background: #eaf2fd;
+  color: #175fc7;
+  font-weight: 700;
+}
+
+.settings-select__option mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}

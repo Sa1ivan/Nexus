@@ -25,27 +25,24 @@
     /></label>
   </div>
   <div class="inspector__grid">
-    <label class="inspector__field"
-      ><span>Ширина</span
-      ><select
+    <div class="inspector__field">
+      <span>Ширина</span>
+      <app-settings-select
+        ariaLabel="Ширина секции"
+        [options]="contentWidthOptions"
         [value]="currentBlock.appearance?.contentWidth ?? siteConfig().theme.contentWidth"
-        (change)="updateAppearanceWidth($event)"
-      >
-        <option value="narrow">Узкая</option>
-        <option value="wide">Широкая</option>
-        <option value="full">На всю ширину</option>
-      </select></label
-    ><label class="inspector__field"
-      ><span>Отступы</span
-      ><select
+        (valueChange)="updateAppearanceWidth($event)"
+      />
+    </div>
+    <div class="inspector__field">
+      <span>Отступы</span>
+      <app-settings-select
+        ariaLabel="Отступы секции"
+        [options]="sectionSpacingOptions"
         [value]="currentBlock.appearance?.spacing ?? siteConfig().theme.sectionSpacing"
-        (change)="updateAppearanceSpacing($event)"
-      >
-        <option value="compact">Компактные</option>
-        <option value="balanced">Средние</option>
-        <option value="spacious">Просторные</option>
-      </select></label
-    >
+        (valueChange)="updateAppearanceSpacing($event)"
+      />
+    </div>
   </div>
   <label class="inspector__field"
     ><span>Радиус: {{ currentBlock.appearance?.radius ?? siteConfig().theme.radius }} px</span
@@ -70,33 +67,33 @@
       ></button>
     }
   </div>
-  <label class="inspector__field"
-    ><span>Шрифт</span
-    ><select [value]="selectedDesign().fontPairing" (change)="updateBlockFontSelection($event)">
-      @for (option of fontOptions; track option.id) {
-        <option [value]="option.id">{{ option.title }}</option>
-      }
-    </select></label
-  >
-  <label class="inspector__field"
-    ><span>Плотность</span
-    ><select [value]="selectedDesign().density" (change)="updateBlockDensitySelection($event)">
-      @for (option of densityOptions; track option.id) {
-        <option [value]="option.id">{{ option.title }}</option>
-      }
-    </select></label
-  >
-  <label class="inspector__field"
-    ><span>Стиль</span
-    ><select
+  <div class="inspector__field">
+    <span>Шрифт</span>
+    <app-settings-select
+      ariaLabel="Шрифт блока"
+      [options]="fontSelectOptions"
+      [value]="selectedDesign().fontPairing"
+      (valueChange)="updateBlockFontSelection($event)"
+    />
+  </div>
+  <div class="inspector__field">
+    <span>Плотность</span>
+    <app-settings-select
+      ariaLabel="Плотность блока"
+      [options]="densitySelectOptions"
+      [value]="selectedDesign().density"
+      (valueChange)="updateBlockDensitySelection($event)"
+    />
+  </div>
+  <div class="inspector__field">
+    <span>Стиль</span>
+    <app-settings-select
+      ariaLabel="Стиль блока"
+      [options]="templateStyleSelectOptions"
       [value]="selectedDesign().templateStyle"
-      (change)="updateBlockTemplateStyleSelection($event)"
-    >
-      @for (option of templateStyleOptions; track option.id) {
-        <option [value]="option.id">{{ option.title }}</option>
-      }
-    </select></label
-  >
+      (valueChange)="updateBlockTemplateStyleSelection($event)"
+    />
+  </div>
   @if (currentBlock.type === 'hero') {
     <div class="inspector__color-grid">
       <label class="inspector__color"

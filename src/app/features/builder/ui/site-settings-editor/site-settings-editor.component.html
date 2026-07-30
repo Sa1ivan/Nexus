@@ -63,41 +63,42 @@
 
       <section class="site-editor__section" aria-label="Типографика и ритм">
         <div class="site-editor__grid">
-          <label class="site-editor__field">
+          <div class="site-editor__field">
             <span>Шрифтовая пара</span>
-            <select [value]="siteConfig().theme.fontPairing" (change)="updateThemeFont($event)">
-              @for (option of fontOptions; track option.id) {
-                <option [value]="option.id">{{ option.title }}</option>
-              }
-            </select>
-          </label>
-          <label class="site-editor__field">
+            <app-settings-select
+              ariaLabel="Шрифтовая пара"
+              [options]="fontSelectOptions"
+              [value]="siteConfig().theme.fontPairing"
+              (valueChange)="updateThemeFont($event)"
+            />
+          </div>
+          <div class="site-editor__field">
             <span>Масштаб текста</span>
-            <select [value]="siteConfig().theme.typeScale" (change)="updateThemeScale($event)">
-              <option value="compact">Компактный</option>
-              <option value="balanced">Сбалансированный</option>
-              <option value="display">Выразительный</option>
-            </select>
-          </label>
-          <label class="site-editor__field">
+            <app-settings-select
+              ariaLabel="Масштаб текста"
+              [options]="typeScaleOptions"
+              [value]="siteConfig().theme.typeScale"
+              (valueChange)="updateThemeScale($event)"
+            />
+          </div>
+          <div class="site-editor__field">
             <span>Ширина контента</span>
-            <select [value]="siteConfig().theme.contentWidth" (change)="updateThemeWidth($event)">
-              <option value="narrow">Узкая</option>
-              <option value="wide">Широкая</option>
-              <option value="full">На всю ширину</option>
-            </select>
-          </label>
-          <label class="site-editor__field">
+            <app-settings-select
+              ariaLabel="Ширина контента"
+              [options]="contentWidthOptions"
+              [value]="siteConfig().theme.contentWidth"
+              (valueChange)="updateThemeWidth($event)"
+            />
+          </div>
+          <div class="site-editor__field">
             <span>Интервалы секций</span>
-            <select
+            <app-settings-select
+              ariaLabel="Интервалы секций"
+              [options]="sectionSpacingOptions"
               [value]="siteConfig().theme.sectionSpacing"
-              (change)="updateThemeSpacing($event)"
-            >
-              <option value="compact">Компактные</option>
-              <option value="balanced">Средние</option>
-              <option value="spacious">Просторные</option>
-            </select>
-          </label>
+              (valueChange)="updateThemeSpacing($event)"
+            />
+          </div>
         </div>
 
         <div class="site-editor__field">
@@ -295,13 +296,15 @@
 
     @case ('seo') {
       <section class="site-editor__section" aria-label="SEO настройки">
-        <label class="site-editor__field">
+        <div class="site-editor__field">
           <span>Язык</span>
-          <select [value]="siteConfig().seo.language" (change)="updateSeoText('language', $event)">
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
-          </select>
-        </label>
+          <app-settings-select
+            ariaLabel="Язык сайта"
+            [options]="languageOptions"
+            [value]="siteConfig().seo.language"
+            (valueChange)="updateSeoLanguage($event)"
+          />
+        </div>
         <app-media-input
           label="Favicon"
           [src]="siteConfig().seo.favicon?.src ?? ''"

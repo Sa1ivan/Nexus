@@ -19,6 +19,8 @@ import type {
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockItemActionsComponent } from '../block-inspector/block-item-actions.component';
 import { MediaInputComponent } from '../media-input/media-input.component';
+import { SettingsSelectComponent } from '../settings-select/settings-select.component';
+import type { SettingsSelectOption } from '../settings-select/settings-select.types';
 import type {
   BusinessLinkCollection,
   BusinessTextField,
@@ -41,11 +43,36 @@ const THEME_COLOR_OPTIONS: readonly {
 const TYPE_SCALE_OPTIONS: readonly TypeScale[] = ['compact', 'balanced', 'display'];
 const CONTENT_WIDTH_OPTIONS: readonly ContentWidth[] = ['narrow', 'wide', 'full'];
 const SECTION_SPACING_OPTIONS: readonly SectionSpacing[] = ['compact', 'balanced', 'spacious'];
+const TYPE_SCALE_SELECT_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'compact', label: 'Компактный' },
+  { value: 'balanced', label: 'Сбалансированный' },
+  { value: 'display', label: 'Выразительный' },
+];
+const CONTENT_WIDTH_SELECT_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'narrow', label: 'Узкая' },
+  { value: 'wide', label: 'Широкая' },
+  { value: 'full', label: 'На всю ширину' },
+];
+const SECTION_SPACING_SELECT_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'compact', label: 'Компактные' },
+  { value: 'balanced', label: 'Средние' },
+  { value: 'spacious', label: 'Просторные' },
+];
+const LANGUAGE_SELECT_OPTIONS: readonly SettingsSelectOption[] = [
+  { value: 'ru', label: 'Русский' },
+  { value: 'en', label: 'English' },
+];
 
 @Component({
   selector: 'app-site-settings-editor',
   standalone: true,
-  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule, MediaInputComponent],
+  imports: [
+    BlockItemActionsComponent,
+    MatButtonModule,
+    MatIconModule,
+    MediaInputComponent,
+    SettingsSelectComponent,
+  ],
   templateUrl: './site-settings-editor.component.html',
   styleUrl: './site-settings-editor.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,6 +85,14 @@ export class SiteSettingsEditorComponent {
   readonly activeTab = signal<SettingsTab>('theme');
   readonly themeColorOptions = THEME_COLOR_OPTIONS;
   readonly fontOptions = LANDING_FONT_OPTIONS;
+  readonly fontSelectOptions: readonly SettingsSelectOption[] = this.fontOptions.map((option) => ({
+    value: option.id,
+    label: option.title,
+  }));
+  readonly typeScaleOptions = TYPE_SCALE_SELECT_OPTIONS;
+  readonly contentWidthOptions = CONTENT_WIDTH_SELECT_OPTIONS;
+  readonly sectionSpacingOptions = SECTION_SPACING_SELECT_OPTIONS;
+  readonly languageOptions = LANGUAGE_SELECT_OPTIONS;
 
   setTab(tab: SettingsTab): void {
     this.activeTab.set(tab);
@@ -89,32 +124,32 @@ export class SiteSettingsEditorComponent {
     return isCustomAccentColor(color) ? formatLandingAccentRgb(color) : '';
   }
 
-  updateThemeFont(event: Event): void {
-    const fontPairing = this.fontOptions.find((option) => option.id === this.readValue(event))?.id;
+  updateThemeFont(value: string): void {
+    const fontPairing = this.fontOptions.find((option) => option.id === value)?.id;
 
     if (fontPairing !== undefined) {
       this.builderStore.updateSiteTheme({ fontPairing });
     }
   }
 
-  updateThemeScale(event: Event): void {
-    const typeScale = this.findAllowedValue(this.readValue(event), TYPE_SCALE_OPTIONS);
+  updateThemeScale(value: string): void {
+    const typeScale = this.findAllowedValue(value, TYPE_SCALE_OPTIONS);
 
     if (typeScale !== undefined) {
       this.builderStore.updateSiteTheme({ typeScale });
     }
   }
 
-  updateThemeWidth(event: Event): void {
-    const contentWidth = this.findAllowedValue(this.readValue(event), CONTENT_WIDTH_OPTIONS);
+  updateThemeWidth(value: string): void {
+    const contentWidth = this.findAllowedValue(value, CONTENT_WIDTH_OPTIONS);
 
     if (contentWidth !== undefined) {
       this.builderStore.updateSiteTheme({ contentWidth });
     }
   }
 
-  updateThemeSpacing(event: Event): void {
-    const sectionSpacing = this.findAllowedValue(this.readValue(event), SECTION_SPACING_OPTIONS);
+  updateThemeSpacing(value: string): void {
+    const sectionSpacing = this.findAllowedValue(value, SECTION_SPACING_OPTIONS);
 
     if (sectionSpacing !== undefined) {
       this.builderStore.updateSiteTheme({ sectionSpacing });
@@ -156,6 +191,14 @@ export class SiteSettingsEditorComponent {
 
   updateSeoText(field: SeoTextField, event: Event): void {
     this.builderStore.updateSiteSeo({ [field]: this.readValue(event) });
+  }
+
+  updateSeoLanguage(value: string): void {
+    const language = this.findAllowedValue(value, ['ru', 'en'] as const);
+
+    if (language !== undefined) {
+      this.builderStore.updateSiteSeo({ language });
+    }
   }
 
   updateSeoMedia(kind: 'favicon', field: 'src' | 'alt', value: string): void {
@@ -266,9 +309,7 @@ export class SiteSettingsEditorComponent {
 
   private readValue(event: Event): string {
     const target = event.target;
-    return target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      target instanceof HTMLSelectElement
+    return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
       ? target.value
       : '';
   }

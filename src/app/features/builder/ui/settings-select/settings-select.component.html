@@ -1,0 +1,40 @@
+<button
+  type="button"
+  class="settings-select__trigger"
+  [cdkMenuTriggerFor]="optionsMenu"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-description]="'Выбрано: ' + selectedLabel()"
+  [class.is-open]="isOpen()"
+  (pointerdown)="syncMenuWidth($event)"
+  (keydown)="syncMenuWidth($event)"
+  (cdkMenuOpened)="isOpen.set(true)"
+  (cdkMenuClosed)="isOpen.set(false)"
+>
+  <span>{{ selectedLabel() }}</span>
+  <mat-icon aria-hidden="true">expand_more</mat-icon>
+</button>
+
+<ng-template #optionsMenu>
+  <div
+    cdkMenu
+    class="settings-select__menu"
+    [style.--settings-select-width.px]="menuWidth()"
+    [attr.aria-label]="ariaLabel()"
+  >
+    @for (option of options(); track option.value) {
+      <button
+        cdkMenuItemRadio
+        type="button"
+        class="settings-select__option"
+        [cdkMenuItemChecked]="option.value === value()"
+        [class.is-selected]="option.value === value()"
+        (cdkMenuItemTriggered)="select(option.value)"
+      >
+        <span>{{ option.label }}</span>
+        @if (option.value === value()) {
+          <mat-icon aria-hidden="true">check</mat-icon>
+        }
+      </button>
+    }
+  </div>
+</ng-template>

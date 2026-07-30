@@ -57,15 +57,16 @@
             (input)="updateLeadField(field.id, 'label', $event)"
         /></label>
         <div class="inspector__grid">
-          <label class="inspector__field"
-            ><span>Тип</span
-            ><select [value]="field.type" (change)="updateLeadFieldType(field.id, $event)">
-              <option value="text">Текст</option>
-              <option value="email">Email</option>
-              <option value="tel">Телефон</option>
-              <option value="textarea">Большой текст</option>
-            </select></label
-          ><label class="inspector__check"
+          <div class="inspector__field">
+            <span>Тип</span>
+            <app-settings-select
+              [ariaLabel]="'Тип поля «' + field.label + '»'"
+              [options]="fieldTypeOptions"
+              [value]="field.type"
+              (valueChange)="updateLeadFieldType(field.id, $event)"
+            />
+          </div>
+          <label class="inspector__check"
             ><input
               type="checkbox"
               [checked]="field.required"

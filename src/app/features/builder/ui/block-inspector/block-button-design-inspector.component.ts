@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
-import {
-  DEFAULT_PRIMARY_BUTTON_APPEARANCE,
-  DEFAULT_SECONDARY_BUTTON_APPEARANCE,
-  getReadableTextColor,
-  resolveButtonAppearance,
+import { resolveButtonAppearance } from '../../domain/models';
+import type {
+  ButtonAppearance,
+  ButtonAppearanceUpdate,
+  PageBlockConfig,
 } from '../../domain/models';
-import type { ButtonAppearance, PageBlockConfig } from '../../domain/models';
+import { ButtonAppearanceContextService } from '../../services/button-appearance-context.service';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
-import { BuilderStore } from '../../stores/builder.store';
 import { ButtonAppearanceEditorComponent } from '../button-appearance-editor/button-appearance-editor.component';
 
 const BUTTON_BLOCK_TYPES: ReadonlySet<PageBlockConfig['type']> = new Set([
@@ -29,119 +28,171 @@ const BUTTON_BLOCK_TYPES: ReadonlySet<PageBlockConfig['type']> = new Set([
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BlockButtonDesignInspectorComponent {
-  private readonly builderStore = inject(BuilderStore);
   private readonly blockStore = inject(BuilderBlockStore);
+  private readonly appearanceContext = inject(ButtonAppearanceContextService);
 
   readonly block = input.required<PageBlockConfig>();
   readonly supportsButtons = computed(() => BUTTON_BLOCK_TYPES.has(this.block().type));
 
   primaryAppearance(appearance: ButtonAppearance | undefined): ButtonAppearance {
-    return resolveButtonAppearance(appearance, this.primaryFallback());
+    const block = this.appearanceContext.currentBlock(this.block());
+    return resolveButtonAppearance(appearance, this.appearanceContext.primaryFallback(block));
   }
 
   secondaryAppearance(appearance: ButtonAppearance | undefined): ButtonAppearance {
-    return resolveButtonAppearance(appearance, this.secondaryFallback());
+    const block = this.appearanceContext.currentBlock(this.block());
+    return resolveButtonAppearance(appearance, this.appearanceContext.secondaryFallback(block));
   }
 
-  updateHeroPrimary(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateHeroPrimary(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'hero') {
-      this.blockStore.updateHeroBlock(block.id, { primaryButtonAppearance: appearance });
+      this.blockStore.updateHeroBlock(block.id, {
+        primaryButtonAppearance: this.appearanceContext.withFallback(
+          block.primaryButtonAppearance,
+          appearance,
+          this.appearanceContext.primaryFallback(block),
+        ),
+      });
     }
   }
 
-  updateHeroSecondary(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateHeroSecondary(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'hero') {
-      this.blockStore.updateHeroBlock(block.id, { secondaryButton: { appearance } });
+      this.blockStore.updateHeroBlock(block.id, {
+        secondaryButton: {
+          appearance: this.appearanceContext.withFallback(
+            block.secondaryButton?.appearance,
+            appearance,
+            this.appearanceContext.secondaryFallback(block),
+          ),
+        },
+      });
     }
   }
 
-  updateHeaderCta(appearance: ButtonAppearance): void {
-    const block = this.block();
-    if (block.type === 'siteHeader') {
-      this.blockStore.updateSiteHeaderBlock(block.id, { cta: { appearance } });
-    }
-  }
-
-  updateHeaderBooking(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateHeaderCta(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'siteHeader') {
       this.blockStore.updateSiteHeaderBlock(block.id, {
-        booking: { action: { appearance } },
+        cta: {
+          appearance: this.appearanceContext.withFallback(
+            block.cta.appearance,
+            appearance,
+            this.appearanceContext.primaryFallback(block),
+          ),
+        },
       });
     }
   }
 
-  updateContentMediaCta(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateHeaderBooking(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
+    if (block.type === 'siteHeader') {
+      this.blockStore.updateSiteHeaderBlock(block.id, {
+        booking: {
+          action: {
+            appearance: this.appearanceContext.withFallback(
+              block.booking?.action.appearance,
+              appearance,
+              this.appearanceContext.primaryFallback(block),
+            ),
+          },
+        },
+      });
+    }
+  }
+
+  updateContentMediaCta(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'contentMedia') {
-      this.blockStore.updateContentMediaBlock(block.id, { cta: { appearance } });
+      this.blockStore.updateContentMediaBlock(block.id, {
+        cta: {
+          appearance: this.appearanceContext.withFallback(
+            block.cta?.appearance,
+            appearance,
+            this.appearanceContext.primaryFallback(block),
+          ),
+        },
+      });
     }
   }
 
-  updateOfferCta(itemId: string, appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateOfferCta(itemId: string, appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'offerList') {
-      this.blockStore.updateOfferListItem(block.id, itemId, { cta: { appearance } });
+      const item = block.items.find((currentItem) => currentItem.id === itemId);
+
+      if (item !== undefined) {
+        this.blockStore.updateOfferListItem(block.id, itemId, {
+          cta: {
+            appearance: this.appearanceContext.withFallback(
+              item.cta?.appearance,
+              appearance,
+              this.appearanceContext.primaryFallback(block),
+            ),
+          },
+        });
+      }
     }
   }
 
-  updateCallToActionPrimary(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateCallToActionPrimary(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'callToAction') {
       this.blockStore.updateCallToActionBlock(block.id, {
-        primaryAction: { appearance },
+        primaryAction: {
+          appearance: this.appearanceContext.withFallback(
+            block.primaryAction.appearance,
+            appearance,
+            this.appearanceContext.primaryFallback(block),
+          ),
+        },
       });
     }
   }
 
-  updateCallToActionSecondary(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateCallToActionSecondary(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'callToAction') {
       this.blockStore.updateCallToActionBlock(block.id, {
-        secondaryAction: { appearance },
+        secondaryAction: {
+          appearance: this.appearanceContext.withFallback(
+            block.secondaryAction?.appearance,
+            appearance,
+            this.appearanceContext.secondaryFallback(block),
+          ),
+        },
       });
     }
   }
 
-  updateFooterCta(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateFooterCta(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'siteFooter') {
-      this.blockStore.updateSiteFooterBlock(block.id, { cta: { appearance } });
+      this.blockStore.updateSiteFooterBlock(block.id, {
+        cta: {
+          appearance: this.appearanceContext.withFallback(
+            block.cta.appearance,
+            appearance,
+            this.appearanceContext.primaryFallback(block),
+          ),
+        },
+      });
     }
   }
 
-  updateFormSubmit(appearance: ButtonAppearance): void {
-    const block = this.block();
+  updateFormSubmit(appearance: ButtonAppearanceUpdate): void {
+    const block = this.appearanceContext.currentBlock(this.block());
     if (block.type === 'leadForm') {
-      this.blockStore.updateLeadFormBlock(block.id, { submitAppearance: appearance });
+      this.blockStore.updateLeadFormBlock(block.id, {
+        submitAppearance: this.appearanceContext.withFallback(
+          block.submitAppearance,
+          appearance,
+          this.appearanceContext.primaryFallback(block),
+        ),
+      });
     }
-  }
-
-  private primaryFallback(): ButtonAppearance {
-    const block = this.block();
-    const theme = this.builderStore.siteConfig().theme;
-    const backgroundColor = block.appearance?.accentColor ?? theme.accentColor;
-
-    return {
-      ...DEFAULT_PRIMARY_BUTTON_APPEARANCE,
-      backgroundColor,
-      textColor: getReadableTextColor(backgroundColor),
-      borderColor: backgroundColor,
-    };
-  }
-
-  private secondaryFallback(): ButtonAppearance {
-    const block = this.block();
-    const theme = this.builderStore.siteConfig().theme;
-    const accentColor = block.appearance?.accentColor ?? theme.accentColor;
-
-    return {
-      ...DEFAULT_SECONDARY_BUTTON_APPEARANCE,
-      backgroundColor: accentColor,
-      textColor: block.appearance?.textColor ?? theme.textColor,
-      borderColor: accentColor,
-    };
   }
 }
