@@ -2,12 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-interface AppNavItem {
-  readonly label: string;
-  readonly path: string;
-  readonly icon: string;
-  readonly exact: boolean;
-}
+import type { AppNavItem } from './app-shell.types';
 
 @Component({
   selector: 'app-shell',

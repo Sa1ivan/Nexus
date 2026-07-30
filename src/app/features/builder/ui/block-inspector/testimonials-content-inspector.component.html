@@ -1,0 +1,92 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input
+      type="text"
+      [value]="current.eyebrow"
+      (input)="updateTestimonialsText('eyebrow', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Заголовок</span
+    ><input type="text" [value]="current.title" (input)="updateTestimonialsText('title', $event)"
+  /></label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Отзывы</strong
+    ><button mat-icon-button type="button" aria-label="Добавить отзыв" (click)="addTestimonial()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (item of current.items; track item.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ item.author }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.items.length - 1"
+          [canRemove]="current.items.length > 1"
+          (moveUp)="moveTestimonial(item.id, 'up')"
+          (moveDown)="moveTestimonial(item.id, 'down')"
+          (duplicateItem)="duplicateTestimonial(item.id)"
+          (removeItem)="removeTestimonial(item.id)"
+        />
+        <label class="inspector__field"
+          ><span>Цитата</span
+          ><textarea
+            rows="4"
+            [value]="item.quote"
+            (input)="updateTestimonialText(item.id, 'quote', $event)"
+          ></textarea>
+        </label>
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Имя</span
+            ><input
+              type="text"
+              [value]="item.author"
+              (input)="updateTestimonialText(item.id, 'author', $event)" /></label
+          ><label class="inspector__field"
+            ><span>Роль</span
+            ><input
+              type="text"
+              [value]="item.role"
+              (input)="updateTestimonialText(item.id, 'role', $event)"
+          /></label>
+        </div>
+        <label class="inspector__field"
+          ><span>Рейтинг: {{ item.rating }}</span
+          ><input
+            type="range"
+            min="1"
+            max="5"
+            [value]="item.rating"
+            (input)="updateTestimonialRating(item.id, $event)"
+        /></label>
+        <app-media-input
+          label="Аватар"
+          [src]="item.avatar?.src ?? ''"
+          [alt]="item.avatar?.alt ?? ''"
+          (srcChange)="
+            updateTestimonialAvatar(
+              item.id,
+              item.avatar?.src ?? '',
+              item.avatar?.alt ?? '',
+              'src',
+              $event
+            )
+          "
+          (altChange)="
+            updateTestimonialAvatar(
+              item.id,
+              item.avatar?.src ?? '',
+              item.avatar?.alt ?? '',
+              'alt',
+              $event
+            )
+          "
+        />
+      </div>
+    </details>
+  }
+</section>

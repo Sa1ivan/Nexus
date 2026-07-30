@@ -14,6 +14,7 @@ import {
 } from '../domain/models';
 import type { ProjectRepository } from '../domain/ports';
 import { validateSiteConfig } from '../domain/utils/site-config-validation';
+import type { ProjectStorageLock } from './local-project-repository.types';
 import { ProjectStorageCodec } from './project-storage.codec';
 import type { ProjectStorageState } from './project-storage.model';
 
@@ -24,9 +25,7 @@ const MAX_STORED_LEADS = 500;
 const MAX_STORAGE_CHARACTERS = 4_500_000;
 const STORAGE_LOCK_NAME = 'nexus.builder.projects.write';
 
-export interface ProjectStorageLock {
-  request<TValue>(name: string, callback: () => TValue | PromiseLike<TValue>): Promise<TValue>;
-}
+export type { ProjectStorageLock } from './local-project-repository.types';
 
 export const PROJECT_STORAGE = new InjectionToken<Storage | null>('PROJECT_STORAGE', {
   providedIn: 'root',

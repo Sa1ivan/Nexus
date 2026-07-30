@@ -1,6 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 
 import type { SiteConfig } from '../domain/models';
+import type { BuilderHistorySnapshot } from './builder-history-store.types';
 
 const HISTORY_LIMIT = 50;
 
@@ -51,6 +52,18 @@ export class BuilderHistoryStore {
   reset(): void {
     this.undoHistory.set([]);
     this.redoHistory.set([]);
+  }
+
+  snapshot(): BuilderHistorySnapshot {
+    return {
+      undo: this.undoHistory(),
+      redo: this.redoHistory(),
+    };
+  }
+
+  restore(snapshot: BuilderHistorySnapshot): void {
+    this.undoHistory.set(snapshot.undo);
+    this.redoHistory.set(snapshot.redo);
   }
 
   private append(history: readonly SiteConfig[], snapshot: SiteConfig): readonly SiteConfig[] {

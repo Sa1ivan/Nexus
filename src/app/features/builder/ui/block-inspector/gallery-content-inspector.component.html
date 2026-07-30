@@ -1,0 +1,66 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input
+      type="text"
+      [value]="current.eyebrow"
+      (input)="updateGalleryText('eyebrow', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Заголовок</span
+    ><input
+      type="text"
+      [value]="current.title"
+      (input)="updateGalleryText('title', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Описание</span
+    ><textarea
+      rows="3"
+      [value]="current.description"
+      (input)="updateGalleryText('description', $event)"
+    ></textarea>
+  </label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Фотографии</strong
+    ><button
+      mat-icon-button
+      type="button"
+      aria-label="Добавить фотографию"
+      (click)="addGalleryItem()"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (item of current.items; track item.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ item.caption || item.image.alt || 'Фотография' }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.items.length - 1"
+          [canRemove]="current.items.length > 1"
+          (moveUp)="moveGalleryItem(item.id, 'up')"
+          (moveDown)="moveGalleryItem(item.id, 'down')"
+          (duplicateItem)="duplicateGalleryItem(item.id)"
+          (removeItem)="removeGalleryItem(item.id)"
+        />
+        <app-media-input
+          [required]="true"
+          [src]="item.image.src"
+          [alt]="item.image.alt"
+          (srcChange)="updateGalleryImage(item.id, item.image.src, item.image.alt, 'src', $event)"
+          (altChange)="updateGalleryImage(item.id, item.image.src, item.image.alt, 'alt', $event)"
+        />
+        <label class="inspector__field"
+          ><span>Подпись</span
+          ><input
+            type="text"
+            [value]="item.caption ?? ''"
+            (input)="updateGalleryCaption(item.id, $event)"
+        /></label>
+      </div>
+    </details>
+  }
+</section>

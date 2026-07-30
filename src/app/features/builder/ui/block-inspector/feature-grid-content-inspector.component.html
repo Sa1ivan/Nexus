@@ -1,0 +1,101 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input type="text" [value]="current.eyebrow" (input)="updateFeatureText('eyebrow', $event)"
+  /></label>
+  <label class="inspector__field"
+    ><span>Заголовок</span
+    ><textarea
+      rows="2"
+      [value]="current.title"
+      (input)="updateFeatureText('title', $event)"
+    ></textarea>
+  </label>
+  <label class="inspector__field"
+    ><span>Описание</span
+    ><textarea
+      rows="3"
+      [value]="current.description"
+      (input)="updateFeatureText('description', $event)"
+    ></textarea>
+  </label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Преимущества</strong
+    ><button
+      mat-icon-button
+      type="button"
+      aria-label="Добавить преимущество"
+      (click)="addFeatureItem()"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (item of current.items; track item.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ item.title }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.items.length - 1"
+          [canRemove]="current.items.length > 1"
+          (moveUp)="moveFeatureItem(item.id, 'up')"
+          (moveDown)="moveFeatureItem(item.id, 'down')"
+          (duplicateItem)="duplicateFeatureItem(item.id)"
+          (removeItem)="removeFeatureItem(item.id)"
+        />
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Иконка</span
+            ><input
+              type="text"
+              [value]="item.icon ?? ''"
+              (input)="updateFeatureItem(item.id, 'icon', $event)" /></label
+          ><label class="inspector__field"
+            ><span>Заголовок</span
+            ><input
+              type="text"
+              [value]="item.title"
+              (input)="updateFeatureItem(item.id, 'title', $event)"
+          /></label>
+        </div>
+        <label class="inspector__field"
+          ><span>Описание</span
+          ><textarea
+            rows="3"
+            [value]="item.description"
+            (input)="updateFeatureItem(item.id, 'description', $event)"
+          ></textarea>
+        </label>
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Ссылка: текст</span
+            ><input
+              type="text"
+              [value]="item.link?.label ?? ''"
+              (input)="updateFeatureLink(item.id, item.link, 'label', $event)" /></label
+          ><label class="inspector__field"
+            ><span>Адрес</span
+            ><input
+              type="text"
+              [value]="item.link?.target ?? ''"
+              (input)="updateFeatureLink(item.id, item.link, 'target', $event)"
+          /></label>
+        </div>
+        <app-media-input
+          label="Изображение"
+          [src]="item.image?.src ?? ''"
+          [alt]="item.image?.alt ?? ''"
+          (srcChange)="
+            updateFeatureImage(item.id, item.image?.src ?? '', item.image?.alt ?? '', 'src', $event)
+          "
+          (altChange)="
+            updateFeatureImage(item.id, item.image?.src ?? '', item.image?.alt ?? '', 'alt', $event)
+          "
+        />
+      </div>
+    </details>
+  }
+</section>

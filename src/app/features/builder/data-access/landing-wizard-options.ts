@@ -2,7 +2,6 @@ import type {
   LandingAccentPreset,
   LandingDensity,
   LandingDesignOption,
-  LandingDesignSettings,
   LandingFooterVariant,
   LandingFontPairing,
   LandingHeaderVariant,
@@ -13,14 +12,9 @@ import type {
   LandingTone,
   LandingWizardStep,
 } from '../domain/models';
+import type { LandingIndustryRecommendation } from './landing-wizard-options.types';
 
-export interface LandingIndustryRecommendation {
-  readonly tone: LandingTone;
-  readonly header: LandingHeaderVariant;
-  readonly offerList: LandingOfferListVariant;
-  readonly footer: LandingFooterVariant;
-  readonly design: LandingDesignSettings;
-}
+export type { LandingIndustryRecommendation } from './landing-wizard-options.types';
 
 export const LANDING_WIZARD_STEPS: readonly LandingWizardStep[] = [
   {

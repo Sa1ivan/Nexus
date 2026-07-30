@@ -12,6 +12,8 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
     builderTemplate,
     inspectorTemplate,
     inspectorComponent,
+    contentInspectors,
+    behaviorInspector,
     mediaTemplate,
     settingsTemplate,
     wizardTemplate,
@@ -22,13 +24,21 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
     source('src/app/features/builder/pages/builder-page/builder-page.component.html'),
     source('src/app/features/builder/ui/block-inspector/block-inspector.component.html'),
     source('src/app/features/builder/ui/block-inspector/block-inspector.component.ts'),
+    Promise.all(
+      ['hero', 'offer-list', 'lead-form'].map((name) =>
+        source(
+          `src/app/features/builder/ui/block-inspector/${name}-content-inspector.component.ts`,
+        ),
+      ),
+    ).then((sources) => sources.join('\n')),
+    source('src/app/features/builder/ui/block-inspector/block-behavior-inspector.component.ts'),
     source('src/app/features/builder/ui/media-input/media-input.component.html'),
     source('src/app/features/builder/ui/site-settings-editor/site-settings-editor.component.html'),
     source('src/app/features/builder/pages/create-landing-page/create-landing-page.component.html'),
     source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
     source('src/app/features/builder/data-access/local-project.repository.ts'),
   ]);
-  const editorSources = `${inspectorTemplate}\n${inspectorComponent}\n${mediaTemplate}`;
+  const editorSources = `${inspectorTemplate}\n${inspectorComponent}\n${contentInspectors}\n${mediaTemplate}`;
 
   assert.match(routes, /path: 'p\/:projectId'/);
   assert.match(routes, /builder-page\.component/);
@@ -45,8 +55,8 @@ test('create-edit-save-publish-public-lead flow is wired through routes and page
   assert.match(builderTemplate, /Добавить/);
   assert.match(builderTemplate, /Слои/);
   assert.match(builderTemplate, /Тема/);
-  assert.match(inspectorComponent, /toggleBlockVisibility/);
-  assert.match(inspectorComponent, /updateBlockAnchor/);
+  assert.match(behaviorInspector, /toggleBlockVisibility/);
+  assert.match(behaviorInspector, /updateBlockAnchor/);
   assert.match(builderTemplate, /undo\(\)/);
   assert.match(builderTemplate, /redo\(\)/);
   assert.match(editorSources, /updateHeroMedia/);

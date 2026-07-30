@@ -1,0 +1,92 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Заголовок</span
+    ><textarea
+      rows="3"
+      [value]="current.title"
+      (input)="updateLeadText('title', $event)"
+    ></textarea></label
+  ><label class="inspector__field"
+    ><span>Описание</span
+    ><textarea
+      rows="3"
+      [value]="current.description"
+      (input)="updateLeadText('description', $event)"
+    ></textarea></label
+  ><label class="inspector__field"
+    ><span>Кнопка</span
+    ><input
+      type="text"
+      [value]="current.submitText"
+      (input)="updateLeadText('submitText', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Сообщение успеха</span
+    ><textarea
+      rows="2"
+      [value]="current.successMessage"
+      (input)="updateLeadText('successMessage', $event)"
+    ></textarea>
+  </label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Поля</strong
+    ><button mat-icon-button type="button" aria-label="Добавить поле" (click)="addLeadField()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (field of current.fields; track field.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ field.label }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.fields.length - 1"
+          [canRemove]="current.fields.length > 1"
+          (moveUp)="moveLeadField(field.id, 'up')"
+          (moveDown)="moveLeadField(field.id, 'down')"
+          (duplicateItem)="duplicateLeadField(field.id)"
+          (removeItem)="removeLeadField(field.id)"
+        />
+        <label class="inspector__field"
+          ><span>Подпись</span
+          ><input
+            type="text"
+            [value]="field.label"
+            (input)="updateLeadField(field.id, 'label', $event)"
+        /></label>
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Тип</span
+            ><select [value]="field.type" (change)="updateLeadFieldType(field.id, $event)">
+              <option value="text">Текст</option>
+              <option value="email">Email</option>
+              <option value="tel">Телефон</option>
+              <option value="textarea">Большой текст</option>
+            </select></label
+          ><label class="inspector__check"
+            ><input
+              type="checkbox"
+              [checked]="field.required"
+              (change)="updateLeadRequired(field.id, $event)"
+            /><span>Обязательное</span></label
+          >
+        </div>
+        <label class="inspector__field"
+          ><span>Placeholder</span
+          ><input
+            type="text"
+            [value]="field.placeholder"
+            (input)="updateLeadField(field.id, 'placeholder', $event)" /></label
+        ><label class="inspector__field"
+          ><span>Подсказка</span
+          ><input
+            type="text"
+            [value]="field.helpText ?? ''"
+            (input)="updateLeadField(field.id, 'helpText', $event)"
+        /></label>
+      </div>
+    </details>
+  }
+</section>

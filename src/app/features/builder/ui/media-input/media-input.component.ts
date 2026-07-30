@@ -2,9 +2,13 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
+import { isOversizedEncodedImage } from '../../domain/utils/media-source-policy';
+
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const MAX_IMAGE_SIDE = 1600;
+const OVERSIZED_IMAGE_ERROR =
+  'После оптимизации изображение слишком большое для локального проекта. Выберите файл меньшего размера.';
 
 @Component({
   selector: 'app-media-input',
@@ -32,6 +36,11 @@ export class MediaInputComponent {
 
     if (this.required() && value === '') {
       this.error.set('Для этого элемента нужно изображение. Удалите сам элемент или укажите URL.');
+      return;
+    }
+
+    if (isOversizedEncodedImage(value)) {
+      this.error.set(OVERSIZED_IMAGE_ERROR);
       return;
     }
 
@@ -71,7 +80,14 @@ export class MediaInputComponent {
     this.isProcessing.set(true);
 
     try {
-      this.srcChange.emit(await this.resizeImage(file));
+      const source = await this.resizeImage(file);
+
+      if (isOversizedEncodedImage(source)) {
+        this.error.set(OVERSIZED_IMAGE_ERROR);
+        return;
+      }
+
+      this.srcChange.emit(source);
     } catch {
       this.error.set('Не удалось обработать изображение.');
     } finally {

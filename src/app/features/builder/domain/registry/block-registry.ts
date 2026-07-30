@@ -17,28 +17,13 @@ import type {
   PageBlockConfig,
   TestimonialItem,
 } from '../models';
+import type { BlockDefinition, CloneBlockOptions } from './block-registry.types';
 
-export interface BlockVariantOption<TVariant extends string = string> {
-  readonly id: TVariant;
-  readonly label: string;
-  readonly description: string;
-  readonly icon: string;
-}
-
-export interface BlockDefinition<TType extends BlockType = BlockType> {
-  readonly type: TType;
-  readonly label: string;
-  readonly description: string;
-  readonly icon: string;
-  readonly anchorBase: string;
-  readonly renderer: string;
-  readonly inspector: string;
-  readonly variants: readonly BlockVariantOption[];
-}
-
-export interface CloneBlockOptions {
-  readonly preserveAnchor?: boolean;
-}
+export type {
+  BlockDefinition,
+  BlockVariantOption,
+  CloneBlockOptions,
+} from './block-registry.types';
 
 const DEFAULT_HERO_STYLES: HeroBlockStyles = {
   backgroundColor: '#f5f7fb',

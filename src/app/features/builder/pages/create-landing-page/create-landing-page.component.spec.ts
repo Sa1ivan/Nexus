@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getLandingAccentRgb } from '../../domain/models';
 import type { Project } from '../../domain/models';
+import { LANDING_WIZARD_STEPS } from '../../data-access/landing-wizard-options';
 import { BuilderStore } from '../../stores/builder.store';
 import { CreateLandingPageComponent } from './create-landing-page.component';
 
@@ -31,6 +32,8 @@ describe('CreateLandingPageComponent', () => {
       ],
     });
     component = TestBed.runInInjectionContext(() => new CreateLandingPageComponent());
+    expect(LANDING_WIZARD_STEPS).toBeDefined();
+    expect(component.stepDefinitions).toBe(LANDING_WIZARD_STEPS);
     component.selection.set({
       industry: 'restaurant',
       tone: 'premium',

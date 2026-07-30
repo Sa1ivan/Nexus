@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
@@ -16,6 +16,21 @@ async function importTypeScriptModule(path) {
   }).outputText;
 
   return import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
+}
+
+async function listFiles(directory) {
+  const entries = await readdir(new URL(`../${directory}/`, import.meta.url), {
+    withFileTypes: true,
+  });
+  const nestedFiles = await Promise.all(
+    entries.map((entry) => {
+      const path = `${directory}/${entry.name}`;
+
+      return entry.isDirectory() ? listFiles(path) : [path];
+    }),
+  );
+
+  return nestedFiles.flat();
 }
 
 test('Pages CI uses the pinned runtime and installs Chromium before browser tests', async () => {
@@ -247,16 +262,25 @@ test('storage normalization and validation harden local demo data', async () => 
 });
 
 test('complete builder exposes site theme, business data, SEO and stable element contracts', async () => {
-  const [siteConfig, blockConfig, linkModel, headerModel, offerModel, store, siteConfigCodec] =
-    await Promise.all([
-      source('src/app/features/builder/domain/models/site-config.model.ts'),
-      source('src/app/features/builder/domain/models/block-config.model.ts'),
-      source('src/app/features/builder/domain/models/link-config.model.ts'),
-      source('src/app/features/builder/domain/models/site-header-block-config.model.ts'),
-      source('src/app/features/builder/domain/models/offer-list-block-config.model.ts'),
-      source('src/app/features/builder/stores/builder.store.ts'),
-      source('src/app/features/builder/data-access/site-config.codec.ts'),
-    ]);
+  const [
+    siteConfig,
+    blockConfig,
+    linkModel,
+    headerModel,
+    offerModel,
+    store,
+    blockStore,
+    siteConfigCodec,
+  ] = await Promise.all([
+    source('src/app/features/builder/domain/models/site-config.model.ts'),
+    source('src/app/features/builder/domain/models/block-config.model.ts'),
+    source('src/app/features/builder/domain/models/link-config.model.ts'),
+    source('src/app/features/builder/domain/models/site-header-block-config.model.ts'),
+    source('src/app/features/builder/domain/models/offer-list-block-config.model.ts'),
+    source('src/app/features/builder/stores/builder.store.ts'),
+    source('src/app/features/builder/stores/builder-block.store.ts'),
+    source('src/app/features/builder/data-access/site-config.codec.ts'),
+  ]);
 
   assert.match(siteConfig, /theme: SiteThemeConfig/);
   assert.match(siteConfig, /business: SiteBusinessConfig/);
@@ -275,9 +299,9 @@ test('complete builder exposes site theme, business data, SEO and stable element
   assert.match(store, /toggleBlockVisibility/);
   assert.match(store, /undo\(\)/);
   assert.match(store, /redo\(\)/);
-  assert.match(store, /updateHeaderNavigationItem/);
-  assert.match(store, /duplicateOfferListItem/);
-  assert.match(store, /moveOfferListItem/);
+  assert.match(blockStore, /updateHeaderNavigationItem/);
+  assert.match(blockStore, /duplicateOfferListItem/);
+  assert.match(blockStore, /moveOfferListItem/);
   assert.match(siteConfigCodec, /DEFAULT_SITE_THEME/);
   assert.match(siteConfigCodec, /readFocalPoint/);
 });
@@ -357,19 +381,35 @@ test('rendered output contracts require real interactive recipes instead of plac
 });
 
 test('builder guards media removal and waits for confirmed lead persistence', async () => {
-  const [mediaInput, inspector, leadForm, renderer, publicPreview, builderStyles] =
-    await Promise.all([
-      source('src/app/features/builder/ui/media-input/media-input.component.ts'),
-      source('src/app/features/builder/ui/block-inspector/block-inspector.component.ts'),
-      source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.ts'),
-      source('src/app/features/preview/ui/block-renderer/block-renderer.component.ts'),
-      source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
-      source('src/app/features/builder/pages/builder-page/builder-page.component.scss'),
-    ]);
+  const [
+    mediaInput,
+    mediaEditors,
+    leadForm,
+    leadFormTypes,
+    renderer,
+    publicPreview,
+    builderStyles,
+  ] = await Promise.all([
+    source('src/app/features/builder/ui/media-input/media-input.component.ts'),
+    Promise.all([
+      source('src/app/features/builder/ui/block-inspector/hero-content-inspector.component.ts'),
+      source(
+        'src/app/features/builder/ui/block-inspector/offer-list-content-inspector.component.ts',
+      ),
+      source(
+        'src/app/features/builder/ui/block-inspector/call-to-action-content-inspector.component.ts',
+      ),
+    ]).then((sources) => sources.join('\n')),
+    source('src/app/features/preview/ui/lead-form-block/lead-form-block.component.ts'),
+    source('src/app/features/preview/ui/lead-form-block/lead-form-block.types.ts'),
+    source('src/app/features/preview/ui/block-renderer/block-renderer.component.ts'),
+    source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
+    source('src/app/features/builder/pages/builder-page/builder-page.component.scss'),
+  ]);
 
   assert.match(mediaInput, /readonly required = input\(false\)/);
-  assert.match(inspector, /value === '' && field === 'src' \? null/);
-  assert.match(leadForm, /complete: \(saved: boolean\) => void/);
+  assert.match(mediaEditors, /value === '' && field === 'src' \? null/);
+  assert.match(leadFormTypes, /complete: \(saved: boolean\) => void/);
   assert.match(leadForm, /status\.set\('submitting'\)/);
   assert.match(renderer, /event\.complete\(false\)/);
   assert.match(publicPreview, /event\.complete\(true\)/);
@@ -462,17 +502,17 @@ test('block renderer applies the site theme, skips hidden blocks and keeps inter
 });
 
 test('generated footer maps use a real editable search target', async () => {
-  const [registry, factory, store] = await Promise.all([
+  const [registry, factory, inheritanceService] = await Promise.all([
     source('src/app/features/builder/domain/registry/block-registry.ts'),
     source('src/app/features/builder/data-access/landing-draft.factory.ts'),
-    source('src/app/features/builder/stores/builder.store.ts'),
+    source('src/app/features/builder/services/site-business-inheritance.service.ts'),
   ]);
 
   assert.match(registry, /createMapSearchUrl/);
   assert.match(registry, /openstreetmap\.org\/search/);
   assert.match(factory, /createMapSearchUrl\(business\.address\)/);
   assert.match(factory, /NAVIGATION_TARGETS\[selection\.industry\]/);
-  assert.match(store, /createMapSearchUrl\(address\)/);
+  assert.match(inheritanceService, /createMapSearchUrl\(address\)/);
   assert.doesNotMatch(`${registry}\n${factory}`, /maps\.example\.com/);
 });
 
@@ -490,7 +530,8 @@ test('published pages apply SEO and insights cover every registered block', asyn
   assert.match(publicPage, /name: 'description'/);
   assert.match(publicPage, /updateOptionalMeta\('og:image'/);
   assert.match(insights, /BLOCK_PALETTE\.map/);
-  assert.match(insights, /project\.draft\.pages\[0\]\?\.slug \?\? 'home'/);
+  assert.match(insights, /publicUrl: published \? `\/p\/\$\{project\.id\}` : null/);
+  assert.doesNotMatch(insights, /project\.draft\.pages\[0\]\?\.slug/);
   assert.doesNotMatch(insights, /const BLOCK_TYPE_META: readonly BlockTypeMeta\[\] = \[/);
 });
 
@@ -652,4 +693,133 @@ test('workspace projects keep creation actions contextual and icons compact', as
     projectsStyles,
     /\.projects-page__empty\s*\{[\s\S]*?mat-icon\s*\{[\s\S]*?font-size: 48px;/u,
   );
+});
+
+test('runtime classes keep named contracts in adjacent type files', async () => {
+  const runtimeFiles = (await listFiles('src/app')).filter((path) =>
+    ['.component.ts', '.service.ts', '.store.ts'].some((suffix) => path.endsWith(suffix)),
+  );
+  const violations = (
+    await Promise.all(
+      runtimeFiles.map(async (path) => {
+        const declarations = (await source(path))
+          .split('\n')
+          .flatMap((line, index) =>
+            /^(?:export\s+)?(?:interface|type)\s+\w+/u.test(line) ? [`${path}:${index + 1}`] : [],
+          );
+
+        return declarations;
+      }),
+    )
+  ).flat();
+
+  assert.deepEqual(violations, []);
+});
+
+test('named application contracts live in model, port, or adjacent type files', async () => {
+  const runtimeFiles = (await listFiles('src/app')).filter(
+    (path) =>
+      path.endsWith('.ts') &&
+      !path.endsWith('.spec.ts') &&
+      !path.endsWith('.types.ts') &&
+      !path.endsWith('.model.ts') &&
+      !path.includes('/domain/ports/'),
+  );
+  const violations = (
+    await Promise.all(
+      runtimeFiles.map(async (path) => {
+        const declarations = (await source(path))
+          .split('\n')
+          .flatMap((line, index) =>
+            /^(?:export\s+)?(?:interface|type)\s+\w+/u.test(line) ? [`${path}:${index + 1}`] : [],
+          );
+
+        return declarations;
+      }),
+    )
+  ).flat();
+
+  assert.deepEqual(violations, []);
+});
+
+test('block inspector delegates every editing responsibility to focused typed components', async () => {
+  const [inspector, template, designEditor, behaviorEditor, contentEditors] = await Promise.all([
+    source('src/app/features/builder/ui/block-inspector/block-inspector.component.ts'),
+    source('src/app/features/builder/ui/block-inspector/block-inspector.component.html'),
+    source('src/app/features/builder/ui/block-inspector/block-design-inspector.component.ts').catch(
+      () => '',
+    ),
+    source(
+      'src/app/features/builder/ui/block-inspector/block-behavior-inspector.component.ts',
+    ).catch(() => ''),
+    Promise.all(
+      [
+        'site-header',
+        'hero',
+        'content-media',
+        'feature-grid',
+        'offer-list',
+        'gallery',
+        'testimonials',
+        'faq',
+        'call-to-action',
+        'lead-form',
+        'site-footer',
+      ].map((name) =>
+        source(
+          `src/app/features/builder/ui/block-inspector/${name}-content-inspector.component.ts`,
+        ),
+      ),
+    ),
+  ]);
+
+  assert.match(template, /app-block-design-inspector/);
+  assert.match(template, /app-block-behavior-inspector/);
+  assert.match(inspector, /BlockDesignInspectorComponent/);
+  assert.match(inspector, /BlockBehaviorInspectorComponent/);
+  assert.match(designEditor, /input\.required<PageBlockConfig>/);
+  assert.match(behaviorEditor, /input\.required<PageBlockConfig>/);
+  assert.equal(contentEditors.length, 11);
+  assert.ok(contentEditors.every((editor) => /input\.required<\w+BlockConfig>/u.test(editor)));
+  assert.equal(/\$any\(/u.test(template), false);
+  assert.ok(template.split('\n').length < 120);
+  assert.ok(inspector.split('\n').length < 100);
+});
+
+test('builder store is a facade over focused block mutation services', async () => {
+  const [store, blockStore, mergeService, inheritanceService, collectionService, mutationServices] =
+    await Promise.all([
+      source('src/app/features/builder/stores/builder.store.ts'),
+      source('src/app/features/builder/stores/builder-block.store.ts'),
+      source('src/app/features/builder/services/block-config-merge.service.ts').catch(() => ''),
+      source('src/app/features/builder/services/site-business-inheritance.service.ts').catch(
+        () => '',
+      ),
+      source('src/app/features/builder/services/identified-collection.service.ts').catch(() => ''),
+      Promise.all(
+        [
+          'hero-content',
+          'site-chrome',
+          'feature-offer',
+          'gallery',
+          'social-proof',
+          'lead-form',
+        ].map((name) =>
+          source(`src/app/features/builder/services/${name}-block-mutations.service.ts`),
+        ),
+      ),
+    ]);
+
+  assert.match(store, /inject\(BlockConfigMergeService\)/);
+  assert.match(store, /inject\(SiteBusinessInheritanceService\)/);
+  assert.match(blockStore, /inject\(HeroContentBlockMutationsService\)/);
+  assert.match(blockStore, /inject\(SiteChromeBlockMutationsService\)/);
+  assert.match(blockStore, /inject\(FeatureOfferBlockMutationsService\)/);
+  assert.match(mergeService, /export class BlockConfigMergeService/);
+  assert.match(inheritanceService, /export class SiteBusinessInheritanceService/);
+  assert.match(collectionService, /export class IdentifiedCollectionService/);
+  assert.ok(mutationServices.every((service) => /BlockMutationExecutor/u.test(service)));
+  assert.ok(mutationServices.every((service) => service.split('\n').length < 380));
+  assert.ok(blockStore.split('\n').length < 500);
+  assert.ok(store.split('\n').length < 750);
 });

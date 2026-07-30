@@ -25,6 +25,8 @@ export class BuilderProjectStore {
   private documentGeneration = 0;
   private writeSequence = 0;
   private activeWriteId: number | null = null;
+  private activeWriteCompletion: Promise<void> = Promise.resolve();
+  private resolveActiveWrite: (() => void) | null = null;
   private activationQueue: Promise<void> = Promise.resolve();
 
   readonly currentProject = this.currentProjectSignal.asReadonly();
@@ -40,7 +42,7 @@ export class BuilderProjectStore {
 
   async initialize(projectId?: string): Promise<SiteConfig | null> {
     const sessionEpoch = ++this.sessionEpoch;
-    this.activeWriteId = null;
+    this.resetActiveWrite();
     this.initializedSignal.set(false);
     this.projectErrorSignal.set(null);
     this.versionConflictSignal.set(false);
@@ -177,6 +179,15 @@ export class BuilderProjectStore {
     }
   }
 
+  async saveForProject(
+    siteConfig: SiteConfig,
+    expectedProjectId: string | null,
+  ): Promise<Project | null> {
+    const currentProjectId = this.currentProject()?.id ?? null;
+
+    return currentProjectId === expectedProjectId ? this.save(siteConfig) : null;
+  }
+
   async publish(siteConfig: SiteConfig): Promise<Project | null> {
     const writeId = this.beginWrite();
 
@@ -227,8 +238,12 @@ export class BuilderProjectStore {
 
   replaceCurrentProject(project: Project): void {
     this.sessionEpoch += 1;
-    this.activeWriteId = null;
+    this.resetActiveWrite();
     this.applyProject(project, 'saved');
+  }
+
+  waitForActiveWrite(): Promise<void> {
+    return this.activeWriteCompletion;
   }
 
   markDirty(): void {
@@ -276,14 +291,23 @@ export class BuilderProjectStore {
 
     const writeId = ++this.writeSequence;
     this.activeWriteId = writeId;
+    this.activeWriteCompletion = new Promise<void>((resolve) => {
+      this.resolveActiveWrite = resolve;
+    });
 
     return writeId;
   }
 
   private endWrite(writeId: number): void {
     if (this.activeWriteId === writeId) {
-      this.activeWriteId = null;
+      this.resetActiveWrite();
     }
+  }
+
+  private resetActiveWrite(): void {
+    this.activeWriteId = null;
+    this.resolveActiveWrite?.();
+    this.resolveActiveWrite = null;
   }
 
   private getCompletionStatus(documentGeneration: number): ProjectSaveStatus {

@@ -3,51 +3,20 @@ import { inject, Injectable } from '@angular/core';
 import type { BlockType, Project } from '../../builder/domain/models';
 import { PROJECT_REPOSITORY } from '../../builder/domain/ports';
 import { BLOCK_PALETTE } from '../../builder/domain/registry/block-registry';
-
-export type ProjectPublicationStatus = 'draft' | 'published';
-
-interface BlockTypeMeta {
-  readonly type: BlockType;
-  readonly label: string;
-  readonly icon: string;
-}
-
-export interface ProjectSummary {
-  readonly project: Project;
-  readonly status: ProjectPublicationStatus;
-  readonly pageCount: number;
-  readonly blockCount: number;
-  readonly releaseCount: number;
-  readonly revisionCount: number;
-  readonly leadCount: number;
-  readonly firstPageTitle: string;
-  readonly publicUrl: string | null;
-  readonly createdAtLabel: string;
-  readonly updatedAtLabel: string;
-}
-
-export interface WorkspaceMetrics {
-  readonly projects: readonly ProjectSummary[];
-  readonly totalProjects: number;
-  readonly publishedProjects: number;
-  readonly draftProjects: number;
-  readonly totalLeads: number;
-  readonly totalBlocks: number;
-  readonly totalReleases: number;
-  readonly totalRevisions: number;
-  readonly averageBlocksPerProject: number;
-  readonly latestProject: ProjectSummary | null;
-}
-
-export interface BlockDistributionItem extends BlockTypeMeta {
-  readonly count: number;
-  readonly percentage: number;
-}
-
-export interface ProjectLeadStats {
-  readonly summary: ProjectSummary;
-  readonly percentage: number;
-}
+import type {
+  BlockDistributionItem,
+  BlockTypeMeta,
+  ProjectLeadStats,
+  ProjectSummary,
+  WorkspaceMetrics,
+} from './project-insights.types';
+export type {
+  BlockDistributionItem,
+  ProjectLeadStats,
+  ProjectPublicationStatus,
+  ProjectSummary,
+  WorkspaceMetrics,
+} from './project-insights.types';
 
 export const EMPTY_WORKSPACE_METRICS: WorkspaceMetrics = {
   projects: [],
@@ -161,7 +130,7 @@ export class ProjectInsightsService {
       revisionCount: project.revisions.length,
       leadCount,
       firstPageTitle: project.draft.pages[0]?.title ?? 'Без страницы',
-      publicUrl: published ? `/p/${project.id}/${project.draft.pages[0]?.slug ?? 'home'}` : null,
+      publicUrl: published ? `/p/${project.id}` : null,
       createdAtLabel: this.formatDate(project.createdAt),
       updatedAtLabel: this.formatDate(project.updatedAt),
     };

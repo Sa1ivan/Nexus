@@ -271,7 +271,7 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.documentRevision()).toBe(3);
   });
 
-  it('clears another project document when explicit route initialization fails', async () => {
+  it('restores another project document when explicit route initialization fails', async () => {
     const firstConfig = {
       ...DEFAULT_SITE_CONFIG,
       name: 'First project',
@@ -284,10 +284,11 @@ describe('BuilderStore project transfer', () => {
     await builderStore.initialize(firstProject.id);
     expect(builderStore.siteConfig().name).toBe('First project');
 
-    await builderStore.initialize('second-project');
+    const didInitialize = await builderStore.initialize('second-project');
 
-    expect(builderStore.currentProject()).toBeNull();
-    expect(builderStore.siteConfig()).toBe(DEFAULT_SITE_CONFIG);
+    expect(didInitialize).toBe(false);
+    expect(builderStore.currentProject()).toBe(firstProject);
+    expect(builderStore.siteConfig()).toBe(firstConfig);
     expect(builderStore.projectError()).toBe('Project loading failed.');
   });
 
@@ -313,9 +314,11 @@ describe('BuilderStore project transfer', () => {
     expect(builderStore.canUndo()).toBe(false);
 
     secondLookup.resolve(null);
-    await secondInitialization;
+    expect(await secondInitialization).toBe(false);
 
-    expect(builderStore.siteConfig()).toBe(DEFAULT_SITE_CONFIG);
+    expect(builderStore.currentProject()).toBe(firstProject);
+    expect(builderStore.siteConfig().name).toBe('Unsaved stale edit');
+    expect(builderStore.canUndo()).toBe(true);
     expect(builderStore.projectError()).toBe('Проект не найден.');
   });
 

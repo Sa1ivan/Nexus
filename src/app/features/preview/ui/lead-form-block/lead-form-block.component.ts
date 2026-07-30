@@ -17,13 +17,8 @@ import {
 } from '../../../builder/domain/models';
 import type { LeadFormBlockConfig, LeadFormFieldConfig } from '../../../builder/domain/models';
 import { BookingSelectionService } from '../../data-access/booking-selection.service';
-
-type LeadFormStatus = 'idle' | 'submitting' | 'success' | 'error' | 'unavailable';
-
-export interface LeadFormSubmitEvent {
-  readonly fields: Readonly<Record<string, string>>;
-  readonly complete: (saved: boolean) => void;
-}
+import type { LeadFormStatus, LeadFormSubmitEvent } from './lead-form-block.types';
+export type { LeadFormSubmitEvent } from './lead-form-block.types';
 
 @Component({
   selector: 'app-lead-form-block',

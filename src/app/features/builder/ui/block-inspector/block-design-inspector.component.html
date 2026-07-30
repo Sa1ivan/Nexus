@@ -1,0 +1,130 @@
+@let currentBlock = block();
+<section class="inspector__section">
+  <h2>Оформление секции</h2>
+  <div class="inspector__color-grid">
+    <label class="inspector__color"
+      ><span>Фон</span
+      ><input
+        type="color"
+        [value]="currentBlock.appearance?.backgroundColor ?? siteConfig().theme.surfaceColor"
+        (input)="updateAppearanceColor('backgroundColor', $event)"
+    /></label>
+    <label class="inspector__color"
+      ><span>Текст</span
+      ><input
+        type="color"
+        [value]="currentBlock.appearance?.textColor ?? siteConfig().theme.textColor"
+        (input)="updateAppearanceColor('textColor', $event)"
+    /></label>
+    <label class="inspector__color"
+      ><span>Акцент</span
+      ><input
+        type="color"
+        [value]="currentBlock.appearance?.accentColor ?? siteConfig().theme.accentColor"
+        (input)="updateAppearanceColor('accentColor', $event)"
+    /></label>
+  </div>
+  <div class="inspector__grid">
+    <label class="inspector__field"
+      ><span>Ширина</span
+      ><select
+        [value]="currentBlock.appearance?.contentWidth ?? siteConfig().theme.contentWidth"
+        (change)="updateAppearanceWidth($event)"
+      >
+        <option value="narrow">Узкая</option>
+        <option value="wide">Широкая</option>
+        <option value="full">На всю ширину</option>
+      </select></label
+    ><label class="inspector__field"
+      ><span>Отступы</span
+      ><select
+        [value]="currentBlock.appearance?.spacing ?? siteConfig().theme.sectionSpacing"
+        (change)="updateAppearanceSpacing($event)"
+      >
+        <option value="compact">Компактные</option>
+        <option value="balanced">Средние</option>
+        <option value="spacious">Просторные</option>
+      </select></label
+    >
+  </div>
+  <label class="inspector__field"
+    ><span>Радиус: {{ currentBlock.appearance?.radius ?? siteConfig().theme.radius }} px</span
+    ><input
+      type="range"
+      min="0"
+      max="32"
+      [value]="currentBlock.appearance?.radius ?? siteConfig().theme.radius"
+      (input)="updateAppearanceRadius($event)"
+  /></label>
+</section>
+<section class="inspector__section">
+  <h2>Характер блока</h2>
+  <div class="inspector__swatches">
+    @for (option of accentOptions; track option.id) {
+      <button
+        type="button"
+        [class.is-active]="selectedDesign().accentColor === option.id"
+        [style.--swatch]="getAccentValue(option.id)"
+        [attr.aria-label]="option.title"
+        (click)="updateBlockAccent(option.id)"
+      ></button>
+    }
+  </div>
+  <label class="inspector__field"
+    ><span>Шрифт</span
+    ><select [value]="selectedDesign().fontPairing" (change)="updateBlockFontSelection($event)">
+      @for (option of fontOptions; track option.id) {
+        <option [value]="option.id">{{ option.title }}</option>
+      }
+    </select></label
+  >
+  <label class="inspector__field"
+    ><span>Плотность</span
+    ><select [value]="selectedDesign().density" (change)="updateBlockDensitySelection($event)">
+      @for (option of densityOptions; track option.id) {
+        <option [value]="option.id">{{ option.title }}</option>
+      }
+    </select></label
+  >
+  <label class="inspector__field"
+    ><span>Стиль</span
+    ><select
+      [value]="selectedDesign().templateStyle"
+      (change)="updateBlockTemplateStyleSelection($event)"
+    >
+      @for (option of templateStyleOptions; track option.id) {
+        <option [value]="option.id">{{ option.title }}</option>
+      }
+    </select></label
+  >
+  @if (currentBlock.type === 'hero') {
+    <div class="inspector__color-grid">
+      <label class="inspector__color"
+        ><span>Hero фон</span
+        ><input
+          type="color"
+          [value]="currentBlock.styles.backgroundColor"
+          (input)="updateHeroStyle('backgroundColor', $event)" /></label
+      ><label class="inspector__color"
+        ><span>Hero текст</span
+        ><input
+          type="color"
+          [value]="currentBlock.styles.textColor"
+          (input)="updateHeroStyle('textColor', $event)" /></label
+      ><label class="inspector__color"
+        ><span>Кнопка</span
+        ><input
+          type="color"
+          [value]="currentBlock.styles.buttonBackgroundColor"
+          (input)="updateHeroStyle('buttonBackgroundColor', $event)"
+      /></label>
+    </div>
+    <label class="inspector__field"
+      ><span>Минимальная высота</span
+      ><input
+        type="text"
+        [value]="currentBlock.styles.minHeight"
+        (input)="updateHeroStyle('minHeight', $event)"
+    /></label>
+  }
+</section>

@@ -91,4 +91,11 @@ describe('site config validation', () => {
     expect(isSafeMediaSource('./images/landing/product-hero.webp')).toBe(true);
     expect(isSafeMediaSource('../private/image.webp')).toBe(false);
   });
+
+  it('rejects oversized encoded images at the document validation boundary', () => {
+    const pngHeader = 'iVBORw0KGgo';
+    const payload = `${pngHeader}${'A'.repeat(500_000 - pngHeader.length)}`;
+
+    expect(isSafeMediaSource(`data:image/png;base64,${payload}`)).toBe(false);
+  });
 });

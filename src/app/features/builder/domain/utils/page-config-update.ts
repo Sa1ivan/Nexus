@@ -1,25 +1,10 @@
 import type { PageConfig, PageSeoConfig } from '../models';
 import { cloneRegisteredBlock, createDefaultBlock } from '../registry/block-registry';
 import { createPageId } from './builder-ids';
+import type { PageMutationResult } from './page-config-update.types';
 import { isReservedPageSlug, normalizePageSlug } from './page-slug';
 
-export type PageMutationResult =
-  | {
-      readonly ok: true;
-      readonly pages: readonly PageConfig[];
-      readonly activePageId: string;
-    }
-  | {
-      readonly ok: false;
-      readonly reason:
-        | 'not-found'
-        | 'last-page'
-        | 'empty-title'
-        | 'empty-slug'
-        | 'reserved-slug'
-        | 'duplicate-slug'
-        | 'boundary';
-    };
+export type { PageMutationResult } from './page-config-update.types';
 
 export function createPage(pages: readonly PageConfig[], title: string): PageMutationResult {
   const normalizedTitle = title.trim();

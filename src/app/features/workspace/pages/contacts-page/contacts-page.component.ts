@@ -2,14 +2,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
-interface ContactChannel {
-  readonly title: string;
-  readonly value: string;
-  readonly description: string;
-  readonly icon: string;
-}
-
-type ContactFormStatus = 'idle' | 'sent';
+import type { ContactChannel, ContactFormStatus } from './contacts-page.types';
 
 @Component({
   selector: 'app-contacts-page',

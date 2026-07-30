@@ -14,7 +14,6 @@ import type {
   GalleryBlockConfig,
   HeroBlockConfig,
   LeadFormBlockConfig,
-  LeadSubmissionRequest,
   OfferListBlockConfig,
   PageBlockConfig,
   SiteFooterBlockConfig,
@@ -35,11 +34,8 @@ import { OfferListBlockComponent } from '../offer-list-block/offer-list-block.co
 import { SiteFooterBlockComponent } from '../site-footer-block/site-footer-block.component';
 import { SiteHeaderBlockComponent } from '../site-header-block/site-header-block.component';
 import { TestimonialsBlockComponent } from '../testimonials-block/testimonials-block.component';
-
-export interface LeadSubmissionEvent {
-  readonly request: LeadSubmissionRequest;
-  readonly complete: (saved: boolean) => void;
-}
+import type { LeadSubmissionEvent } from './block-renderer.types';
+export type { LeadSubmissionEvent } from './block-renderer.types';
 
 @Component({
   selector: 'app-block-renderer',

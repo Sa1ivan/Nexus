@@ -63,13 +63,9 @@ import type {
   TestimonialItem,
   TestimonialsVariant,
 } from '../domain/models';
+import type { SiteConfigDecodeResult } from './site-config-codec.types';
 
-export type SiteConfigDecodeResult =
-  | { readonly ok: true; readonly value: SiteConfig }
-  | {
-      readonly ok: false;
-      readonly reason: 'invalid-json' | 'invalid-shape' | 'unsupported-schema';
-    };
+export type { SiteConfigDecodeResult } from './site-config-codec.types';
 
 const BUNDLED_IMAGE_BY_UNSPLASH_PATH: Readonly<Record<string, string>> = {
   'photo-1497366754035-f200968a6e72': 'images/landing/office-studio.webp',

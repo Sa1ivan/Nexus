@@ -100,6 +100,47 @@ describe('BuilderAutosaveService', () => {
     await autosave.flush();
   });
 
+  it('does not save a queued snapshot into a project selected after it was queued', async () => {
+    const projectA = createProject(DEFAULT_SITE_CONFIG, 1, 'project-a');
+    const projectB = createProject({ ...DEFAULT_SITE_CONFIG, name: 'Project B' }, 4, 'project-b');
+    const delayedSaveA = createDeferred<Project>();
+    save.mockRestore();
+    vi.mocked(repository.getProject).mockImplementation(async (projectId) =>
+      projectId === projectA.id ? projectA : projectB,
+    );
+    vi.mocked(repository.saveDraft).mockImplementation(async (request) => {
+      if (request.projectId === projectA.id) {
+        return delayedSaveA.promise;
+      }
+
+      return createProject(request.siteConfig, request.expectedDraftVersion + 1, request.projectId);
+    });
+    await builderStore.initialize(projectA.id);
+    autosave.start();
+    TestBed.tick();
+
+    builderStore.updateSiteName('Project A first save');
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(800);
+
+    builderStore.updateSiteName('Project A queued save');
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(800);
+
+    await builderStore.initialize(projectB.id);
+    delayedSaveA.resolve(
+      createProject({ ...DEFAULT_SITE_CONFIG, name: 'Project A first save' }, 2, projectA.id),
+    );
+    await delayedSaveA.promise;
+    await autosave.flushPending();
+
+    expect(repository.saveDraft).toHaveBeenCalledTimes(1);
+    expect(repository.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: projectA.id }),
+    );
+    expect(projectStore.currentProject()?.id).toBe(projectB.id);
+  });
+
   it('flushes a pending revision immediately without saving it twice', async () => {
     autosave.start();
     TestBed.tick();
@@ -111,6 +152,98 @@ describe('BuilderAutosaveService', () => {
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: 'Flush now' }));
+  });
+
+  it('drains revisions created while an earlier save is still in flight', async () => {
+    const project = createProject(DEFAULT_SITE_CONFIG, 1, 'project-a');
+    const firstSave = createDeferred<Project>();
+    save.mockRestore();
+    vi.mocked(repository.getActiveProject).mockResolvedValue(project);
+    vi.mocked(repository.saveDraft)
+      .mockReturnValueOnce(firstSave.promise)
+      .mockImplementationOnce(async (request) =>
+        createProject(request.siteConfig, request.expectedDraftVersion + 1, request.projectId),
+      );
+    await builderStore.initialize();
+    autosave.start();
+    TestBed.tick();
+
+    builderStore.updateSiteName('First revision');
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(800);
+    const drain = autosave.flushPending();
+
+    builderStore.updateSiteName('Revision created during save');
+    TestBed.tick();
+    firstSave.resolve(
+      createProject({ ...DEFAULT_SITE_CONFIG, name: 'First revision' }, 2, project.id),
+    );
+
+    await expect(drain).resolves.toBe(true);
+    expect(repository.saveDraft).toHaveBeenCalledTimes(2);
+    expect(repository.saveDraft).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        projectId: project.id,
+        siteConfig: expect.objectContaining({ name: 'Revision created during save' }),
+      }),
+    );
+  });
+
+  it('reports that a pending revision could not be persisted', async () => {
+    const project = createProject(DEFAULT_SITE_CONFIG, 1, 'project-a');
+    save.mockRestore();
+    vi.mocked(repository.getActiveProject).mockResolvedValue(project);
+    vi.mocked(repository.saveDraft).mockRejectedValue(new Error('Storage unavailable.'));
+    await builderStore.initialize();
+
+    builderStore.updateSiteName('Unsaved revision');
+
+    await expect(autosave.flushPending()).resolves.toBe(false);
+    expect(projectStore.saveStatus()).toBe('error');
+  });
+
+  it('does not treat an unrelated project error as an autosave failure', async () => {
+    const project = createProject(DEFAULT_SITE_CONFIG, 1, 'project-a');
+    save.mockRestore();
+    vi.mocked(repository.getActiveProject).mockResolvedValue(project);
+    await builderStore.initialize();
+    builderStore.updateSiteName('Persisted revision');
+
+    await expect(autosave.flushPending()).resolves.toBe(true);
+    projectStore.reportError('Publish failed.');
+
+    await expect(autosave.flushPending()).resolves.toBe(true);
+  });
+
+  it('clears a transient autosave failure when a competing publish persisted the revision', async () => {
+    const project = createProject(DEFAULT_SITE_CONFIG, 1, 'project-a');
+    const published = createDeferred<Project>();
+    save.mockRestore();
+    vi.mocked(repository.getActiveProject).mockResolvedValue(project);
+    vi.mocked(repository.publishProject).mockReturnValue(published.promise);
+    await builderStore.initialize();
+    autosave.start();
+    TestBed.tick();
+    builderStore.updateSiteName('Published revision');
+    TestBed.tick();
+
+    const publish = builderStore.publishCurrentProject();
+    await vi.advanceTimersByTimeAsync(800);
+    const flush = autosave.flushPending();
+    let flushSettled = false;
+    void flush.finally(() => {
+      flushSettled = true;
+    });
+    await Promise.resolve();
+
+    expect(flushSettled).toBe(false);
+
+    published.resolve(
+      createProject({ ...DEFAULT_SITE_CONFIG, name: 'Published revision' }, 2, project.id),
+    );
+    await publish;
+
+    await expect(flush).resolves.toBe(true);
   });
 
   it('cancels a pending autosave when stopped', async () => {

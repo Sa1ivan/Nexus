@@ -1,0 +1,49 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input
+      type="text"
+      [value]="current.eyebrow"
+      (input)="updateContentMediaText('eyebrow', $event)"
+  /></label>
+  <label class="inspector__field"
+    ><span>Заголовок</span
+    ><textarea
+      rows="3"
+      [value]="current.title"
+      (input)="updateContentMediaText('title', $event)"
+    ></textarea>
+  </label>
+  <label class="inspector__field"
+    ><span>Текст</span
+    ><textarea
+      rows="6"
+      [value]="current.body"
+      (input)="updateContentMediaText('body', $event)"
+    ></textarea>
+  </label>
+  <div class="inspector__grid">
+    <label class="inspector__field"
+      ><span>CTA</span
+      ><input
+        type="text"
+        [value]="current.cta?.label ?? ''"
+        (input)="updateContentMediaCta('label', $event)" /></label
+    ><label class="inspector__field"
+      ><span>Ссылка</span
+      ><input
+        type="text"
+        [value]="current.cta?.target ?? ''"
+        list="block-anchors"
+        (input)="updateContentMediaCta('target', $event)"
+    /></label>
+  </div>
+  <app-media-input
+    label="Изображение"
+    [src]="current.media?.src ?? ''"
+    [alt]="current.media?.alt ?? ''"
+    (srcChange)="updateContentMediaAsset('src', $event)"
+    (altChange)="updateContentMediaAsset('alt', $event)"
+  />
+</section>

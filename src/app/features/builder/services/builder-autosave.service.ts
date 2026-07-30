@@ -18,6 +18,8 @@ export class BuilderAutosaveService {
   private subscription: Subscription | null = null;
   private saveQueue: Promise<void> = Promise.resolve();
   private lastQueuedRevision: number | null = null;
+  private failedRevision: number | null = null;
+  private failedProjectId: string | null = null;
 
   start(): void {
     if (this.subscription !== null) {
@@ -36,8 +38,35 @@ export class BuilderAutosaveService {
     this.subscription = null;
   }
 
-  flushPending(): Promise<void> {
-    return this.projectStore.saveStatus() === 'dirty' ? this.flush() : this.saveQueue;
+  async flushPending(): Promise<boolean> {
+    this.clearResolvedFailure();
+
+    if (
+      this.projectStore.currentProject() === null &&
+      this.lastQueuedRevision === null &&
+      this.builderStore.documentRevision() === 0
+    ) {
+      return this.failedRevision === null;
+    }
+
+    while (true) {
+      await this.projectStore.waitForActiveWrite();
+      const revision = this.builderStore.documentRevision();
+
+      await this.flush();
+      await this.saveQueue;
+      await this.projectStore.waitForActiveWrite();
+      this.clearResolvedFailure();
+
+      if (
+        this.builderStore.documentRevision() !== revision ||
+        this.projectStore.saveStatus() === 'dirty'
+      ) {
+        continue;
+      }
+
+      return this.failedRevision !== revision;
+    }
   }
 
   flush(): Promise<void> {
@@ -63,11 +92,13 @@ export class BuilderAutosaveService {
       return this.saveQueue;
     }
 
+    const projectId = this.projectStore.currentProject()?.id ?? null;
     this.lastQueuedRevision = revision;
     this.saveQueue = this.saveQueue
       .catch(() => undefined)
       .then(async () => {
-        const savedProject = await this.projectStore.save(snapshot);
+        const savedProject = await this.projectStore.saveForProject(snapshot, projectId);
+        const isCurrentProject = (this.projectStore.currentProject()?.id ?? null) === projectId;
 
         if (
           savedProject === null &&
@@ -77,11 +108,35 @@ export class BuilderAutosaveService {
           this.lastQueuedRevision = null;
         }
 
-        if (this.builderStore.documentRevision() !== revision) {
+        if (savedProject !== null) {
+          this.failedRevision = null;
+          this.failedProjectId = null;
+        } else if (isCurrentProject) {
+          this.failedRevision = revision;
+          this.failedProjectId = projectId;
+        }
+
+        if (isCurrentProject && this.builderStore.documentRevision() !== revision) {
           this.projectStore.markDirty();
         }
       });
 
     return this.saveQueue;
+  }
+
+  private clearResolvedFailure(): void {
+    if (this.failedRevision === null) {
+      return;
+    }
+
+    const currentProjectId = this.projectStore.currentProject()?.id ?? null;
+    const competingWritePersistedRevision =
+      this.builderStore.documentRevision() === this.failedRevision &&
+      this.projectStore.saveStatus() === 'saved';
+
+    if (currentProjectId !== this.failedProjectId || competingWritePersistedRevision) {
+      this.failedRevision = null;
+      this.failedProjectId = null;
+    }
   }
 }

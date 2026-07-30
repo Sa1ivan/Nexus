@@ -1,0 +1,88 @@
+@let currentBlock = block();
+<section class="inspector__section">
+  <h2>Доступность секции</h2>
+  <label class="inspector__field"
+    ><span>Якорь</span>
+    <div class="inspector__prefix">
+      <span>#</span
+      ><input
+        type="text"
+        [value]="currentBlock.anchor"
+        (change)="updateBlockAnchor($event)"
+      /></div></label
+  ><label class="inspector__check"
+    ><input
+      type="checkbox"
+      [checked]="!currentBlock.hidden"
+      (change)="toggleBlockVisibility()"
+    /><span>Показывать на сайте</span></label
+  >
+</section>
+@if (blockDefinition().variants.length > 0) {
+  <section class="inspector__section">
+    <h2>Вариант композиции</h2>
+    <div class="inspector__variants">
+      @for (option of blockDefinition().variants; track option.id) {
+        <button
+          type="button"
+          [class.is-active]="selectedVariant() === option.id"
+          (click)="updateVariant(option.id)"
+        >
+          <mat-icon aria-hidden="true">{{ option.icon }}</mat-icon
+          ><span
+            ><strong>{{ option.label }}</strong
+            ><small>{{ option.description }}</small></span
+          >
+        </button>
+      }
+    </div>
+  </section>
+}
+@switch (currentBlock.type) {
+  @case ('gallery') {
+    <section class="inspector__section">
+      <label class="inspector__check"
+        ><input
+          type="checkbox"
+          [checked]="currentBlock.lightboxEnabled"
+          (change)="updateGalleryLightbox($event)"
+        /><span>Открывать фото в lightbox</span></label
+      >
+    </section>
+  }
+  @case ('faq') {
+    <section class="inspector__section">
+      <label class="inspector__check"
+        ><input
+          type="checkbox"
+          [checked]="currentBlock.allowMultipleOpen"
+          (change)="updateFaqMultiple($event)"
+        /><span>Разрешить несколько открытых ответов</span></label
+      >
+    </section>
+  }
+  @case ('siteFooter') {
+    <section class="inspector__section">
+      <h2>Карта</h2>
+      <label class="inspector__field"
+        ><span>Подпись</span
+        ><input
+          type="text"
+          [value]="currentBlock.map?.label ?? ''"
+          (input)="updateFooterMap('label', $event)" /></label
+      ><label class="inspector__field"
+        ><span>Адрес</span
+        ><input
+          type="text"
+          [value]="currentBlock.map?.address ?? ''"
+          (input)="updateFooterMap('address', $event)" /></label
+      ><label class="inspector__field"
+        ><span>Embed URL</span
+        ><input
+          type="url"
+          [value]="currentBlock.map?.embedUrl ?? ''"
+          (input)="updateFooterMap('embedUrl', $event)"
+      /></label>
+    </section>
+  }
+}

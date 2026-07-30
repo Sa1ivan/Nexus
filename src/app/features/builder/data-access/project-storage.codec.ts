@@ -3,12 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { SITE_CONFIG_SCHEMA_VERSION } from '../domain/models';
 import type { DraftRevision, LeadSubmission, Project, PublishedRelease } from '../domain/models';
 import { SiteConfigCodec } from './site-config.codec';
+import type { UnsupportedStoredSchemaVersion } from './project-storage-codec.types';
 import type { ProjectStorageState } from './project-storage.model';
-
-interface UnsupportedStoredSchemaVersion {
-  readonly location: string;
-  readonly value: unknown;
-}
 
 @Injectable({
   providedIn: 'root',

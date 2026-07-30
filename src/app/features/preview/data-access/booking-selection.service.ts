@@ -1,9 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
-export interface BookingSelection {
-  readonly date: string;
-  readonly partySize: string;
-}
+import type { BookingSelection } from './booking-selection.types';
+export type { BookingSelection } from './booking-selection.types';
 
 @Injectable()
 export class BookingSelectionService {

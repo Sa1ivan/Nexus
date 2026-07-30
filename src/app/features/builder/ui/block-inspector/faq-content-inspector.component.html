@@ -1,0 +1,66 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input
+      type="text"
+      [value]="current.eyebrow"
+      (input)="updateFaqText('eyebrow', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Заголовок</span
+    ><input type="text" [value]="current.title" (input)="updateFaqText('title', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Описание</span
+    ><textarea
+      rows="3"
+      [value]="current.description"
+      (input)="updateFaqText('description', $event)"
+    ></textarea>
+  </label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Вопросы</strong
+    ><button mat-icon-button type="button" aria-label="Добавить вопрос" (click)="addFaqItem()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (item of current.items; track item.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ item.question }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.items.length - 1"
+          [canRemove]="current.items.length > 1"
+          (moveUp)="moveFaqItem(item.id, 'up')"
+          (moveDown)="moveFaqItem(item.id, 'down')"
+          (duplicateItem)="duplicateFaqItem(item.id)"
+          (removeItem)="removeFaqItem(item.id)"
+        />
+        <label class="inspector__field"
+          ><span>Вопрос</span
+          ><input
+            type="text"
+            [value]="item.question"
+            (input)="updateFaqItem(item.id, 'question', $event)"
+        /></label>
+        <label class="inspector__field"
+          ><span>Ответ</span
+          ><textarea
+            rows="4"
+            [value]="item.answer"
+            (input)="updateFaqItem(item.id, 'answer', $event)"
+          ></textarea>
+        </label>
+        <label class="inspector__check"
+          ><input
+            type="checkbox"
+            [checked]="item.initiallyOpen"
+            (change)="updateFaqInitiallyOpen(item.id, $event)"
+          /><span>Открыт при загрузке</span></label
+        >
+      </div>
+    </details>
+  }
+</section>

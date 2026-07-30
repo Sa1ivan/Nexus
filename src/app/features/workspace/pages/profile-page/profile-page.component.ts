@@ -7,18 +7,7 @@ import {
   EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
 } from '../../data-access/project-insights.service';
-
-interface ProfileField {
-  readonly label: string;
-  readonly value: string;
-  readonly icon: string;
-}
-
-interface WorkspacePreference {
-  readonly title: string;
-  readonly description: string;
-  readonly icon: string;
-}
+import type { ProfileField, WorkspacePreference } from './profile-page.types';
 
 @Component({
   selector: 'app-profile-page',

@@ -8,8 +8,7 @@ import {
   getLandingSectionPaddingY,
 } from '../../../builder/domain/models';
 import { LandingLinkDirective } from '../landing-link/landing-link.directive';
-
-type HeroLayoutVariant = 'cover' | 'minimal' | 'split';
+import type { HeroLayoutVariant } from './hero-block.types';
 
 @Component({
   selector: 'app-hero-block',

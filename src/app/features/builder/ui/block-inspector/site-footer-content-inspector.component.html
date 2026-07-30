@@ -1,0 +1,118 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__check"
+    ><input
+      type="checkbox"
+      [checked]="current.inheritBusiness"
+      (change)="updateFooterInheritance($event)"
+    /><span>Брать контакты из настроек сайта</span></label
+  ><label class="inspector__field"
+    ><span>Бренд</span
+    ><input
+      type="text"
+      [value]="current.brandName"
+      [disabled]="current.inheritBusiness"
+      (input)="updateFooterBrand($event)"
+  /></label>
+  <div class="inspector__grid">
+    <label class="inspector__field"
+      ><span>CTA</span
+      ><input
+        type="text"
+        [value]="current.cta.label"
+        (input)="updateFooterCta('label', $event)" /></label
+    ><label class="inspector__field"
+      ><span>Ссылка</span
+      ><input type="text" [value]="current.cta.target" (input)="updateFooterCta('target', $event)"
+    /></label>
+  </div>
+  <label class="inspector__field"
+    ><span>Контакты, по одному в строке</span
+    ><textarea
+      rows="4"
+      [value]="current.contactLines.join('\n')"
+      (input)="updateFooterContacts($event)"
+    ></textarea>
+  </label>
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Ссылки</strong
+    ><button mat-icon-button type="button" aria-label="Добавить ссылку" (click)="addFooterLink()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (link of current.links; track link.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ link.label }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < current.links.length - 1"
+          (moveUp)="moveFooterLink(link.id, 'up')"
+          (moveDown)="moveFooterLink(link.id, 'down')"
+          (duplicateItem)="duplicateFooterLink(link.id)"
+          (removeItem)="removeFooterLink(link.id)"
+        />
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Подпись</span
+            ><input
+              type="text"
+              [value]="link.label"
+              (input)="updateFooterLink(link.id, 'label', $event)" /></label
+          ><label class="inspector__field"
+            ><span>Ссылка</span
+            ><input
+              type="text"
+              [value]="link.target"
+              (input)="updateFooterLink(link.id, 'target', $event)"
+          /></label>
+        </div>
+      </div>
+    </details>
+  }
+</section>
+<section class="inspector__section">
+  <div class="inspector__section-head">
+    <strong>Соцсети</strong
+    ><button
+      mat-icon-button
+      type="button"
+      aria-label="Добавить соцсеть"
+      (click)="addFooterSocial()"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+  @for (link of current.socialLinks ?? []; track link.id; let index = $index) {
+    <details class="inspector__item">
+      <summary>{{ link.label }}</summary>
+      <div class="inspector__item-body">
+        <app-block-item-actions
+          [canMoveUp]="index > 0"
+          [canMoveDown]="index < (current.socialLinks?.length ?? 0) - 1"
+          (moveUp)="moveFooterSocial(link.id, 'up')"
+          (moveDown)="moveFooterSocial(link.id, 'down')"
+          (duplicateItem)="duplicateFooterSocial(link.id)"
+          (removeItem)="removeFooterSocial(link.id)"
+        />
+        <div class="inspector__grid">
+          <label class="inspector__field"
+            ><span>Подпись</span
+            ><input
+              type="text"
+              [value]="link.label"
+              (input)="updateFooterSocial(link.id, 'label', $event)" /></label
+          ><label class="inspector__field"
+            ><span>Ссылка</span
+            ><input
+              type="text"
+              [value]="link.target"
+              (input)="updateFooterSocial(link.id, 'target', $event)"
+          /></label>
+        </div>
+      </div>
+    </details>
+  }
+</section>

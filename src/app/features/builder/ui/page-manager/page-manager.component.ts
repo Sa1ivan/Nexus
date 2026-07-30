@@ -71,8 +71,12 @@ export class PageManagerComponent {
   }
 
   updatePageNoIndex(pageId: string, event: Event): void {
+    if (!(event.currentTarget instanceof HTMLInputElement)) {
+      return;
+    }
+
     this.builderStore.updatePageSeo(pageId, {
-      noIndex: (event.currentTarget as HTMLInputElement).checked,
+      noIndex: event.currentTarget.checked,
     });
   }
 
@@ -118,6 +122,13 @@ export class PageManagerComponent {
   }
 
   private readControl(event: Event): HTMLInputElement | HTMLTextAreaElement {
-    return event.currentTarget as HTMLInputElement | HTMLTextAreaElement;
+    if (
+      event.currentTarget instanceof HTMLInputElement ||
+      event.currentTarget instanceof HTMLTextAreaElement
+    ) {
+      return event.currentTarget;
+    }
+
+    throw new TypeError('Page manager event target must be an input or textarea.');
   }
 }

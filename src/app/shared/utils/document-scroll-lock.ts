@@ -1,9 +1,4 @@
-interface DocumentLockState {
-  count: number;
-  readonly rootOverflow: string;
-  readonly bodyOverflow: string;
-  readonly bodyPaddingRight: string;
-}
+import type { DocumentLockState } from './document-scroll-lock.types';
 
 const activeLocks = new WeakMap<Document, DocumentLockState>();
 

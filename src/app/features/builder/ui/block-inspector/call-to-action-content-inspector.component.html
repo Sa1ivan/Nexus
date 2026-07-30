@@ -1,0 +1,56 @@
+@let current = block();
+<section class="inspector__section">
+  <label class="inspector__field"
+    ><span>Надзаголовок</span
+    ><input
+      type="text"
+      [value]="current.eyebrow"
+      (input)="updateCtaText('eyebrow', $event)" /></label
+  ><label class="inspector__field"
+    ><span>Заголовок</span
+    ><textarea
+      rows="3"
+      [value]="current.title"
+      (input)="updateCtaText('title', $event)"
+    ></textarea></label
+  ><label class="inspector__field"
+    ><span>Текст</span
+    ><textarea rows="4" [value]="current.text" (input)="updateCtaText('text', $event)"></textarea>
+  </label>
+  <div class="inspector__grid">
+    <label class="inspector__field"
+      ><span>Главная кнопка</span
+      ><input
+        type="text"
+        [value]="current.primaryAction.label"
+        (input)="updateCtaLink('primaryAction', 'label', $event)" /></label
+    ><label class="inspector__field"
+      ><span>Ссылка</span
+      ><input
+        type="text"
+        [value]="current.primaryAction.target"
+        (input)="updateCtaLink('primaryAction', 'target', $event)"
+    /></label>
+  </div>
+  <div class="inspector__grid">
+    <label class="inspector__field"
+      ><span>Вторая кнопка</span
+      ><input
+        type="text"
+        [value]="current.secondaryAction?.label ?? ''"
+        (input)="updateCtaLink('secondaryAction', 'label', $event)" /></label
+    ><label class="inspector__field"
+      ><span>Ссылка</span
+      ><input
+        type="text"
+        [value]="current.secondaryAction?.target ?? ''"
+        (input)="updateCtaLink('secondaryAction', 'target', $event)"
+    /></label>
+  </div>
+  <app-media-input
+    [src]="current.media?.src ?? ''"
+    [alt]="current.media?.alt ?? ''"
+    (srcChange)="updateCtaMedia('src', $event)"
+    (altChange)="updateCtaMedia('alt', $event)"
+  />
+</section>

@@ -28,21 +28,7 @@ import type {
   SiteBusinessConfig,
   SiteConfig,
 } from '../domain/models';
-
-type LandingOfferPreset = Omit<OfferListItem, 'id'>;
-
-interface LandingIndustryPreset {
-  readonly brandName: string;
-  readonly siteName: string;
-  readonly heroTitle: string;
-  readonly heroSubtitle: string;
-  readonly ctaText: string;
-  readonly offerEyebrow: string;
-  readonly offerTitle: string;
-  readonly navigationItems: readonly string[];
-  readonly offers: readonly LandingOfferPreset[];
-  readonly contactLines: readonly string[];
-}
+import type { LandingIndustryPreset, LandingOfferPreset } from './landing-draft-factory.types';
 
 const INDUSTRY_PRESETS: Readonly<Record<LandingIndustry, LandingIndustryPreset>> = {
   restaurant: {

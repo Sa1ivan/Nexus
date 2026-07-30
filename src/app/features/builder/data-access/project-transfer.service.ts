@@ -2,33 +2,16 @@ import { inject, Injectable } from '@angular/core';
 
 import type { SiteConfig } from '../domain/models';
 import { SiteConfigCodec } from './site-config.codec';
+import type { NexusProjectExport, ProjectTransferDecodeResult } from './project-transfer.types';
+export type {
+  NexusProjectExport,
+  ProjectTransferDecodeFailureReason,
+  ProjectTransferDecodeResult,
+} from './project-transfer.types';
 
 const PROJECT_EXPORT_FORMAT = 'nexus-project';
 const PROJECT_EXPORT_FORMAT_VERSION = 1;
 const MAX_PROJECT_FILE_SIZE = 5_000_000;
-
-export interface NexusProjectExport {
-  readonly format: 'nexus-project';
-  readonly formatVersion: 1;
-  readonly exportedAt: string;
-  readonly siteConfig: SiteConfig;
-}
-
-export type ProjectTransferDecodeFailureReason =
-  | 'file-too-large'
-  | 'file-read-error'
-  | 'invalid-json'
-  | 'invalid-format'
-  | 'unsupported-format'
-  | 'invalid-site-config'
-  | 'unsupported-site-schema';
-
-export type ProjectTransferDecodeResult =
-  | { readonly ok: true; readonly value: SiteConfig }
-  | {
-      readonly ok: false;
-      readonly reason: ProjectTransferDecodeFailureReason;
-    };
 
 @Injectable({
   providedIn: 'root',

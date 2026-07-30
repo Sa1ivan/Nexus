@@ -14,12 +14,7 @@ import {
   EMPTY_WORKSPACE_METRICS,
   ProjectInsightsService,
 } from '../../data-access/project-insights.service';
-
-interface HomeCapability {
-  readonly title: string;
-  readonly description: string;
-  readonly icon: string;
-}
+import type { HomeCapability } from './home-page.types';
 
 @Component({
   selector: 'app-home-page',

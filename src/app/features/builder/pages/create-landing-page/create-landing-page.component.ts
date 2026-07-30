@@ -35,7 +35,6 @@ import type {
   CompleteLandingWizardSelection,
   LandingBlueprintItem,
   LandingAccentColor,
-  LandingAccentRgb,
   LandingDensity,
   LandingDesignOption,
   LandingDesignSettings,
@@ -59,22 +58,15 @@ import {
 } from '../../domain/models';
 import { BuilderStore } from '../../stores/builder.store';
 import { lockDocumentScroll } from '../../../../shared/utils/document-scroll-lock';
+import type {
+  BusinessDetailsField,
+  LandingAccentRgbChannel,
+  LandingBusinessDetails,
+  LandingChoiceId,
+  LandingDesignByStep,
+  LandingQuestionCopy,
+} from './create-landing-page.types';
 import { LandingWizardPreviewComponent } from './landing-wizard-preview/landing-wizard-preview.component';
-
-interface LandingQuestionCopy {
-  readonly title: string;
-  readonly description: string;
-}
-
-interface LandingBusinessDetails {
-  readonly brandName: string;
-  readonly heroTitle: string;
-  readonly heroSubtitle: string;
-  readonly ctaText: string;
-  readonly ctaDestination: string;
-  readonly contactEmail: string;
-  readonly contactPhone: string;
-}
 
 const REQUIRED_STEP_COUNT = 5;
 const UNSELECTED_LABEL = 'Не выбрано';
@@ -97,21 +89,6 @@ const DEFAULT_BUSINESS_DETAILS: LandingBusinessDetails = {
   contactEmail: 'hello@nexus.app',
   contactPhone: '+7 999 000-00-00',
 };
-
-type LandingChoiceId =
-  | LandingIndustry
-  | LandingTone
-  | LandingHeaderVariant
-  | LandingOfferListVariant
-  | LandingFooterVariant
-  | LandingAccentColor
-  | LandingFontPairing
-  | LandingDensity
-  | LandingTemplateStyle;
-type BusinessDetailsField = keyof LandingBusinessDetails;
-type LandingAccentRgbChannel = keyof LandingAccentRgb;
-
-type LandingDesignByStep = Readonly<Record<LandingWizardStepId, LandingDesignSettings>>;
 
 function createDesignByStep(design: LandingDesignSettings): LandingDesignByStep {
   return {
@@ -145,7 +122,9 @@ export class CreateLandingPageComponent {
   private readonly router = inject(Router);
   private readonly documentRef = inject(DOCUMENT);
 
-  readonly stepDefinitions = LANDING_WIZARD_STEPS;
+  get stepDefinitions(): readonly LandingWizardStep[] {
+    return LANDING_WIZARD_STEPS;
+  }
   readonly industryOptions = LANDING_INDUSTRY_OPTIONS;
   readonly toneOptions = LANDING_TONE_OPTIONS;
   readonly headerOptions = LANDING_HEADER_OPTIONS;

@@ -1,12 +1,11 @@
 import { SITE_CONFIG_SCHEMA_VERSION } from '../models';
 import type { LinkConfig, MediaAsset, PageBlockConfig, SiteConfig } from '../models';
 import { isSafeLinkTarget } from './link-target';
+import { isOversizedEncodedImage } from './media-source-policy';
 import { isReservedPageSlug, normalizePageSlug } from './page-slug';
+import type { SiteConfigValidationResult } from './site-config-validation.types';
 
-export interface SiteConfigValidationResult {
-  readonly valid: boolean;
-  readonly errors: readonly string[];
-}
+export type { SiteConfigValidationResult } from './site-config-validation.types';
 
 export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidationResult {
   const errors: string[] = [];
@@ -296,6 +295,11 @@ function validateHref(value: string, blockId: string, label: string, errors: str
 
 export function isSafeMediaSource(value: string): boolean {
   const normalizedValue = value.trim();
+
+  if (isOversizedEncodedImage(normalizedValue)) {
+    return false;
+  }
+
   const lowerCaseValue = normalizedValue.toLowerCase();
   const bundledImagePath =
     /^(?:\.\/)?(?:[a-z0-9_-]+\/)*[a-z0-9_-]+\.(?:avif|gif|jpe?g|png|svg|webp)$/iu;

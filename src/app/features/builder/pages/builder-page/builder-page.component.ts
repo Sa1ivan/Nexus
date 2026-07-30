@@ -14,29 +14,23 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { concatMap, distinctUntilChanged, map, type Subscription } from 'rxjs';
 
 import { BlockRendererComponent } from '../../../preview/ui/block-renderer/block-renderer.component';
 import type { BlockType, PageBlockConfig } from '../../domain/models';
-import {
-  BLOCK_DEFINITIONS,
-  BLOCK_PALETTE,
-  type BlockDefinition,
-} from '../../domain/registry/block-registry';
+import { BLOCK_DEFINITIONS, BLOCK_PALETTE } from '../../domain/registry/block-registry';
 import { BuilderAutosaveService } from '../../services/builder-autosave.service';
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockInspectorComponent } from '../../ui/block-inspector/block-inspector.component';
 import { PageManagerComponent } from '../../ui/page-manager/page-manager.component';
 import { SiteSettingsEditorComponent } from '../../ui/site-settings-editor/site-settings-editor.component';
-
-type CanvasMode = 'edit' | 'preview';
-type CanvasViewport = 'desktop' | 'mobile';
-type MobilePanel = 'blocks' | 'canvas' | 'settings';
-type SidebarTab = 'add' | 'layers' | 'theme';
-
-interface PaletteGroup {
-  readonly label: string;
-  readonly items: readonly BlockDefinition[];
-}
+import type {
+  CanvasMode,
+  CanvasViewport,
+  MobilePanel,
+  PaletteGroup,
+  SidebarTab,
+} from './builder-page.types';
 
 @Component({
   selector: 'app-builder-page',
@@ -66,6 +60,7 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private destroyed = false;
+  private routeSubscription: Subscription | null = null;
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly activePage = this.builderStore.activePage;
@@ -88,16 +83,55 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
     }))
     .filter((group) => group.items.length > 0);
 
-  async ngOnInit(): Promise<void> {
-    await this.builderStore.initialize(this.route.snapshot.paramMap.get('projectId') ?? undefined);
+  ngOnInit(): void {
+    let hasLoadedDocument = false;
+    let loadedProjectId: string | undefined;
 
-    if (!this.destroyed) {
-      this.autosave.start();
-    }
+    this.routeSubscription = this.route.paramMap
+      .pipe(
+        map((params) => params.get('projectId') ?? undefined),
+        distinctUntilChanged(),
+        concatMap(async (projectId) => {
+          if (hasLoadedDocument && projectId === loadedProjectId) {
+            return;
+          }
+
+          if (hasLoadedDocument && !(await this.autosave.flushPending())) {
+            await this.restoreBuilderRoute(loadedProjectId);
+            return;
+          }
+
+          const previousProjectId = loadedProjectId;
+          const didInitialize = await this.builderStore.initialize(projectId);
+
+          if (!didInitialize) {
+            if (hasLoadedDocument) {
+              await this.restoreBuilderRoute(previousProjectId);
+            }
+            return;
+          }
+
+          hasLoadedDocument = true;
+          loadedProjectId = projectId;
+
+          if (!this.destroyed) {
+            this.autosave.start();
+          }
+        }),
+      )
+      .subscribe();
+  }
+
+  private async restoreBuilderRoute(projectId: string | undefined): Promise<void> {
+    await this.router.navigate(projectId === undefined ? ['/builder'] : ['/builder', projectId], {
+      replaceUrl: true,
+    });
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.routeSubscription?.unsubscribe();
+    this.routeSubscription = null;
     this.autosave.stop();
     void this.autosave.flushPending();
   }
@@ -143,7 +177,11 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
   }
 
   async importProject(event: Event): Promise<void> {
-    const fileInput = event.currentTarget as HTMLInputElement;
+    if (!(event.currentTarget instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const fileInput = event.currentTarget;
     const file = fileInput.files?.[0];
 
     try {

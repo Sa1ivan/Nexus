@@ -11,7 +11,6 @@ import {
 import type {
   ButtonShape,
   ContentWidth,
-  LandingFontPairing,
   LinkConfig,
   LinkConfigUpdate,
   SectionSpacing,
@@ -20,18 +19,14 @@ import type {
 import { BuilderStore } from '../../stores/builder.store';
 import { BlockItemActionsComponent } from '../block-inspector/block-item-actions.component';
 import { MediaInputComponent } from '../media-input/media-input.component';
-
-type SettingsTab = 'theme' | 'business' | 'seo';
-type ThemeColorField =
-  | 'pageBackground'
-  | 'surfaceColor'
-  | 'textColor'
-  | 'mutedTextColor'
-  | 'accentColor';
-type BusinessTextField = 'brandName' | 'phone' | 'email' | 'address' | 'hours';
-type SeoTextField = 'language';
-type BusinessLinkCollection = 'messengers' | 'socialLinks';
-type LinkTextField = 'label' | 'target';
+import type {
+  BusinessLinkCollection,
+  BusinessTextField,
+  LinkTextField,
+  SeoTextField,
+  SettingsTab,
+  ThemeColorField,
+} from './site-settings-editor.types';
 
 const THEME_COLOR_OPTIONS: readonly {
   readonly field: ThemeColorField;
@@ -43,6 +38,9 @@ const THEME_COLOR_OPTIONS: readonly {
   { field: 'mutedTextColor', label: 'Вторичный текст' },
   { field: 'accentColor', label: 'Акцент' },
 ];
+const TYPE_SCALE_OPTIONS: readonly TypeScale[] = ['compact', 'balanced', 'display'];
+const CONTENT_WIDTH_OPTIONS: readonly ContentWidth[] = ['narrow', 'wide', 'full'];
+const SECTION_SPACING_OPTIONS: readonly SectionSpacing[] = ['compact', 'balanced', 'spacious'];
 
 @Component({
   selector: 'app-site-settings-editor',
@@ -92,19 +90,35 @@ export class SiteSettingsEditorComponent {
   }
 
   updateThemeFont(event: Event): void {
-    this.builderStore.updateSiteTheme({ fontPairing: this.readValue(event) as LandingFontPairing });
+    const fontPairing = this.fontOptions.find((option) => option.id === this.readValue(event))?.id;
+
+    if (fontPairing !== undefined) {
+      this.builderStore.updateSiteTheme({ fontPairing });
+    }
   }
 
   updateThemeScale(event: Event): void {
-    this.builderStore.updateSiteTheme({ typeScale: this.readValue(event) as TypeScale });
+    const typeScale = this.findAllowedValue(this.readValue(event), TYPE_SCALE_OPTIONS);
+
+    if (typeScale !== undefined) {
+      this.builderStore.updateSiteTheme({ typeScale });
+    }
   }
 
   updateThemeWidth(event: Event): void {
-    this.builderStore.updateSiteTheme({ contentWidth: this.readValue(event) as ContentWidth });
+    const contentWidth = this.findAllowedValue(this.readValue(event), CONTENT_WIDTH_OPTIONS);
+
+    if (contentWidth !== undefined) {
+      this.builderStore.updateSiteTheme({ contentWidth });
+    }
   }
 
   updateThemeSpacing(event: Event): void {
-    this.builderStore.updateSiteTheme({ sectionSpacing: this.readValue(event) as SectionSpacing });
+    const sectionSpacing = this.findAllowedValue(this.readValue(event), SECTION_SPACING_OPTIONS);
+
+    if (sectionSpacing !== undefined) {
+      this.builderStore.updateSiteTheme({ sectionSpacing });
+    }
   }
 
   updateThemeButtonShape(shape: ButtonShape): void {
@@ -257,5 +271,12 @@ export class SiteSettingsEditorComponent {
       target instanceof HTMLSelectElement
       ? target.value
       : '';
+  }
+
+  private findAllowedValue<TValue extends string>(
+    value: string,
+    options: readonly TValue[],
+  ): TValue | undefined {
+    return options.find((option) => option === value);
   }
 }
