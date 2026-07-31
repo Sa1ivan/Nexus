@@ -5,6 +5,7 @@ import { ReplaySubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_SITE_CONFIG } from '../../data-access/default-site.config';
+import { composeSitePageBlocks } from '../../domain/utils/site-page-blocks';
 import type { ProjectSaveStatus } from '../../domain/models';
 import { BuilderAutosaveService } from '../../services/builder-autosave.service';
 import { BuilderStore } from '../../stores/builder.store';
@@ -154,13 +155,19 @@ function createBuilderStoreMock(
   return {
     initialize,
     siteConfig: signal(DEFAULT_SITE_CONFIG),
+    pages: signal(DEFAULT_SITE_CONFIG.pages),
     activePage: signal(DEFAULT_SITE_CONFIG.pages[0] ?? null),
-    activeBlocks: signal(DEFAULT_SITE_CONFIG.pages[0]?.blocks ?? []),
-    selectedBlock: signal(DEFAULT_SITE_CONFIG.pages[0]?.blocks[0] ?? null),
+    activeBlocks: signal(
+      composeSitePageBlocks(DEFAULT_SITE_CONFIG.chrome, DEFAULT_SITE_CONFIG.pages[0]),
+    ),
+    selectedBlock: signal(
+      DEFAULT_SITE_CONFIG.pages[0]?.blocks[0] ?? DEFAULT_SITE_CONFIG.chrome.header,
+    ),
     saveStatus: signal<ProjectSaveStatus>('saved'),
     projectError,
     publishedUrl: signal<string | null>(null),
     canUndo: signal(false),
     canRedo: signal(false),
+    selectPage: vi.fn(),
   };
 }

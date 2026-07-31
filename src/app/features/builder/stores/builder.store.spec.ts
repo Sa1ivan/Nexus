@@ -330,7 +330,12 @@ describe('BuilderStore project transfer', () => {
     expect(page).not.toBeNull();
     expect(builderStore.activePageId()).toBe(page?.id);
     expect(builderStore.activePageSlug()).toBe('o-kompanii');
-    expect(page?.blocks.map((block) => block.type)).toEqual(['siteHeader', 'hero', 'siteFooter']);
+    expect(page?.blocks.map((block) => block.type)).toEqual(['hero']);
+    expect(builderStore.activeBlocks().map((block) => block.type)).toEqual([
+      'siteHeader',
+      'hero',
+      'siteFooter',
+    ]);
     expect(builderStore.selectedBlockId()).toBe(page?.blocks[0]?.id);
     expect(builderStore.canUndo()).toBe(true);
     expect(builderStore.saveStatus()).toBe('dirty');
@@ -366,6 +371,93 @@ describe('BuilderStore project transfer', () => {
     });
   });
 
+  it('shares one header and footer across every page', () => {
+    const homeSlug = builderStore.activePageSlug();
+    const homeHeader = builderStore.activeBlocks().find((block) => block.type === 'siteHeader');
+    const homeFooter = builderStore.activeBlocks().find((block) => block.type === 'siteFooter');
+
+    expect(homeHeader?.type).toBe('siteHeader');
+    expect(homeFooter?.type).toBe('siteFooter');
+    expect(builderStore.addPage('О компании')).toBe(true);
+
+    const aboutHeader = builderStore.activeBlocks().find((block) => block.type === 'siteHeader');
+    const aboutFooter = builderStore.activeBlocks().find((block) => block.type === 'siteFooter');
+
+    expect(aboutHeader?.id).toBe(homeHeader?.id);
+    expect(aboutFooter?.id).toBe(homeFooter?.id);
+    expect(builderStore.activePage()?.blocks.some((block) => block.type === 'siteHeader')).toBe(
+      false,
+    );
+    expect(builderStore.activePage()?.blocks.some((block) => block.type === 'siteFooter')).toBe(
+      false,
+    );
+
+    expect(
+      builderStore.applyBlockMutation(aboutHeader?.id ?? '', (block) =>
+        block.type === 'siteHeader' ? { ...block, brandName: 'Общий бренд' } : block,
+      ),
+    ).toBe(true);
+    expect(builderStore.selectPage(homeSlug)).toBe(true);
+
+    const updatedHomeHeader = builderStore
+      .activeBlocks()
+      .find((block) => block.type === 'siteHeader');
+    expect(updatedHomeHeader?.type === 'siteHeader' ? updatedHomeHeader.brandName : null).toBe(
+      'Общий бренд',
+    );
+  });
+
+  it('keeps shared navigation linked when a target page slug changes', () => {
+    expect(builderStore.addPage('О компании')).toBe(true);
+    const aboutPage = builderStore.activePage();
+    const header = builderStore.siteConfig().chrome.header;
+    const navigationItem = header.navigationItems[0];
+
+    if (aboutPage === null || navigationItem === undefined) {
+      throw new Error('Page and header navigation fixtures are required.');
+    }
+
+    expect(
+      builderStore.applyBlockMutation(header.id, (block) =>
+        block.type === 'siteHeader'
+          ? {
+              ...block,
+              navigationItems: block.navigationItems.map((link) =>
+                link.id === navigationItem.id
+                  ? { ...link, target: `/${aboutPage.slug}`, kind: 'internal' }
+                  : link,
+              ),
+            }
+          : block,
+      ),
+    ).toBe(true);
+    expect(
+      builderStore.applyBlockMutation(builderStore.siteConfig().chrome.footer.id, (block) =>
+        block.type === 'siteFooter'
+          ? {
+              ...block,
+              socialLinks: [
+                {
+                  ...navigationItem,
+                  id: 'footer-page-link',
+                  target: `/${aboutPage.slug}`,
+                  kind: 'internal',
+                },
+              ],
+            }
+          : block,
+      ),
+    ).toBe(true);
+    expect(builderStore.updatePageSlug(aboutPage.id, 'about')).toBe(true);
+
+    expect(builderStore.siteConfig().chrome.header.navigationItems[0]?.target).toBe('/about');
+    expect(builderStore.siteConfig().chrome.footer.socialLinks?.[0]?.target).toBe('/about');
+    expect(builderStore.removePage(aboutPage.id)).toBe(false);
+    expect(builderStore.pageError()).toBe(
+      'Сначала измените ссылки Header/Footer, которые ведут на эту страницу.',
+    );
+  });
+
   it('duplicates, moves and removes pages while reconciling active state', () => {
     expect(builderStore.addPage('Услуги')).toBe(true);
     const sourcePage = builderStore.activePage();
@@ -391,12 +483,12 @@ describe('BuilderStore project transfer', () => {
     expect(homePage?.blocks.some((block) => block.anchor === 'lead-form')).toBe(true);
     expect(builderStore.addPage('Услуги')).toBe(true);
 
-    const activeHeader = builderStore
-      .activePage()
-      ?.blocks.find((block) => block.type === 'siteHeader');
+    const activeHero = builderStore.activeBlocks().find((block) => block.type === 'hero');
 
-    expect(builderStore.updateBlockAnchor(activeHeader?.id ?? '', 'lead-form')).toBe(true);
-    expect(builderStore.activePage()?.blocks[0]?.anchor).toBe('lead-form');
+    expect(builderStore.updateBlockAnchor(activeHero?.id ?? '', 'lead-form')).toBe(true);
+    expect(builderStore.activeBlocks().find((block) => block.type === 'hero')?.anchor).toBe(
+      'lead-form',
+    );
     expect(builderStore.pages()[0]).toBe(homePage);
   });
 

@@ -1,9 +1,10 @@
 import type { PageConfig } from './page-config.model';
+import type { SiteChromeConfig } from './site-chrome-config.model';
 import type { SiteBusinessConfig } from './site-business.model';
 import type { SiteSeoConfig } from './site-seo.model';
 import type { SiteThemeConfig } from './site-theme.model';
 
-export const SITE_CONFIG_SCHEMA_VERSION = 3;
+export const SITE_CONFIG_SCHEMA_VERSION = 4;
 
 export interface SiteConfig {
   readonly id: string;
@@ -12,5 +13,6 @@ export interface SiteConfig {
   readonly theme: SiteThemeConfig;
   readonly business: SiteBusinessConfig;
   readonly seo: SiteSeoConfig;
+  readonly chrome: SiteChromeConfig;
   readonly pages: readonly PageConfig[];
 }

@@ -4,6 +4,7 @@ import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
   type OnDestroy,
@@ -24,6 +25,8 @@ import { BuilderStore } from '../../stores/builder.store';
 import { BlockInspectorComponent } from '../../ui/block-inspector/block-inspector.component';
 import { PageManagerComponent } from '../../ui/page-manager/page-manager.component';
 import { SiteSettingsEditorComponent } from '../../ui/site-settings-editor/site-settings-editor.component';
+import { SettingsSelectComponent } from '../../ui/settings-select/settings-select.component';
+import type { SettingsSelectOption } from '../../ui/settings-select/settings-select.types';
 import type {
   CanvasMode,
   CanvasViewport,
@@ -47,6 +50,7 @@ import type {
     MatTooltipModule,
     PageManagerComponent,
     RouterLink,
+    SettingsSelectComponent,
     SiteSettingsEditorComponent,
   ],
   templateUrl: './builder-page.component.html',
@@ -64,6 +68,7 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
 
   readonly siteConfig = this.builderStore.siteConfig;
   readonly activePage = this.builderStore.activePage;
+  readonly pages = this.builderStore.pages;
   readonly activeBlocks = this.builderStore.activeBlocks;
   readonly selectedBlock = this.builderStore.selectedBlock;
   readonly saveStatus = this.builderStore.saveStatus;
@@ -76,10 +81,21 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
   readonly canvasViewport = signal<CanvasViewport>('desktop');
   readonly mobilePanel = signal<MobilePanel>('canvas');
   readonly sidebarTab = signal<SidebarTab>('add');
+  readonly pageOptions = computed<readonly SettingsSelectOption[]>(() =>
+    this.pages().map((page) => ({
+      value: page.slug,
+      label: page.title,
+    })),
+  );
   readonly paletteGroups: readonly PaletteGroup[] = ['Основа', 'Контент', 'Доверие', 'Конверсия']
     .map((label) => ({
       label,
-      items: BLOCK_PALETTE.filter((item) => this.getPaletteGroup(item.type) === label),
+      items: BLOCK_PALETTE.filter(
+        (item) =>
+          item.type !== 'siteHeader' &&
+          item.type !== 'siteFooter' &&
+          this.getPaletteGroup(item.type) === label,
+      ),
     }))
     .filter((group) => group.items.length > 0);
 
@@ -138,6 +154,10 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
 
   selectBlock(blockId: string): void {
     this.builderStore.selectBlock(blockId);
+  }
+
+  selectPage(slug: string): void {
+    this.builderStore.selectPage(slug);
   }
 
   addBlock(type: BlockType): void {
@@ -259,7 +279,7 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
     switch (block.type) {
       case 'siteHeader':
       case 'siteFooter':
-        return block.brandName;
+        return `${block.brandName} · общий для всех страниц`;
       case 'hero':
       case 'contentMedia':
       case 'featureGrid':
@@ -274,8 +294,22 @@ export class BuilderPageComponent implements OnInit, OnDestroy {
   }
 
   canMoveBlock(blockId: string, direction: 'up' | 'down'): boolean {
+    if (this.isSiteChromeBlockId(blockId)) {
+      return false;
+    }
+
     const index = this.activeBlocks().findIndex((block) => block.id === blockId);
-    return index >= 0 && (direction === 'up' ? index > 0 : index < this.activeBlocks().length - 1);
+    return index >= 0 && (direction === 'up' ? index > 1 : index < this.activeBlocks().length - 2);
+  }
+
+  isSiteChromeBlock(block: PageBlockConfig): boolean {
+    return block.type === 'siteHeader' || block.type === 'siteFooter';
+  }
+
+  private isSiteChromeBlockId(blockId: string): boolean {
+    const chrome = this.siteConfig().chrome;
+
+    return blockId === chrome.header.id || blockId === chrome.footer.id;
   }
 
   private getPaletteGroup(type: BlockType): string {

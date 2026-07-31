@@ -148,6 +148,27 @@ test('domain model includes publishable MVP contracts', async () => {
   assert.match(projectModel, /interface LeadSubmission/);
 });
 
+test('pages share one typed site chrome and expose internal page navigation', async () => {
+  const [siteConfig, chromeModel, builderStore, builderTemplate, pageLinkEditor, publicPreview] =
+    await Promise.all([
+      source('src/app/features/builder/domain/models/site-config.model.ts'),
+      source('src/app/features/builder/domain/models/site-chrome-config.model.ts'),
+      source('src/app/features/builder/stores/builder.store.ts'),
+      source('src/app/features/builder/pages/builder-page/builder-page.component.html'),
+      source('src/app/features/builder/ui/page-link-editor/page-link-editor.component.ts'),
+      source('src/app/features/preview/pages/public-preview-page/public-preview-page.component.ts'),
+    ]);
+
+  assert.match(siteConfig, /chrome: SiteChromeConfig/);
+  assert.match(chromeModel, /header: SiteHeaderBlockConfig/);
+  assert.match(chromeModel, /footer: SiteFooterBlockConfig/);
+  assert.match(builderStore, /composeSitePageBlocks/);
+  assert.match(builderTemplate, /ariaLabel="Текущая страница"/);
+  assert.match(pageLinkEditor, /SettingsSelectComponent/);
+  assert.match(pageLinkEditor, /value: `\/\$\{page\.slug\}`/);
+  assert.match(publicPreview, /composeSitePageBlocks/);
+});
+
 test('landing draft creates a valid lead capture section', async () => {
   const factory = await source('src/app/features/builder/data-access/landing-draft.factory.ts');
 

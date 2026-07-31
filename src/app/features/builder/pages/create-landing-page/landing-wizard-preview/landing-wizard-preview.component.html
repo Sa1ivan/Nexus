@@ -11,9 +11,6 @@
   </div>
 
   <div class="wizard-preview__body">
-    <app-block-renderer
-      [blocks]="siteConfig().pages[0]?.blocks ?? []"
-      [theme]="siteConfig().theme"
-    />
+    <app-block-renderer [blocks]="blocks()" [theme]="siteConfig().theme" />
   </div>
 </div>

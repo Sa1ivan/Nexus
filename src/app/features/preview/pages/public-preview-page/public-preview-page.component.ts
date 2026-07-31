@@ -22,6 +22,7 @@ import {
   BlockRendererComponent,
   type LeadSubmissionEvent,
 } from '../../ui/block-renderer/block-renderer.component';
+import { composeSitePageBlocks } from '../../../builder/domain/utils/site-page-blocks';
 
 @Component({
   selector: 'app-public-preview-page',
@@ -58,6 +59,13 @@ export class PublicPreviewPageComponent {
       : (release.siteConfig.pages.find((page) => page.slug === pageSlug) ?? null);
   });
   readonly pageMissing = computed(() => this.release() !== null && this.activePage() === null);
+  readonly activeBlocks = computed(() => {
+    const release = this.release();
+
+    return release === null
+      ? []
+      : composeSitePageBlocks(release.siteConfig.chrome, this.activePage());
+  });
 
   constructor() {
     effect(() => {

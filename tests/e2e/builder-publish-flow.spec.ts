@@ -22,12 +22,25 @@ test('edit, autosave, publish and submit a lead', async ({ page }) => {
   await page.locator('#page-seo-noindex').check();
   await page.getByRole('button', { name: /Hero Новая страница/u }).click();
   await page.getByRole('textbox', { name: 'Заголовок' }).fill('О компании');
-  await page.getByRole('button', { name: 'Открыть страницу Главная' }).click();
+  await page.getByRole('button', { name: /Хедер/u }).click();
+  await page.getByRole('textbox', { name: 'CTA', exact: true }).fill('О компании');
+  await selectSettingOption(
+    page,
+    'Назначить внутреннюю страницу для поля «Ссылка CTA»',
+    'Страница · О компании',
+  );
+  await selectSettingOption(page, 'Текущая страница', 'Главная');
+  await expect(page.locator('.site-header__cta')).toHaveText('О компании');
   await expect(page.locator('.builder-page__status')).toHaveText('Сохранено');
   await page.reload();
   await page.getByRole('tab', { name: 'Слои' }).click();
   await expect(page.getByRole('button', { name: 'Открыть страницу Главная' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Открыть страницу О компании' })).toBeVisible();
+  await expect(page.getByLabel('Текущая страница')).toHaveAttribute(
+    'aria-description',
+    'Выбрано: Главная',
+  );
+  await expect(page.locator('.site-header__cta')).toHaveText('О компании');
   await expect(page.getByRole('heading', { name: 'Проверенный E2E лендинг' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Опубликовать локальное демо' }).click();
@@ -39,7 +52,8 @@ test('edit, autosave, publish and submit a lead', async ({ page }) => {
   const publishedHomeUrl = page.url();
   const publishedHomePath = new URL(publishedHomeUrl).pathname;
 
-  await page.goto(`${publishedHomeUrl}/about`);
+  await page.getByRole('link', { name: 'О компании', exact: true }).click();
+  await expect(page).toHaveURL(`${publishedHomeUrl}/about`);
   await expect(page.getByRole('heading', { name: 'О компании' })).toBeVisible();
   await expect(page).toHaveTitle('О компании — E2E');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
@@ -278,6 +292,7 @@ test('first secondary button patch preserves its contextual block colors', async
 
 test('design editor customizes CTA buttons outside hero', async ({ page }) => {
   await page.goto('/builder');
+  await page.getByRole('tab', { name: 'Слои' }).click();
   await page.getByRole('button', { name: /Хедер/u }).click();
   await page.getByRole('tab', { name: 'Дизайн' }).click();
 

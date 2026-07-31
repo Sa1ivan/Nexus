@@ -137,10 +137,14 @@ export class ProjectInsightsService {
   }
 
   private countBlocks(project: Project): number {
-    return project.draft.pages.reduce((sum, page) => sum + page.blocks.length, 0);
+    return 2 + project.draft.pages.reduce((sum, page) => sum + page.blocks.length, 0);
   }
 
   private countBlocksByType(project: Project, type: BlockType): number {
+    if (type === 'siteHeader' || type === 'siteFooter') {
+      return 1;
+    }
+
     return project.draft.pages.reduce(
       (pageSum, page) => pageSum + page.blocks.filter((block) => block.type === type).length,
       0,

@@ -1,0 +1,13 @@
+<div class="page-link-editor">
+  <span class="page-link-editor__label">Страница сайта</span>
+  <app-settings-select
+    [ariaLabel]="'Назначить внутреннюю страницу для поля «' + label() + '»'"
+    [options]="pageOptions()"
+    [value]="selectedTarget()"
+    (valueChange)="selectTarget($event)"
+  />
+  <label>
+    <span>{{ label() }}</span>
+    <input type="text" [value]="target()" (input)="updateTarget($event)" />
+  </label>
+</div>

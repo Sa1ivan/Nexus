@@ -17,15 +17,14 @@
   <div class="inspector__grid">
     <label class="inspector__field"
       ><span>CTA</span
-      ><input
-        type="text"
-        [value]="current.cta.label"
-        (input)="updateFooterCta('label', $event)" /></label
-    ><label class="inspector__field"
-      ><span>Ссылка</span
-      ><input type="text" [value]="current.cta.target" (input)="updateFooterCta('target', $event)"
+      ><input type="text" [value]="current.cta.label" (input)="updateFooterCta('label', $event)"
     /></label>
   </div>
+  <app-page-link-editor
+    label="Ссылка CTA"
+    [target]="current.cta.target"
+    (targetChange)="updateFooterCtaTarget($event)"
+  />
   <label class="inspector__field"
     ><span>Контакты, по одному в строке</span
     ><textarea
@@ -60,15 +59,13 @@
             ><input
               type="text"
               [value]="link.label"
-              (input)="updateFooterLink(link.id, 'label', $event)" /></label
-          ><label class="inspector__field"
-            ><span>Ссылка</span
-            ><input
-              type="text"
-              [value]="link.target"
-              (input)="updateFooterLink(link.id, 'target', $event)"
+              (input)="updateFooterLink(link.id, 'label', $event)"
           /></label>
         </div>
+        <app-page-link-editor
+          [target]="link.target"
+          (targetChange)="updateFooterLinkTarget(link.id, $event)"
+        />
       </div>
     </details>
   }

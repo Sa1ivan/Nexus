@@ -39,7 +39,7 @@ describe('LandingWizardPreviewComponent', () => {
     fixture.componentRef.setInput('selection', selection);
 
     const siteConfig = fixture.componentInstance.siteConfig();
-    const header = siteConfig.pages[0]?.blocks.find((block) => block.type === 'siteHeader');
+    const header = siteConfig.chrome.header;
     const hero = siteConfig.pages[0]?.blocks.find((block) => block.type === 'hero');
 
     expect(header?.type === 'siteHeader' ? header.cta.label : null).toBe(selection.ctaText);

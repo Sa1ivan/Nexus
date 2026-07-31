@@ -3,6 +3,7 @@ import type { LinkConfig, MediaAsset, PageBlockConfig, SiteConfig } from '../mod
 import { isSafeLinkTarget } from './link-target';
 import { isOversizedEncodedImage } from './media-source-policy';
 import { isReservedPageSlug, normalizePageSlug } from './page-slug';
+import { isSiteChromeBlock } from './site-page-blocks';
 import type { SiteConfigValidationResult } from './site-config-validation.types';
 
 export type { SiteConfigValidationResult } from './site-config-validation.types';
@@ -31,6 +32,26 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
   const blockIds = new Set<string>();
   const pageIds = new Set<string>();
   const pageSlugs = new Set<string>();
+  const sharedBlocks: readonly PageBlockConfig[] = [
+    siteConfig.chrome.header,
+    siteConfig.chrome.footer,
+  ];
+  const sharedAnchors = new Set<string>();
+
+  for (const block of sharedBlocks) {
+    validateBlock(block, errors);
+
+    if (blockIds.has(block.id)) {
+      errors.push(`Дублируется id блока "${block.id}".`);
+    }
+
+    if (sharedAnchors.has(block.anchor)) {
+      errors.push(`В общих Header/Footer дублируется anchor "${block.anchor}".`);
+    }
+
+    blockIds.add(block.id);
+    sharedAnchors.add(block.anchor);
+  }
 
   for (const page of siteConfig.pages) {
     if (!page.id.trim()) {
@@ -56,9 +77,13 @@ export function validateSiteConfig(siteConfig: SiteConfig): SiteConfigValidation
     pageIds.add(page.id);
     pageSlugs.add(page.slug);
 
-    const pageAnchors = new Set<string>();
+    const pageAnchors = new Set<string>(sharedBlocks.map((block) => block.anchor));
 
     for (const block of page.blocks) {
+      if (isSiteChromeBlock(block)) {
+        errors.push(`Страница "${page.title}" содержит собственный Header/Footer.`);
+      }
+
       validateBlock(block, errors);
 
       if (blockIds.has(block.id)) {

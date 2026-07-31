@@ -143,8 +143,14 @@
           ><mat-icon>arrow_back</mat-icon></a
         >
         <div>
-          <span>{{ siteConfig().name }}</span
-          ><strong>{{ activePage()?.title }}</strong>
+          <span>{{ siteConfig().name }}</span>
+          <app-settings-select
+            class="builder-page__page-select"
+            ariaLabel="Текущая страница"
+            [options]="pageOptions()"
+            [value]="activePage()?.slug ?? ''"
+            (valueChange)="selectPage($event)"
+          />
         </div>
       </div>
 
@@ -311,6 +317,7 @@
                 class="builder-page__block-frame"
                 cdkDrag
                 [cdkDragData]="block"
+                [cdkDragDisabled]="isSiteChromeBlock(block)"
                 [class.is-selected]="block.id === selectedBlock()?.id"
                 [class.is-hidden]="block.hidden"
                 (click)="selectBlock(block.id)"
@@ -321,6 +328,7 @@
                     class="builder-page__drag"
                     cdkDragHandle
                     aria-label="Перетащить блок"
+                    [disabled]="isSiteChromeBlock(block)"
                     (click)="$event.stopPropagation()"
                   >
                     <mat-icon>drag_indicator</mat-icon>
@@ -348,22 +356,24 @@
                     >
                       <mat-icon>keyboard_arrow_down</mat-icon>
                     </button>
-                    <button
-                      mat-icon-button
-                      type="button"
-                      aria-label="Дублировать"
-                      (click)="duplicateBlock(block.id); $event.stopPropagation()"
-                    >
-                      <mat-icon>content_copy</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      type="button"
-                      aria-label="Удалить"
-                      (click)="removeBlock(block.id); $event.stopPropagation()"
-                    >
-                      <mat-icon>delete</mat-icon>
-                    </button>
+                    @if (!isSiteChromeBlock(block)) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Дублировать"
+                        (click)="duplicateBlock(block.id); $event.stopPropagation()"
+                      >
+                        <mat-icon>content_copy</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Удалить"
+                        (click)="removeBlock(block.id); $event.stopPropagation()"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
                   </div>
                 </header>
                 @if (!block.hidden) {

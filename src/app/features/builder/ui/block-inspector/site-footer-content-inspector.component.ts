@@ -4,13 +4,14 @@ import { MatIconModule } from '@angular/material/icon';
 
 import type { SiteFooterBlockConfig } from '../../domain/models';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
+import { PageLinkEditorComponent } from '../page-link-editor/page-link-editor.component';
 import { BlockItemActionsComponent } from './block-item-actions.component';
 import { readInputChecked, readInputValue } from './block-inspector-input';
 
 @Component({
   selector: 'app-site-footer-content-inspector',
   standalone: true,
-  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule],
+  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule, PageLinkEditorComponent],
   templateUrl: './site-footer-content-inspector.component.html',
   styles: ':host { display: contents; }',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +34,9 @@ export class SiteFooterContentInspectorComponent {
       cta: { [field]: readInputValue(event) },
     });
   }
+  updateFooterCtaTarget(target: string): void {
+    this.builderStore.updateSiteFooterBlock(this.block().id, { cta: { target } });
+  }
   updateFooterContacts(event: Event): void {
     this.builderStore.updateSiteFooterBlock(this.block().id, {
       contactLines: readInputValue(event)
@@ -43,6 +47,9 @@ export class SiteFooterContentInspectorComponent {
   }
   updateFooterLink(id: string, field: 'label' | 'target', event: Event): void {
     this.builderStore.updateFooterLink(this.block().id, id, { [field]: readInputValue(event) });
+  }
+  updateFooterLinkTarget(id: string, target: string): void {
+    this.builderStore.updateFooterLink(this.block().id, id, { target });
   }
   addFooterLink(): void {
     this.builderStore.addFooterLink(this.block().id);

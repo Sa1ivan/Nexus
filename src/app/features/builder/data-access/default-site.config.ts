@@ -8,6 +8,7 @@ import {
   SITE_CONFIG_SCHEMA_VERSION,
 } from '../domain/models';
 import type { SiteConfig } from '../domain/models';
+import { createDefaultSiteChrome } from '../domain/factories/site-chrome.factory';
 import { createLink } from '../domain/registry/block-registry';
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
@@ -22,6 +23,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     email: 'hello@nexus.app',
   },
   seo: DEFAULT_SITE_SEO,
+  chrome: createDefaultSiteChrome(),
   pages: [
     {
       id: 'page-home',

@@ -187,9 +187,6 @@ export function removePage(pages: readonly PageConfig[], pageId: string): PageMu
 
 function createInitialPageBlocks(title: string): PageConfig['blocks'] {
   const blocks: PageConfig['blocks'][number][] = [];
-  const header = createDefaultBlock('siteHeader', blocks);
-  blocks.push(header);
-
   const defaultHero = createDefaultBlock('hero', blocks);
   const hero =
     defaultHero.type === 'hero'
@@ -199,7 +196,6 @@ function createInitialPageBlocks(title: string): PageConfig['blocks'] {
         }
       : defaultHero;
   blocks.push(hero);
-  blocks.push(createDefaultBlock('siteFooter', blocks));
 
   return blocks;
 }

@@ -11,9 +11,10 @@ import {
   cloneRegisteredBlock,
   createDefaultBlock as createRegisteredDefaultBlock,
 } from '../domain/registry/block-registry';
-import { moveCollectionItem, removeCollectionItem } from '../domain/utils/collection-update';
+import { removeCollectionItem } from '../domain/utils/collection-update';
 import { normalizeAnchor } from '../domain/utils/builder-ids';
 import { areStructurallyEqual } from '../domain/utils/structural-equality';
+import { composeSitePageBlocks } from '../domain/utils/site-page-blocks';
 import {
   createPage as createPageConfig,
   duplicatePage as duplicatePageConfig,
@@ -39,7 +40,9 @@ import type {
   SiteThemeConfig,
 } from '../domain/models';
 import { BlockConfigMergeService } from '../services/block-config-merge.service';
+import { PageBlockDocumentService } from '../services/page-block-document.service';
 import { SiteBusinessInheritanceService } from '../services/site-business-inheritance.service';
+import { SiteChromeDocumentService } from '../services/site-chrome-document.service';
 import { BuilderHistoryStore } from './builder-history.store';
 import { BuilderProjectStore } from './builder-project.store';
 import type { MoveDirection } from './builder-store.types';
@@ -52,11 +55,13 @@ export class BuilderStore {
   private readonly historyStore = inject(BuilderHistoryStore);
   private readonly projectTransferService = inject(ProjectTransferService);
   private readonly blockConfigMerge = inject(BlockConfigMergeService);
+  private readonly pageBlockDocument = inject(PageBlockDocumentService);
   private readonly businessInheritance = inject(SiteBusinessInheritanceService);
+  private readonly siteChromeDocument = inject(SiteChromeDocumentService);
   private readonly siteConfigSignal = signal<SiteConfig>(DEFAULT_SITE_CONFIG);
   private readonly activePageIdSignal = signal<string>(DEFAULT_SITE_CONFIG.pages[0]?.id ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(
-    DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? null,
+    DEFAULT_SITE_CONFIG.pages[0]?.blocks[0]?.id ?? DEFAULT_SITE_CONFIG.chrome.header.id,
   );
   private readonly pageErrorSignal = signal<string | null>(null);
   private readonly documentRevisionSignal = signal(0);
@@ -82,8 +87,8 @@ export class BuilderStore {
   readonly canUndo = this.historyStore.canUndo;
   readonly canRedo = this.historyStore.canRedo;
   readonly publishedUrl = this.projectStore.publishedUrl;
-  readonly activeBlocks = computed<readonly PageBlockConfig[]>(
-    () => this.activePage()?.blocks ?? [],
+  readonly activeBlocks = computed<readonly PageBlockConfig[]>(() =>
+    composeSitePageBlocks(this.siteConfig().chrome, this.activePage()),
   );
   readonly selectedBlock = computed<PageBlockConfig | null>(() => {
     const blocks = this.activeBlocks();
@@ -100,7 +105,7 @@ export class BuilderStore {
     }
 
     this.activePageIdSignal.set(page.id);
-    this.selectedBlockIdSignal.set(page.blocks[0]?.id ?? null);
+    this.selectedBlockIdSignal.set(page.blocks[0]?.id ?? this.siteConfig().chrome.header.id);
     this.pageErrorSignal.set(null);
 
     return true;
@@ -227,7 +232,18 @@ export class BuilderStore {
   }
 
   updatePageSlug(pageId: string, slug: string): boolean {
-    return this.applyPageMutation(updatePageSlugConfig(this.pages(), pageId, slug));
+    const pages = this.pages();
+    const result = updatePageSlugConfig(pages, pageId, slug);
+    const chrome = result.ok
+      ? this.siteChromeDocument.remapTargetForSlugChange(
+          this.siteConfig().chrome,
+          pages,
+          result.pages,
+          pageId,
+        )
+      : this.siteConfig().chrome;
+
+    return this.applyPageMutation(result, chrome);
   }
 
   updatePageSeo(pageId: string, update: Partial<PageSeoConfig>): boolean {
@@ -243,6 +259,18 @@ export class BuilderStore {
   }
 
   removePage(pageId: string): boolean {
+    const page = this.pages().find((currentPage) => currentPage.id === pageId);
+
+    if (
+      page !== undefined &&
+      this.siteChromeDocument.referencesPageTarget(this.siteConfig().chrome, page.slug)
+    ) {
+      this.pageErrorSignal.set(
+        'Сначала измените ссылки Header/Footer, которые ведут на эту страницу.',
+      );
+      return false;
+    }
+
     return this.applyPageMutation(removePageConfig(this.pages(), pageId));
   }
 
@@ -394,11 +422,19 @@ export class BuilderStore {
     type: BlockType,
     afterBlockId: string | null = this.selectedBlock()?.id ?? null,
   ): string | null {
+    if (type === 'siteHeader' || type === 'siteFooter') {
+      return null;
+    }
+
     let insertedBlockId: string | null = null;
 
     const didInsert = this.updateActiveBlocks((blocks) => {
       const block = this.createDefaultBlock(type, blocks);
-      const insertIndex = this.getInsertIndex(blocks, afterBlockId);
+      const insertIndex = this.pageBlockDocument.getInsertIndex(
+        blocks,
+        afterBlockId,
+        this.siteConfig().chrome,
+      );
 
       insertedBlockId = block.id;
 
@@ -415,6 +451,10 @@ export class BuilderStore {
   }
 
   duplicateBlock(blockId: string): string | null {
+    if (this.isSiteChromeBlockId(blockId)) {
+      return null;
+    }
+
     let duplicatedBlockId: string | null = null;
 
     this.updateActiveBlocks((blocks) => {
@@ -439,6 +479,10 @@ export class BuilderStore {
   }
 
   removeBlock(blockId: string): boolean {
+    if (this.isSiteChromeBlockId(blockId)) {
+      return false;
+    }
+
     let nextSelectedBlockId: string | null = null;
     const didRemove = this.updateActiveBlocks((blocks) => {
       const blockIndex = blocks.findIndex((block) => block.id === blockId);
@@ -461,6 +505,10 @@ export class BuilderStore {
   }
 
   moveBlock(blockId: string, direction: MoveDirection): boolean {
+    if (this.isSiteChromeBlockId(blockId)) {
+      return false;
+    }
+
     const currentIndex = this.activeBlocks().findIndex((block) => block.id === blockId);
 
     if (currentIndex === -1) {
@@ -474,7 +522,7 @@ export class BuilderStore {
 
   reorderActiveBlocks(previousIndex: number, currentIndex: number): boolean {
     return this.updateActiveBlocks((blocks) =>
-      moveCollectionItem(blocks, previousIndex, currentIndex),
+      this.pageBlockDocument.reorder(blocks, previousIndex, currentIndex),
     );
   }
 
@@ -500,6 +548,13 @@ export class BuilderStore {
     blockId: string,
     updater: (block: PageBlockConfig) => PageBlockConfig,
   ): boolean {
+    const current = this.siteConfig();
+    const chrome = this.siteChromeDocument.update(current.chrome, blockId, updater);
+
+    if (chrome !== null) {
+      return this.commitSiteConfig({ ...current, chrome });
+    }
+
     return this.updateActiveBlocks((blocks) => {
       const blockIndex = blocks.findIndex((block) => block.id === blockId);
       const block = blocks[blockIndex];
@@ -559,25 +614,21 @@ export class BuilderStore {
     return cloneRegisteredBlock(block, currentBlocks);
   }
 
-  private getInsertIndex(blocks: readonly PageBlockConfig[], afterBlockId: string | null): number {
-    if (afterBlockId === null) {
-      return blocks.length;
-    }
-
-    const blockIndex = blocks.findIndex((block) => block.id === afterBlockId);
-
-    return blockIndex === -1 ? blocks.length : blockIndex + 1;
-  }
-
   private hydrateSiteConfig(siteConfig: SiteConfig): void {
     this.siteConfigSignal.set(siteConfig);
     this.activePageIdSignal.set(siteConfig.pages[0]?.id ?? '');
-    this.selectedBlockIdSignal.set(siteConfig.pages[0]?.blocks[0]?.id ?? null);
+    this.selectedBlockIdSignal.set(
+      siteConfig.pages[0]?.blocks[0]?.id ??
+        (siteConfig.pages.length > 0 ? siteConfig.chrome.header.id : null),
+    );
     this.pageErrorSignal.set(null);
     this.historyStore.reset();
   }
 
-  private applyPageMutation(result: PageMutationResult): boolean {
+  private applyPageMutation(
+    result: PageMutationResult,
+    chrome = this.siteConfig().chrome,
+  ): boolean {
     if (!result.ok) {
       this.pageErrorSignal.set(this.getPageMutationError(result.reason));
       return false;
@@ -585,6 +636,7 @@ export class BuilderStore {
 
     const didCommit = this.commitSiteConfig({
       ...this.siteConfig(),
+      chrome,
       pages: result.pages,
     });
 
@@ -674,9 +726,15 @@ export class BuilderStore {
 
     this.activePageIdSignal.set(activePage.id);
 
-    if (!activePage.blocks.some((block) => block.id === this.selectedBlockId())) {
-      this.selectedBlockIdSignal.set(activePage.blocks[0]?.id ?? null);
+    const activeBlocks = composeSitePageBlocks(siteConfig.chrome, activePage);
+
+    if (!activeBlocks.some((block) => block.id === this.selectedBlockId())) {
+      this.selectedBlockIdSignal.set(activePage.blocks[0]?.id ?? activeBlocks[0]?.id ?? null);
     }
+  }
+
+  private isSiteChromeBlockId(blockId: string): boolean {
+    return this.siteChromeDocument.contains(this.siteConfig().chrome, blockId);
   }
 
   private markDirty(): void {

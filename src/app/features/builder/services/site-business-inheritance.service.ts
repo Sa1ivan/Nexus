@@ -17,6 +17,10 @@ export class SiteBusinessInheritanceService {
   apply(siteConfig: SiteConfig): SiteConfig {
     return {
       ...siteConfig,
+      chrome: {
+        header: this.applyToHeader(siteConfig.chrome.header, siteConfig.business),
+        footer: this.applyToFooter(siteConfig.chrome.footer, siteConfig.business),
+      },
       pages: siteConfig.pages.map((page) => ({
         ...page,
         blocks: page.blocks.map((block) => this.applyToBlock(block, siteConfig.business)),
@@ -45,6 +49,24 @@ export class SiteBusinessInheritanceService {
     }
 
     return block;
+  }
+
+  private applyToHeader(
+    block: SiteConfig['chrome']['header'],
+    business: SiteBusinessConfig,
+  ): SiteConfig['chrome']['header'] {
+    const updated = this.applyToBlock(block, business);
+
+    return updated.type === 'siteHeader' ? updated : block;
+  }
+
+  private applyToFooter(
+    block: SiteConfig['chrome']['footer'],
+    business: SiteBusinessConfig,
+  ): SiteConfig['chrome']['footer'] {
+    const updated = this.applyToBlock(block, business);
+
+    return updated.type === 'siteFooter' ? updated : block;
   }
 
   createContactLines(business: SiteBusinessConfig): readonly string[] {

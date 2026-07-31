@@ -19,7 +19,7 @@
   } @else if (activePage(); as page) {
     <main class="public-preview">
       <app-block-renderer
-        [blocks]="page.blocks"
+        [blocks]="activeBlocks()"
         [theme]="publishedRelease.siteConfig.theme"
         [projectId]="projectId()"
         (leadSubmit)="submitLead($event)"

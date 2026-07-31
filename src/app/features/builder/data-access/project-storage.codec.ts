@@ -42,7 +42,7 @@ export class ProjectStorageCodec {
 
     throw new Error(
       `Unsupported SiteConfig schema version ${String(unsupportedVersion.value)} at ${unsupportedVersion.location}. ` +
-        `Supported versions are 1, 2 and ${SITE_CONFIG_SCHEMA_VERSION}. Existing storage was not modified.`,
+        `Supported versions are 1, 2, 3 and ${SITE_CONFIG_SCHEMA_VERSION}. Existing storage was not modified.`,
     );
   }
 
@@ -249,6 +249,7 @@ export class ProjectStorageCodec {
 
     return schemaVersion === 1 ||
       schemaVersion === 2 ||
+      schemaVersion === 3 ||
       schemaVersion === SITE_CONFIG_SCHEMA_VERSION
       ? null
       : { location, value: schemaVersion };

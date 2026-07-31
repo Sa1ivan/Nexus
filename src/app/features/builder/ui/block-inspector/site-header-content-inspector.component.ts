@@ -5,13 +5,20 @@ import { MatIconModule } from '@angular/material/icon';
 import type { SiteHeaderBlockConfig } from '../../domain/models';
 import { BuilderBlockStore } from '../../stores/builder-block.store';
 import { MediaInputComponent } from '../media-input/media-input.component';
+import { PageLinkEditorComponent } from '../page-link-editor/page-link-editor.component';
 import { BlockItemActionsComponent } from './block-item-actions.component';
 import { readInputChecked, readInputValue } from './block-inspector-input';
 
 @Component({
   selector: 'app-site-header-content-inspector',
   standalone: true,
-  imports: [BlockItemActionsComponent, MatButtonModule, MatIconModule, MediaInputComponent],
+  imports: [
+    BlockItemActionsComponent,
+    MatButtonModule,
+    MatIconModule,
+    MediaInputComponent,
+    PageLinkEditorComponent,
+  ],
   templateUrl: './site-header-content-inspector.component.html',
   styles: ':host { display: contents; }',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,10 +50,18 @@ export class SiteHeaderContentInspectorComponent {
     });
   }
 
+  updateHeaderCtaTarget(target: string): void {
+    this.builderStore.updateSiteHeaderBlock(this.block().id, { cta: { target } });
+  }
+
   updateHeaderNavigationItem(linkId: string, field: 'label' | 'target', event: Event): void {
     this.builderStore.updateHeaderNavigationItem(this.block().id, linkId, {
       [field]: readInputValue(event),
     });
+  }
+
+  updateHeaderNavigationTarget(linkId: string, target: string): void {
+    this.builderStore.updateHeaderNavigationItem(this.block().id, linkId, { target });
   }
 
   toggleHeaderNavigationTarget(linkId: string, event: Event): void {

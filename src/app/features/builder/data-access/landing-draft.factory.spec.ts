@@ -75,7 +75,7 @@ describe('buildLandingDraft', () => {
         },
       },
     });
-    const header = draft.pages[0]?.blocks.find((block) => block.type === 'siteHeader');
+    const header = draft.chrome.header;
     const hero = getHero(draft);
 
     expect(draft.theme.accentColor).toBe('#007aff');

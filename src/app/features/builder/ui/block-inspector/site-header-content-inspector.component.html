@@ -25,15 +25,14 @@
   <div class="inspector__grid">
     <label class="inspector__field"
       ><span>CTA</span
-      ><input
-        type="text"
-        [value]="current.cta.label"
-        (input)="updateHeaderCta('label', $event)" /></label
-    ><label class="inspector__field"
-      ><span>Ссылка CTA</span
-      ><input type="text" [value]="current.cta.target" (input)="updateHeaderCta('target', $event)"
+      ><input type="text" [value]="current.cta.label" (input)="updateHeaderCta('label', $event)"
     /></label>
   </div>
+  <app-page-link-editor
+    label="Ссылка CTA"
+    [target]="current.cta.target"
+    (targetChange)="updateHeaderCtaTarget($event)"
+  />
 </section>
 <section class="inspector__section">
   <div class="inspector__section-head">
@@ -67,14 +66,10 @@
             [value]="link.label"
             (input)="updateHeaderNavigationItem(link.id, 'label', $event)"
         /></label>
-        <label class="inspector__field"
-          ><span>Ссылка</span
-          ><input
-            type="text"
-            [value]="link.target"
-            list="block-anchors"
-            (input)="updateHeaderNavigationItem(link.id, 'target', $event)"
-        /></label>
+        <app-page-link-editor
+          [target]="link.target"
+          (targetChange)="updateHeaderNavigationTarget(link.id, $event)"
+        />
         <label class="inspector__check"
           ><input
             type="checkbox"

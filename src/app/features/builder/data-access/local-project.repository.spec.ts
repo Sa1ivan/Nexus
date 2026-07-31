@@ -107,6 +107,44 @@ describe('LocalProjectRepository', () => {
     });
   });
 
+  it('saves a project loaded from schema version 3 storage', async () => {
+    seedSchemaVersionThreeProject(storage);
+    const project = await repository.getProject('legacy-v3-project');
+
+    if (project === null) {
+      throw new Error('Schema v3 project fixture was not normalized.');
+    }
+
+    await repository.saveDraft({
+      projectId: project.id,
+      expectedDraftVersion: project.draftVersion,
+      siteConfig: { ...project.draft, name: 'Saved schema v3 project' },
+    });
+    const recoveredRepository = TestBed.runInInjectionContext(() => new LocalProjectRepository());
+
+    await expect(recoveredRepository.getProject(project.id)).resolves.toMatchObject({
+      name: 'Saved schema v3 project',
+      draftVersion: 2,
+      draft: {
+        schemaVersion: 4,
+      },
+      releases: [
+        {
+          siteConfig: {
+            schemaVersion: 4,
+          },
+        },
+      ],
+      revisions: expect.arrayContaining([
+        expect.objectContaining({
+          siteConfig: expect.objectContaining({
+            schemaVersion: 4,
+          }),
+        }),
+      ]),
+    });
+  });
+
   it('publishes a project loaded from schema version 2 storage', async () => {
     seedSchemaVersionTwoProject(storage);
     const project = await repository.getProject('legacy-project');
@@ -261,6 +299,54 @@ function seedSchemaVersionTwoProject(storage: Storage): void {
       ],
       leads: [],
       activeProjectId: 'legacy-project',
+    }),
+  );
+}
+
+function seedSchemaVersionThreeProject(storage: Storage): void {
+  const timestamp = '2026-07-30T00:00:00.000Z';
+  const { chrome, ...siteWithoutChrome } = DEFAULT_SITE_CONFIG;
+  const legacySiteConfig = {
+    ...siteWithoutChrome,
+    schemaVersion: 3,
+    pages: siteWithoutChrome.pages.map((page) => ({
+      ...page,
+      blocks: [chrome.header, ...page.blocks, chrome.footer],
+    })),
+  };
+
+  storage.setItem(
+    PROJECTS_STORAGE_KEY,
+    JSON.stringify({
+      projects: [
+        {
+          id: 'legacy-v3-project',
+          name: 'Legacy v3 project',
+          draft: legacySiteConfig,
+          draftVersion: 1,
+          publishedReleaseId: 'legacy-v3-release',
+          releases: [
+            {
+              id: 'legacy-v3-release',
+              version: 1,
+              siteConfig: legacySiteConfig,
+              publishedAt: timestamp,
+            },
+          ],
+          revisions: [
+            {
+              id: 'legacy-v3-revision',
+              version: 1,
+              siteConfig: legacySiteConfig,
+              createdAt: timestamp,
+            },
+          ],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      leads: [],
+      activeProjectId: 'legacy-v3-project',
     }),
   );
 }

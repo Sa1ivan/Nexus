@@ -15,6 +15,12 @@ import {
 } from '../domain/registry/block-registry';
 import { isSafeMediaSource } from '../domain/utils/site-config-validation';
 import {
+  createDefaultSiteChrome,
+  isSiteFooterBlock,
+  isSiteHeaderBlock,
+} from '../domain/factories/site-chrome.factory';
+import { isSiteChromeBlock } from '../domain/utils/site-page-blocks';
+import {
   DEFAULT_BLOCK_APPEARANCE,
   DEFAULT_PRIMARY_BUTTON_APPEARANCE,
   DEFAULT_SITE_BUSINESS,
@@ -59,6 +65,7 @@ import type {
   PageSeoConfig,
   SectionSpacing,
   SiteBusinessConfig,
+  SiteChromeConfig,
   SiteConfig,
   SiteSeoConfig,
   SiteThemeConfig,
@@ -134,6 +141,7 @@ export class SiteConfigCodec {
       typeof schemaVersion === 'number' &&
       schemaVersion !== 1 &&
       schemaVersion !== 2 &&
+      schemaVersion !== 3 &&
       schemaVersion !== SITE_CONFIG_SCHEMA_VERSION
     ) {
       return { ok: false, reason: 'unsupported-schema' };
@@ -158,6 +166,7 @@ export class SiteConfigCodec {
     if (
       schemaVersion !== 1 &&
       schemaVersion !== 2 &&
+      schemaVersion !== 3 &&
       schemaVersion !== SITE_CONFIG_SCHEMA_VERSION
     ) {
       return null;
@@ -165,15 +174,20 @@ export class SiteConfigCodec {
 
     const isLegacySchema = schemaVersion === 1 || schemaVersion === 2;
     const legacySeo = isLegacySchema ? record['seo'] : undefined;
-    const pages = this.asArray(record['pages'])
+    const normalizedPages = this.asArray(record['pages'])
       .map((page) => this.normalizePage(page, isLegacySchema, legacySeo))
       .filter((page): page is PageConfig => page !== null);
 
-    if (pages.length === 0) {
+    if (normalizedPages.length === 0) {
       return null;
     }
 
     const name = this.readString(record['name'], 'Nexus demo');
+    const chrome = this.normalizeSiteChrome(record['chrome'], normalizedPages);
+    const pages = normalizedPages.map((page) => ({
+      ...page,
+      blocks: page.blocks.filter((block) => !isSiteChromeBlock(block)),
+    }));
 
     return {
       id: this.readString(record['id'], this.createId('site')),
@@ -182,7 +196,27 @@ export class SiteConfigCodec {
       theme: this.readTheme(record['theme']),
       business: this.readBusiness(record['business']),
       seo: this.readSeo(record['seo']),
+      chrome,
       pages,
+    };
+  }
+
+  private normalizeSiteChrome(value: unknown, pages: readonly PageConfig[]): SiteChromeConfig {
+    const record = this.asRecord(value);
+    const explicitHeader = this.normalizeBlock(record?.['header']);
+    const explicitFooter = this.normalizeBlock(record?.['footer']);
+    const pageBlocks = pages.flatMap((page) => page.blocks);
+    const defaultChrome = createDefaultSiteChrome(pageBlocks);
+    const migratedHeader = pageBlocks.find(isSiteHeaderBlock);
+    const migratedFooter = pageBlocks.find(isSiteFooterBlock);
+
+    return {
+      header: isSiteHeaderBlock(explicitHeader)
+        ? explicitHeader
+        : (migratedHeader ?? defaultChrome.header),
+      footer: isSiteFooterBlock(explicitFooter)
+        ? explicitFooter
+        : (migratedFooter ?? defaultChrome.footer),
     };
   }
 

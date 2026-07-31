@@ -49,6 +49,29 @@ describe('site config validation', () => {
     );
   });
 
+  it('rejects duplicate ids and anchors in shared site chrome', () => {
+    const header = DEFAULT_SITE_CONFIG.chrome.header;
+    const result = validateSiteConfig({
+      ...DEFAULT_SITE_CONFIG,
+      chrome: {
+        ...DEFAULT_SITE_CONFIG.chrome,
+        footer: {
+          ...DEFAULT_SITE_CONFIG.chrome.footer,
+          id: header.id,
+          anchor: header.anchor,
+        },
+      },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        `Дублируется id блока "${header.id}".`,
+        `В общих Header/Footer дублируется anchor "${header.anchor}".`,
+      ]),
+    );
+  });
+
   it('validates page slug and SEO limits', () => {
     const page = DEFAULT_SITE_CONFIG.pages[0];
 

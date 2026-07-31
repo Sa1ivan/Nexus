@@ -142,6 +142,7 @@ export type {
 } from './testimonials-block-config.model';
 export { SITE_CONFIG_SCHEMA_VERSION } from './site-config.model';
 export type { SiteConfig } from './site-config.model';
+export type { SiteChromeConfig } from './site-chrome-config.model';
 export { DEFAULT_SITE_BUSINESS } from './site-business.model';
 export type { SiteBusinessConfig } from './site-business.model';
 export { DEFAULT_SITE_SEO } from './site-seo.model';

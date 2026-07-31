@@ -16,7 +16,7 @@ describe('page config updates', () => {
   const homePage = createPageFixture('page-home', 'home', 'Главная');
   const aboutPage = createPageFixture('page-about', 'about', 'О компании');
 
-  it('creates a recognizable page with the required default blocks', () => {
+  it('creates a recognizable page with page-owned content only', () => {
     const result = createPage([homePage], 'Услуги');
 
     expect(result).toMatchObject({
@@ -40,12 +40,8 @@ describe('page config updates', () => {
     if (result.ok) {
       const createdPage = result.pages[1];
 
-      expect(createdPage?.blocks.map((block) => block.type)).toEqual([
-        'siteHeader',
-        'hero',
-        'siteFooter',
-      ]);
-      expect(createdPage?.blocks[1]).toMatchObject({
+      expect(createdPage?.blocks.map((block) => block.type)).toEqual(['hero']);
+      expect(createdPage?.blocks[0]).toMatchObject({
         type: 'hero',
         title: 'Услуги',
       });

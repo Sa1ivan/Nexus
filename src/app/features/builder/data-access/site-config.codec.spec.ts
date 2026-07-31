@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { DEFAULT_SITE_CONFIG } from './default-site.config';
 import { SiteConfigCodec } from './site-config.codec';
+import { createDefaultBlock } from '../domain/registry/block-registry';
 
 describe('SiteConfigCodec', () => {
   let codec: SiteConfigCodec;
@@ -18,6 +19,53 @@ describe('SiteConfigCodec', () => {
     expect(codec.decode(encoded)).toEqual({
       ok: true,
       value: DEFAULT_SITE_CONFIG,
+    });
+  });
+
+  it('migrates page-owned header and footer into one shared site chrome', () => {
+    const page = DEFAULT_SITE_CONFIG.pages[0];
+
+    if (page === undefined) {
+      throw new Error('Page fixture is missing.');
+    }
+
+    const header = createDefaultBlock('siteHeader', page.blocks);
+    const footer = createDefaultBlock('siteFooter', [...page.blocks, header]);
+    const { chrome: currentChrome, ...legacyBase } = DEFAULT_SITE_CONFIG;
+    void currentChrome;
+    const legacyConfig = {
+      ...legacyBase,
+      schemaVersion: 3,
+      pages: [
+        {
+          ...page,
+          blocks: [header, ...page.blocks, footer],
+        },
+      ],
+    };
+
+    const result = codec.decode(JSON.stringify(legacyConfig));
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        schemaVersion: 4,
+        chrome: {
+          header: {
+            id: header.id,
+            type: 'siteHeader',
+          },
+          footer: {
+            id: footer.id,
+            type: 'siteFooter',
+          },
+        },
+        pages: [
+          {
+            blocks: page.blocks,
+          },
+        ],
+      },
     });
   });
 
@@ -65,7 +113,7 @@ describe('SiteConfigCodec', () => {
     expect(result.ok).toBe(true);
 
     if (result.ok) {
-      expect(result.value.schemaVersion).toBe(3);
+      expect(result.value.schemaVersion).toBe(4);
       expect(result.value.seo).toMatchObject({
         language: 'en',
         favicon: {
