@@ -1,9 +1,9 @@
 # Nexus Cloud Alpha Phase 1 Implementation Plan
 
 > **For agentic workers:** implement this plan task-by-task with the repository's
-> execution and verification skills. Checkbox state is evidence-bearing: only P1-00 is
-> complete in this document; later tasks remain open until their implementation gates
-> have fresh evidence.
+> execution and verification skills. Checkbox state is evidence-bearing: P1-00 and
+> P1-01 are complete in this document; later tasks remain open until their
+> implementation gates have fresh evidence.
 
 **Goal:** Move Nexus from local demo storage to authenticated cloud projects, immutable
 public releases, managed media, and server-side lead capture without weakening the
@@ -40,7 +40,7 @@ HTTP adapters, and GitHub Actions.
 
 - [x] **Step 3: Reconcile consistency and delivery semantics**
 
-  Create, save, publish, and lead idempotency; `ActiveRelease`; transaction
+  Create, save, publish, activate, and lead idempotency; `ActiveRelease`; transaction
   coordinators; outbox leases; tenant isolation; and concurrency tests are specified
   as executable contracts.
 
@@ -120,21 +120,25 @@ domain -> nothing outside its own module and shared/kernel
 ```
 
 Cross-module calls may import only
-`src/modules/<module>/application/public.ts`. That barrel exports ports and DTOs, not
-concrete providers. Controllers and application use cases never import Prisma.
+`src/modules/<module>/application/public.ts` exports only application-layer
+ports, DTO types, and explicit DI tokens; it exports no domain entity, repository
+implementation, concrete provider, or infrastructure symbol. Cross-module dependencies
+cannot be laundered through shared and re-export barrels, path aliases, type-only
+imports, or `ImportTypeNode` expressions. Controllers and application use cases never
+import Prisma.
 
 ### Module/table ownership matrix
 
-| Owner                | Owned tables                                                             | May expose                                                                                     |
-| -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `auth`               | `User`, `RefreshSession`, `EmailVerificationToken`, `PasswordResetToken` | authenticated principal and notification-data read ports                                       |
-| `workspaces`         | `Workspace`, `Membership`                                                | membership authorization and workspace read ports                                              |
-| `sites`              | `Project`, `ProjectRevision`, `Release`, `ActiveRelease`                 | editor commands/queries, active-release public reads, and transaction-aware submission context |
-| `media`              | `MediaAsset`, `MediaImportBatch`                                         | upload/import commands, asset reads, attachment, and publish validation                        |
-| `forms`              | `Lead`                                                                   | public submission and authorized inbox commands/queries                                        |
-| `notifications`      | `Outbox`                                                                 | transaction-aware enqueue and leased delivery                                                  |
-| `shared/idempotency` | `IdempotencyRecord`                                                      | transaction-aware idempotency execution primitive                                              |
-| `shared/audit`       | `AuditSequence`, `AuditEvent`                                            | gap-free transaction-aware append-only audit writer/exporter                                   |
+| Owner                | Owned tables                                                                       | May expose                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `auth`               | `User`, `RefreshSession`, `EmailVerificationToken`, `PasswordResetToken`           | authenticated principal and notification-data read ports                                       |
+| `workspaces`         | `Workspace`, `Membership`                                                          | membership authorization and workspace read ports                                              |
+| `sites`              | `Project`, `ProjectRevision`, `Release`, `ActiveRelease`, `SiteConfigRolloutState` | editor commands/queries, active-release public reads, and transaction-aware submission context |
+| `media`              | `MediaAsset`, `MediaImportBatch`                                                   | upload/import commands, asset reads, attachment, and publish validation                        |
+| `forms`              | `Lead`                                                                             | public submission and authorized inbox commands/queries                                        |
+| `notifications`      | `Outbox`, `ResendWebhookReceipt`                                                   | transaction-aware enqueue, signed-webhook receipt, and leased delivery                         |
+| `shared/idempotency` | `IdempotencyRecord`                                                                | transaction-aware idempotency execution primitive                                              |
+| `shared/audit`       | `AuditSequence`, `AuditEvent`                                                      | gap-free transaction-aware append-only audit writer/exporter                                   |
 
 Database foreign keys across these tables are allowed and required where they protect
 an invariant. For example, `Lead(projectId, releaseId)` references
@@ -247,6 +251,82 @@ Public home page:    https://app.nexus.site/p/:publicSlug
 Public child page:   https://app.nexus.site/p/:publicSlug/:pageSlug
 ```
 
+### Credentialed cross-origin API contract
+
+Typed configuration exposes exactly one `webOrigins: readonly WebOrigin[]` allowlist;
+each entry is a normalized URL origin with no path, query, fragment, credentials, or
+trailing slash. Production `webOrigins` equals exactly `["https://app.nexus.site"]`;
+configuration validation rejects every additional production entry and every non-HTTPS
+production origin. Local origins are explicit entries only in non-production
+configuration and never extend or weaken the production singleton.
+
+For any browser request carrying `Origin`, the API compares the complete serialized
+origin to `webOrigins` and sends `Vary: Origin` on every allowed or denied response. An
+allowed origin receives that exact `Access-Control-Allow-Origin` and
+`Access-Control-Allow-Credentials: true`. There is no wildcard or reflected origin. A
+disallowed origin receives `403 CORS_ORIGIN_DENIED` without an allow-origin header.
+Unauthenticated `OPTIONS` preflight runs before auth and route guards, returns 204 for an
+allowed origin, and advertises exactly `GET, POST, PUT, PATCH, DELETE, OPTIONS` plus
+request headers
+`Authorization, Content-Type, Idempotency-Key, Nexus-Client-Capabilities`. Preflight and
+actual-response tests prove allowed credentialed calls, denied lookalike/null/foreign
+origins, `Vary: Origin`, and absence of wildcard/reflection. P1-08 browser requests use
+credentialed fetches from `https://app.nexus.site` to `https://api.nexus.site`.
+
+### API capability discovery and rollout signal
+
+`GET /v1/capabilities` is public and returns this DTO without tenant or deployment
+identity:
+
+```ts
+type SiteConfigRolloutMode = 'V4_COMPAT' | 'V5_ACTIVE';
+
+type SiteConfigCapabilitiesDto =
+  | {
+      readonly rolloutMode: 'V4_COMPAT';
+      readonly readVersions: readonly [4, 5];
+      readonly acceptedInputVersions: readonly [4];
+      readonly writeVersion: 4;
+    }
+  | {
+      readonly rolloutMode: 'V5_ACTIVE';
+      readonly readVersions: readonly [4, 5];
+      readonly acceptedInputVersions: readonly [4, 5];
+      readonly writeVersion: 5;
+    };
+
+interface ApiCapabilitiesDto {
+  readonly siteConfig: SiteConfigCapabilitiesDto;
+}
+```
+
+The response always sends `Cache-Control: no-store`; a flip must not be hidden by a
+browser, CDN, or service-worker cache. The typed configuration boundary exposes
+`siteConfigRolloutMode: SiteConfigRolloutMode` as the only configurable SiteConfig
+rollout field. An exhaustive mapping derives the matching capability tuple,
+accepted-input validation/conversion handlers, and response serializer from that mode;
+there are no independently configurable version lists or write version that can drift.
+
+The web client sends
+`Nexus-Client-Capabilities: site-config-read=4,5;site-config-write=4,5`. The header is
+bounded to 128 ASCII bytes. Each value is a non-empty, ascending, comma-separated subset
+of `4,5`; duplicate keys, versions, unknown keys/versions, whitespace, non-ASCII, or an
+over-limit value is invalid. Missing remains supported during rollout; malformed or
+over-limit input returns `400 INVALID_CLIENT_CAPABILITIES` before a business
+transaction.
+
+P1-09 records
+`nexus_client_capability_request_total{read_support,write_support,request_class}`. The
+only label values are `v4`, `v4_v5`, `v5`, `missing`, or `invalid` for each support
+label and `editor_read` or `editor_mutation` for request class. A closed 24-hour UTC
+window is the retirement unit: its denominator is every authenticated editor API
+request, including missing, invalid, and pre-transaction rejected capability headers;
+its numerator is requests whose read and write sets both include v5. Zero denominator
+does not count as an observed day and breaks consecutiveness. Any numerator shortfall or
+accepted v4 write resets the 44-day observation. Metrics and evidence contain no PII or
+high-cardinality identifiers such as user, session, workspace, project, release, or
+request ids.
+
 `publicUrl` is absolute, uses the application origin from typed backend configuration,
 and has no trailing slash: `https://app.nexus.site/p/<percent-encoded-publicSlug>`.
 The slug is server-generated at create, stable for the life of the project, and not
@@ -306,7 +386,7 @@ The normal validation order is:
 3. require exactly the endpoint-supported schema version;
 4. validate JSON Schema, semantic uniqueness, link safety, and media policy;
 5. canonical-serialize and enforce the 1,048,576-byte document limit;
-6. compute the idempotency request hash;
+6. compute the versioned idempotency request fingerprint;
 7. begin the transaction.
 
 No validation failure in steps 1-5 creates a project, revision, release, lead,
@@ -340,15 +420,18 @@ validation-only source `https://import.invalid/<sha256>` for each extracted valu
 marker is never persisted. That normalized, extracted v4 value must pass the complete
 v4 schema and 1,048,576-byte cloud limit before any project-create call.
 
-After that check, the UI uploads extracted bytes to a workspace-owned, expiring media
-import batch, completes server verification, and maps the returned asset ids to managed
-v5 references. Safe remaining v4 sources map to their v5 discriminants. The v5 create
-request includes the batch id. In the `sites` create transaction, the media exported
-port verifies that every referenced batch asset is `READY` and belongs to the caller's
-workspace, then attaches those rows to the newly inserted project. Failed or expired
-batches are never attached and are garbage-collected with their objects. Unknown and
-future source versions are rejected without local deletion, staging upload, or cloud
-project write.
+Before `V5_ACTIVE`, that work is dry-run/preview only: it reports validation and the
+planned extracted assets but performs no staging upload, import-batch creation, media
+completion, project creation, or other cloud write. Only after a fresh no-store
+capability response reports `V5_ACTIVE` does the UI repeat the bounded parse and check,
+upload extracted bytes to a workspace-owned expiring media import batch, complete server
+verification, and map returned asset ids to managed v5 references. Safe remaining v4
+sources map to their v5 discriminants. The v5 create request includes the batch id. In
+the `sites` create transaction, the media exported port verifies that every referenced
+batch asset is `READY` and belongs to the caller's workspace, then attaches those rows
+to the newly inserted project. Failed or expired batches are never attached and are
+garbage-collected with their objects. Unknown and future source versions are rejected
+without local deletion, staging upload, or cloud project write.
 
 ### Synchronized v5 media rollout
 
@@ -385,32 +468,86 @@ resolves it against the Angular bundled-assets base before rendering. Managed
 references contain no public URL; read DTO mapping resolves a verified asset to its
 delivery URL.
 
+`sites` owns this irreversible storage guard:
+
+```prisma
+model SiteConfigRolloutState {
+  key           String   @id @db.VarChar(32)
+  v5ActivatedAt DateTime
+}
+```
+
+Its only allowed row has the fixed singleton key `site-config`. The sites repository
+has no delete, reset, or timestamp-update operation for it. Runtime configuration and
+the durable marker form this fail-closed truth table:
+
+| Configured mode | `site-config` marker | Writable result                                              |
+| --------------- | -------------------- | ------------------------------------------------------------ |
+| `V4_COMPAT`     | absent               | read 4/5, accept 4, write 4                                  |
+| `V4_COMPAT`     | present              | invalid regression; fail readiness and reject mutations      |
+| `V5_ACTIVE`     | absent               | invalid incomplete flip; fail readiness and reject mutations |
+| `V5_ACTIVE`     | present              | read 4/5, accept 4/5, up-convert v4 input, and write only v5 |
+
+Every create/save/publish transaction first calls
+`pg_advisory_xact_lock(SITECONFIG_ROLLOUT_LOCK_ID)` and reads the singleton marker. The
+activation command uses the same transaction lock and inserts the marker exactly once,
+so no v4 writer can cross the storage flip and no v5 writer can precede it.
+
 Rollout order is fixed:
 
 1. merge identical v5 schema, codec, and golden fixtures in both repositories;
-2. deploy backend dual-read support plus bounded v4/v5 input compatibility, while v4
-   remains the write version;
-3. deploy the Angular client capable of reading both and emitting v5 only after the API
-   capability response advertises v5;
-4. enable v5 storage while retaining bounded v4/v5 input compatibility throughout P1-06
-   and Cloud Alpha. Bounded v4 save/publish input is canonicalized, validated, converted
-   server-side to v5 inside the same sites transaction, and persisted only as one v5
-   draft/revision/release result. Data URLs remain rejected and there is no dual stored
-   representation;
+2. P1-06 implements and release-verifies the backend in `V4_COMPAT`: it reads `[4, 5]`,
+   accepts input `[4]`, and writes 4. The v5 codec and post-flip handlers are present and
+   tested, but v5 create/save/publish input is rejected before a transaction and no
+   supported frontend emits v5;
+3. P1-08 implements and verifies the dual-capable frontend consumer. It reads both
+   versions, fetches `GET /v1/capabilities` with `Cache-Control: no-store`, sends the
+   bounded capability header, and emits exactly the advertised write version. Before
+   the flip its local data-URL flow stops after dry-run/preview with no cloud write;
+4. P1-09 owns the state machine; the only permitted transition is `V4_COMPAT` to
+   `V5_ACTIVE`. It deploys the
+   dual-capable frontend, verifies old and new sessions in `V4_COMPAT`, drains old
+   backend writers, then takes
+   `pg_advisory_xact_lock(SITECONFIG_ROLLOUT_LOCK_ID)` and atomically creates the durable
+   `SiteConfigRolloutState.v5ActivatedAt` marker. It starts only backend instances
+   configured as `V5_ACTIVE`. From that point
+   the backend reads `[4, 5]`, accepts input `[4, 5]`, and writes 5. Bounded v4
+   create/save/publish input is canonicalized, validated, and up-converted server-side
+   to v5 inside the same sites transaction, then persisted as one v5
+   project/draft/revision/release result as applicable. Data URLs remain rejected and
+   there is no dual stored representation. Real data-URL migration is enabled only
+   after the no-store capability response reports `V5_ACTIVE`;
 5. keep immutable v4 releases readable forever under their retention policy; never
-   rewrite them in place. P1-06 does not remove or disable the v4 input adapter and has
-   no dependency on telemetry introduced later.
+   rewrite them in place. The flip does not remove or disable the v4 input adapter.
 
-A stale pre-v5 tab may save and publish during compatibility with normal OCC and
-idempotency semantics; its successful response is v5 and reloading reads the single v5
-result. After P1-09 metrics exist, P1-10/post-deploy operations may start the retirement
-observation: 44 consecutive days with zero accepted v4 writes in
-`site_config_write_total{input_version="4"}` and capability telemetry showing only
-v5-capable active clients. This exceeds the measured 30-day cache/old-client maximum by
-14 days; any v4 write resets the full observation. P1-10 records whether the observation
-is in progress or satisfied but does not remove compatibility. Only a later separately
-reviewed change may retire the adapter after the satisfied observation; then stale v4
-gets `426 CLIENT_UPGRADE_REQUIRED`. Cloud Alpha may ship with compatibility enabled.
+`siteConfigRolloutMode` is the sole typed rollout setting and exhaustively derives the
+capability tuple plus create/save/publish validation, conversion, persistence, and
+serialization handlers. The durable marker is a monotonic guard, not another
+configuration knob: every write checks it, no v5 write may commit before it exists, and
+a `V4_COMPAT` process that sees it fails readiness and rejects mutations. Once the first
+persisted v5 result exists, the system cannot return to `V4_COMPAT`; startup and
+configuration validation reject that regression even if application binaries or
+environment values are rolled back. Never down-convert managed v5 into v4 or rewrite
+an immutable managed-v5 release as v4.
+
+Before the P1-09 flip, supported clients continue to write and receive v4. After the
+flip, a stale pre-v5 tab may create, save, or publish bounded v4 during compatibility
+with normal OCC and idempotency semantics; its successful response is v5 and reloading
+reads the single v5 result. A backend rollback must preserve `V5_ACTIVE` and its
+dual-input semantics, and a frontend rollback may target only a v5-capable build. If
+neither is available, operators enter read-only/maintenance recovery rather than start
+a v4 writer or down-convert data. P1-10/post-deploy operations may begin retirement observation only
+after the P1-09 flip and capability metric are live. A qualifying day is one closed
+24-hour UTC window with zero accepted v4 writes, a nonzero capability denominator, and
+capability numerator equal to denominator. Every window must satisfy all three
+conditions for 44 consecutive days; a v4 write, a missing/invalid/non-v5-capable editor
+request, or a zero-denominator day breaks the sequence and restarts it with the next
+qualifying day. This exceeds the measured 30-day cache/old-client maximum by 14 days.
+P1-10 records the UTC start, each closed-window numerator/denominator, resets, and
+whether observation is in progress or satisfied, but it does not remove compatibility.
+Only a later separately reviewed change may retire the adapter after a satisfied
+observation; then stale v4 gets `426 CLIENT_UPGRADE_REQUIRED`. Cloud Alpha may ship with
+compatibility enabled.
 
 Publish traverses every media reference. A managed asset must be `READY`, not deleted,
 belong to the authenticated workspace and project, and match the server-verified MIME,
@@ -475,11 +612,27 @@ fixture proves rejection before transaction.
 
 ## Idempotency and concurrency
 
-Create, save, publish, and public lead submission are idempotent operations.
-Authenticated mutation endpoints require an `Idempotency-Key` header. The controller
-maps it unchanged to application `operationId`; it is 1-128 characters and scoped by
-workspace plus operation kind. Lead submission requires `submissionId` in the body and
-an `Idempotency-Key` with exactly the same value, scoped by project plus `SUBMIT_LEAD`.
+The shared `IdempotencyRecord` primitive applies only to authenticated create, save,
+publish, and activate operations and to public lead submission. Those four
+authenticated site-operation endpoints require an `Idempotency-Key`; the controller
+maps it unchanged to application `operationId`. It is 1-128 characters and is scoped by
+the normalized workspace/project identity plus exactly one of `CREATE_PROJECT`,
+`SAVE_DRAFT`, `PUBLISH_PROJECT`, or `ACTIVATE_RELEASE`. Public lead submission requires
+`submissionId` in the body and an `Idempotency-Key` with exactly the same value, scoped
+by project plus `SUBMIT_LEAD`.
+
+Media completion and delete use natural, resource-specific idempotency rather than the
+shared record. Completion locks the identified asset: concurrent completion verifies
+and audits once, and a repeat of an already `READY` asset returns the same sanitized
+asset result. Delete conditionally moves that asset through its deletion state; repeats
+return the same 202 while pending and 204 after completion without duplicating an audit
+event. Lead status and delete likewise use natural, resource-specific idempotency: a
+same-target status replay returns the current sanitized Lead DTO and appends no second
+audit event, concurrent different targets serialize on the Lead row, and delete keeps
+the documented repeat-safe 202-pending/204-purged result. These operations create no
+shared `IdempotencyRecord`. Unrelated authentication endpoints are not broadened into
+this shared contract.
+
 For public submissions both values must be the same canonical lowercase UUID v4
 (`xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx`) generated client-side with
 `crypto.randomUUID()`. Arbitrary text—including email, phone, or name—uppercase/non-v4
@@ -489,8 +642,24 @@ transaction or idempotency record.
 After transport/schema validation, the server builds a canonical request from the
 operation kind, normalized route ids, authenticated scope, and all semantic body
 fields. It excludes the idempotency header itself, uses RFC 8785 JSON canonicalization,
-encodes UTF-8, and stores a lowercase SHA-256 request hash. Content strings are not
-trimmed or otherwise altered merely for hashing.
+and encodes UTF-8. It then computes HMAC-SHA-256 over that RFC 8785 canonical semantic
+request with the active server key and stores only
+`hmac-sha256:v<keyVersion>:<64-lowercase-hex>`. The lowercase prefix is fixed;
+`keyVersion` is the positive decimal version selecting a keyring entry, and the digest
+is the 32-byte MAC in lowercase hexadecimal. Content strings are not trimmed or
+otherwise altered merely for fingerprinting.
+
+Typed P1-02 configuration owns `idempotencyHmacActiveKeyVersion` and a non-empty
+`idempotencyHmacKeyring` of versioned, independently generated keys of at least 32
+bytes. Only new records use the active version. Replay parses the prefix/version,
+recomputes with that version's key, and compares in constant time. Rotation must retain
+every old verification key for the full corresponding record lifetime, including
+project-lifetime public tombstones and recoverable backups. The recovery manifest lists
+the fingerprint versions present in the snapshot; a missing retained-record key version
+blocks promotion. Keys are restored through the secret recovery procedure, never the
+database or audit export. The fingerprint and allowlisted stored response never contain
+plaintext PII, the canonical request, lead fields, SiteConfig content, contact values,
+or secrets; none of those values or HMAC keys may enter logs, metrics, or audit metadata.
 
 `shared/idempotency` owns:
 
@@ -499,7 +668,7 @@ model IdempotencyRecord {
   scope        String
   operation    String
   key          String
-  requestHash  String
+  requestFingerprint String
   httpStatus   Int
   responseBody Json
   resourceId   String?
@@ -515,14 +684,17 @@ lead/honeypot records are scoped to and retained for the project lifetime even a
 Lead is owner-deleted or retention-purged. Their stored public response is always the
 generic `{ accepted: true, submissionId }`, contains no lead id/content/deletion state,
 and remains replayable. Lead deletion clears nullable `resourceId` through the
-transactional idempotency port but never removes `scope`, `key`, `requestHash`, status,
-or response identity. The coordinator obtains a PostgreSQL transaction advisory lock derived from
-`scope + operation + key`, reads the record, and applies these rules:
+transactional idempotency port but never removes `scope`, `key`,
+`requestFingerprint`, status, or response identity. Authenticated operation responses
+stored in this table are allowlisted to non-PII identifiers, versions, and status—not a
+copy of the semantic request or SiteConfig. The coordinator obtains a PostgreSQL
+transaction advisory lock derived from `scope + operation + key`, reads the record, and
+applies these rules:
 
-- same key and same request hash returns the stored status and semantic response,
+- same key and same request fingerprint returns the stored status and semantic response,
   including the original ids and versions, even after commit succeeded but the HTTP
   response was lost; the envelope may contain the current request id;
-- same key and a different request hash returns
+- same key and a different request fingerprint returns
   `409 IDEMPOTENCY_KEY_REUSED` and performs no business write;
 - no record runs the command and persists its non-5xx result in the same transaction as
   all business writes;
@@ -550,6 +722,9 @@ The idempotency contract matrix is mandatory:
 | same create key and payload after response loss | original 201 project, one project and one initial revision       |
 | same save key and payload concurrently          | same 200 project/version, one appended revision                  |
 | same publish key and payload concurrently       | same 200 release, one revision/release and one activation change |
+| same activate key and release concurrently      | same 200 active release, one pointer change and one audit event  |
+| same activate key after response loss           | original 200 active release, no second pointer/audit change      |
+| activate key reused for another release         | 409 `IDEMPOTENCY_KEY_REUSED`, active pointer remains unchanged   |
 | same lead key/submission id and payload         | same 202 receipt, one lead and one outbox event                  |
 | same honeypot key and payload                   | same generic 202, one idempotency record and no lead/outbox      |
 | honeypot key with changed semantic payload      | 409 `IDEMPOTENCY_KEY_REUSED`, no lead/outbox                     |
@@ -631,7 +806,7 @@ The anonymous query starts from `Project.publicSlug`, joins `ActiveRelease` on
 `projectId`, then joins `Release` on both `projectId` and `releaseId`. It never accepts
 a workspace id from the caller and never reads `Project.draft`. A release belonging to
 another project or workspace cannot satisfy the composite join. Unknown slug, no
-active release, hidden/missing page, and a page slug belonging to another project all
+active release, missing page, and a page slug belonging to another project all
 return the same 404 shape without exposing tenant existence.
 
 ## Public form submission contract
@@ -722,17 +897,25 @@ domain and the notifications delivery fence is terminal.
 
 Owner deletion and the hourly expiry job use the same forms coordinator. Through the
 notifications transactional port they acquire/check the Outbox delivery fence. A READY
-event is claimed with a fresh cancellation `claimToken` and cancelled before send. An
-unexpired SENDING event cannot be cancelled underneath the provider call; deletion
-remains pending until that fenced attempt reaches DELIVERED, READY, DEAD_LETTER, or
-CANCELLED, then cancels if needed and purges. An expired SENDING lease may be fenced and
-cancelled because provider timeout is shorter than the lease. The purge claims at most
-100 expired leads per transaction with `SKIP LOCKED` and continues in bounded batches.
-Polling/repeated DELETE returns 202 while pending and 204 only after durable tombstone
-export, terminal delivery handling, Lead hard-delete, and idempotency `resourceId`
-clearing. No second audit tombstone is appended. Backup copies are encrypted,
-inaccessible to product reads, and age out within 30 days; restore applies durable
-post-snapshot tombstones before traffic.
+event whose provider call never started is claimed with a fresh cancellation
+`claimToken` and cancelled before send. Once a provider call has started, neither a
+local timeout nor lease expiry proves it ended, so SENDING/UNKNOWN work cannot be
+cancelled or purged merely because the lease expired. The Lead remains
+DELETION_PENDING until a fenced late response, a verified webhook, or a provider lookup
+using a known `providerMessageId` durably confirms acceptance, or explicit non-delivery
+evidence is recorded and reaches READY/DEAD_LETTER; READY is then cancelled before any
+new send. Missing provider correlation and expiry of the Resend deduplication window
+leave the row UNKNOWN; repeated UNKNOWN may page and require manual resolution, but a
+manual block is not delivery evidence and never permits purge.
+
+The purge claims at most 100 expired leads per transaction with `SKIP LOCKED` and
+continues in bounded batches. Polling/repeated DELETE returns 202 while pending and 204
+only after durable tombstone export, reconciled terminal delivery handling, Lead
+hard-delete, and idempotency `resourceId` clearing. No PII send may start after terminal
+cancellation or hard-delete, and the worker cannot read deleted Lead contents. No
+second audit tombstone is appended. Backup copies are encrypted, inaccessible to
+product reads, and age out within 30 days; restore applies durable post-snapshot and
+post-cutoff deletion tombstones before traffic.
 
 ## Outbox schema and delivery semantics
 
@@ -742,6 +925,7 @@ post-snapshot tombstones before traffic.
 enum OutboxDeliveryState {
   READY
   SENDING
+  UNKNOWN
   DELIVERED
   DEAD_LETTER
   CANCELLED
@@ -770,8 +954,23 @@ model Outbox {
   deadLetterAt           DateTime?
   cancelledAt            DateTime?
   lastErrorCode          String?
+  providerMessageId      String?   @db.VarChar(128)
+  providerOutcomeCode    String?   @db.VarChar(64)
+  providerOutcomeObservedAt DateTime?
+  providerIdempotencyExpiresAt DateTime?
   createdAt              DateTime  @default(now())
   @@index([deliveredAt, deadLetterAt, availableAt, lockedUntil])
+}
+
+model ResendWebhookReceipt {
+  svixId             String   @id @db.VarChar(128)
+  eventType          String   @db.VarChar(64)
+  eventId            String?  @db.Uuid
+  providerMessageId  String?  @db.VarChar(128)
+  outcomeCode        String   @db.VarChar(64)
+  receivedAt         DateTime @default(now())
+  processedAt        DateTime?
+  @@index([eventId])
 }
 ```
 
@@ -787,39 +986,98 @@ exported forms read port after claiming the event and never mutates forms tables
 The worker protocol is fixed:
 
 1. `attempts` counts completed, explicitly observed failed delivery outcomes, not
-   claims or raw network calls. In a short transaction, select READY due rows or SENDING
-   rows whose lease expired using `FOR UPDATE SKIP LOCKED`; rows with
-   `attempts = maxAttempts` are terminal and not claimable;
+   claims or raw network calls. In a short transaction, select READY due rows with
+   `FOR UPDATE SKIP LOCKED`. A separate fenced transition moves lease-expired SENDING
+   to UNKNOWN without cancelling or incrementing attempts; rows with
+   `attempts = maxAttempts` are terminal and not claimable for a new send;
 2. generate a fresh cryptographically random `claimToken` for this claim (never the
    reusable process `lockedBy`), set state SENDING, `lockedUntil = now + 60 seconds`, and
    set `attemptOrdinal = attempts + 1` without incrementing `attempts`;
-3. call the provider with a hard 45-second timeout, shorter than the lease, and use
-   `eventId` as provider idempotency key. A timeout/crash is an unknown outcome, not a
-   recorded failure;
+3. use `eventId` as the Resend idempotency key and add exactly one non-PII Resend tag,
+   `{ name: "nexus_event_id", value: eventId }`. Before any network I/O, a short
+   transaction sets `providerIdempotencyExpiresAt` to the fixed conservative end of
+   Resend's 24-hour idempotency window for that logical send and commits before any
+   provider network call; if that commit fails, no request is sent. Reconciliation
+   never extends this deadline merely by retrying. Then start the provider call with a
+   45-second local response timeout using the committed deadline and byte-identical
+   payload.
+   The local timeout does not prove the provider call ended and does not cancel the
+   provider-side operation. A timeout/crash conditionally moves the claim to UNKNOWN
+   without spending failure budget; a late response may still reconcile that claim;
 4. every success, retry, dead-letter, or cancellation transition performs a conditional
-   update by `eventId + claimToken + state=SENDING` and must affect exactly one row. Zero
-   rows means a stale worker/fence and is a no-op; it may not clear or requeue state;
-5. success sets DELIVERED/`deliveredAt`. An explicit failed outcome conditionally sets
-   `attempts = attemptOrdinal`; if that is below maxAttempts it sets READY and schedules
-   `now + min(30 seconds * 2^(attempts - 1), 1 hour) + 0-10% jitter`. Recording the
-   maxAttempts-th explicit failure sets DEAD_LETTER/`deadLetterAt`, redacts secret
+   update by `eventId + claimToken` and the expected SENDING or UNKNOWN state and must
+   affect exactly one row. Zero rows means a stale worker/fence and is a no-op; it may
+   not clear or requeue state;
+5. success durably stores the returned `providerMessageId`, provider acceptance outcome,
+   and observation time, then sets DELIVERED/`deliveredAt`. An explicit failed outcome
+   durably stores its bounded non-delivery code and observation time, then conditionally
+   sets `attempts = attemptOrdinal`; if that is below maxAttempts it sets READY and
+   schedules `now + min(30 seconds * 2^(attempts - 1), 1 hour) + 0-10% jitter`. Recording
+   the maxAttempts-th explicit failure sets DEAD_LETTER/`deadLetterAt`, redacts secret
    material, and alerts. A claim, timeout, or crash alone never consumes failure budget
    or dead-letters;
-6. reclaiming an expired/unknown SENDING outcome installs a new claimToken but repeats
-   the same logical `attemptOrdinal = attempts + 1`. A late prior worker cannot mutate
-   the row. Stable provider idempotency reconciles an accepted prior call; otherwise the
-   logical ordinal is retried. Raw network calls may exceed maxAttempts after unknown
-   outcomes, but no ordinal exceeds maxAttempts and at most maxAttempts explicit failed
-   outcomes can be recorded.
+6. reconciling UNKNOWN installs a new claimToken but repeats the same logical
+   `attemptOrdinal = attempts + 1`. A fenced late response may persist its returned
+   provider id. A verified webhook carrying the `nexus_event_id` correlation tag and
+   `providerMessageId` durably records the bounded provider outcome. When
+   `providerMessageId` is known, reconciliation may retrieve that exact provider message;
+   it cannot look up a Resend send by eventId alone. Before
+   `providerIdempotencyExpiresAt`, it may repeat only the byte-identical request with the
+   same idempotency key. After `providerIdempotencyExpiresAt`, reconciliation must not
+   start another send unless explicit non-delivery evidence has already been durably
+   recorded; absence of a provider id, elapsed time, timeout, alert, or manual decision is
+   not such evidence. Confirmed acceptance moves to DELIVERED, while explicit
+   non-delivery records that ordinal and moves to READY or DEAD_LETTER. A late prior
+   worker cannot mutate a newly fenced row, but its outcome can still arrive through the
+   verified durable correlation paths above. No provider id means no provider lookup by
+   `eventId` alone. Repeated UNKNOWN alerts and may enter a manual operational block, but
+   never becomes CANCELLED and never authorizes Lead purge.
 
-Lead cancellation uses the same fence. To cancel READY or expired SENDING work, the
-notifications port installs a fresh cancellation claimToken and conditionally moves it
-to CANCELLED. For an unexpired SENDING call it returns `IN_FLIGHT`; forms remains
-DELETION_PENDING and retries after the terminal transition/lease. A call cannot outlive
-its lease because of the 45-second provider timeout. A crash after the final logical
-claim is reclaimed at the same max ordinal: provider idempotency resolves accepted send
-to success, while an explicit max-th failure dead-letters. DELIVERED, DEAD_LETTER, and
-CANCELLED rows are never claimed.
+The public provider callback is exactly `POST /v1/webhooks/resend`, implemented by
+`src/modules/notifications/api/resend-webhook.controller.ts`. It bypasses user auth but
+not provider authentication. Its raw webhook body hard cap is exactly 65,536 bytes.
+`src/main.ts` routes it through a streaming raw-body reader before the global JSON
+parser; chunked transfer and requests without `Content-Length` use the same stream byte
+count as requests with the header. A declared oversize request or receipt of the
+65,537th byte returns 413 before signature verification, JSON parsing, logging, or
+database access; that 413 creates no `ResendWebhookReceipt` and makes no Outbox mutation.
+
+The typed configuration field `resendWebhookSigningSecret` is required outside tests.
+Only after the size gate does the controller obtain the raw bytes plus `svix-id`,
+`svix-timestamp`, and `svix-signature`, enforce a five-minute timestamp tolerance, and
+use Resend/Svix to verify the signature and timestamp against the raw bytes before JSON
+parsing, logging, or database access. A missing, malformed, stale, or invalid
+header/body combination returns 400 and writes no receipt.
+
+After verification, accept only a bounded event mapping for `email.sent`,
+`email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`,
+`email.failed`, and `email.suppressed`. Read only `data.email_id` and
+`data.tags.nexus_event_id`; the latter must be a canonical UUID and the former a bounded
+provider id. Never persist the webhook's recipient, sender, subject, or raw body.
+`email.sent`, `email.delivered`, `email.bounced`, and `email.complained` are durable
+provider-acceptance evidence and resolve the Outbox row to DELIVERED while preserving
+the exact bounded outcome. `email.delivery_delayed` remains UNKNOWN.
+`email.failed` and `email.suppressed` are explicit non-delivery evidence and apply the
+same fenced attempt-ordinal READY/DEAD_LETTER transition as a synchronous failure.
+Other verified types are receipt-only `IGNORED` outcomes and never mutate Outbox.
+
+In one notifications-owned transaction, insert a `ResendWebhookReceipt` whose unique
+`svixId` is the verified `svix-id`, resolve the Outbox by the correlation event id, and
+bind `data.email_id` only when `providerMessageId` is null or equal. A duplicate unique
+`svixId` returns 204 without a second transition. Missing correlation, a missing row,
+or a providerMessageId mismatch records a bounded receipt outcome, alerts, and performs
+no Outbox transition. A valid new receipt applies only an allowed state transition and
+then sets `processedAt`; every valid or duplicate delivery returns 204. This webhook
+correlation never becomes an API claim that Resend can look up a send by `eventId`.
+
+Lead cancellation uses the same fence. It may install a fresh cancellation claimToken
+and conditionally move only READY work to CANCELLED. For SENDING it returns `IN_FLIGHT`;
+for UNKNOWN it returns `DELIVERY_UNKNOWN`; forms remains DELETION_PENDING through lease
+expiry and every inconclusive reconciliation. A crash after the final logical claim is
+reconciled at the same max ordinal only through the bounded evidence paths above:
+provider acceptance resolves to DELIVERED, while an explicit max-th failure moves to
+DEAD_LETTER. DELIVERED,
+DEAD_LETTER, and CANCELLED rows are never claimed for delivery.
 
 Verification/reset raw secrets are normally generated inside auth and queued only as
 AES-256-GCM ciphertext using a dedicated typed encryption key. Their outbox row has a
@@ -867,14 +1125,17 @@ rollback rolls back both increment and event insert, leaving no gap. Sequence un
 plus the singleton primary key are database constraints, not in-memory assumptions.
 
 Callers append in the same transaction for membership-role changes, project publish or
-activation, media verification/deletion, lead status change, owner deletion, and
-retention purge. `metadata` is action-specific and allowlisted to non-PII values such
-as prior/next status, release id, outcome, and deletion reason. It must never contain
-lead fields, email, phone, booking context, consent contents, tokens, object URLs, or
-secret material. Tests reject non-allowlisted keys, prove business rollback removes the
-audit append and reuses its uncommitted number, prove concurrent allocators commit in
-gap-free order, prove successful writes append once, and prove no application code can
-mutate an event or bypass/duplicate the singleton allocator.
+activation, media verification/deletion, accepted genuine lead submission, lead status
+change, owner deletion, and retention purge. Accepted genuine submission uses action
+`LEAD_SUBMITTED`, resource type `Lead`, the Lead id as `resourceId`, and exactly
+`{ releaseId, outcome: "accepted" }` as allowlisted non-PII metadata. A honeypot creates
+no Lead and no AuditEvent. Other `metadata` is action-specific and allowlisted to
+non-PII values such as prior/next status, release id, outcome, and deletion reason. It
+must never contain lead fields, email, phone, booking context, consent contents, tokens,
+object URLs, or secret material. Tests reject non-allowlisted keys, prove business
+rollback removes the audit append and reuses its uncommitted number, prove concurrent
+allocators commit in gap-free order, prove successful writes append once, and prove no
+application code can mutate an event or bypass/duplicate the singleton allocator.
 
 The audit exporter is deliberately not a generic event platform. It scans by monotonic
 `sequence`, writes each AuditEvent idempotently as immutable
@@ -900,13 +1161,13 @@ The current local repository is intentionally broad. P1-08 replaces it with four
 cloud-facing ports and one local preference; it must not introduce one broad network
 repository.
 
-| Port                      | Exact operations                                                                                                                                   | Consumers                                                                                    |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ProjectRepository`       | `getProject`, `createProject`, `saveDraft`, `publishProject`, `listRevisions`                                                                      | create flow, builder project store, autosave/manual save, publish controls, revision history |
-| `PublicSiteRepository`    | `getActiveSite(publicSlug, pageSlug?)`, `submitLead(publicSlug, request)`                                                                          | public route resolver/renderer and public lead form                                          |
-| `LeadInboxRepository`     | `listLeads(workspaceId, projectId, cursor)`, `setLeadStatus(workspaceId, projectId, leadId, status)`, `deleteLead(workspaceId, projectId, leadId)` | authorized lead inbox; delete is owner-only                                                  |
-| `WorkspaceReadRepository` | `listProjectSummaries(workspaceId)`, `getWorkspaceMetrics(workspaceId)`                                                                            | workspace dashboard/project picker and insights cards                                        |
-| `ActiveProjectPreference` | `get`, `set`, `clear` in local browser storage                                                                                                     | navigation convenience only; never synchronized as a cloud aggregate                         |
+| Port                      | Exact operations                                                                                                                                   | Consumers                                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `ProjectRepository`       | `getProject`, `createProject`, `saveDraft`, `publishProject`, `activateRelease`, `listRevisions`                                                   | create flow, builder project store, autosave/manual save, publish/rollback controls, revision history |
+| `PublicSiteRepository`    | `getActiveSite(publicSlug, pageSlug?)`, `submitLead(publicSlug, request)`                                                                          | public route resolver/renderer and public lead form                                                   |
+| `LeadInboxRepository`     | `listLeads(workspaceId, projectId, cursor)`, `setLeadStatus(workspaceId, projectId, leadId, status)`, `deleteLead(workspaceId, projectId, leadId)` | authorized lead inbox; delete is owner-only                                                           |
+| `WorkspaceReadRepository` | `listProjectSummaries(workspaceId)`, `getWorkspaceMetrics(workspaceId)`                                                                            | workspace dashboard/project picker and insights cards                                                 |
+| `ActiveProjectPreference` | `get`, `set`, `clear` in local browser storage                                                                                                     | navigation convenience only; never synchronized as a cloud aggregate                                  |
 
 Concrete network adapters are named `HttpEditorProjectRepository`,
 `HttpPublicSiteRepository`, `HttpLeadInboxRepository`, and
@@ -939,8 +1200,14 @@ forbidden as labels. Alpha records:
 - database readiness failures, query latency, active/idle connections, waiters, and
   configured-pool utilization;
 - OCC conflict count, publish success/failure and duration;
-- `site_config_write_total` with bounded `input_version` (`4`, `5`), operation, and
-  result labels plus v5-capability active-client count for the later retirement gate;
+- `site_config_write_total{input_version,operation,result}` with `input_version` (`4`,
+  `5`), operation (`create`, `save`, `publish`), and result (`accepted`, `rejected`) as
+  its only values. `accepted` means version/schema/media-policy validation accepted that
+  input, even if a later OCC/business result rejects the transaction. The retirement
+  reset is the exact increase of
+  `site_config_write_total{input_version="4",result="accepted"}` across all three
+  operations. Record the bounded capability-request counter and exact 24-hour
+  numerator/denominator for the later retirement gate;
 - `nexus_lead_submission_total` with bounded `kind` (`genuine`, `abuse`) and `outcome`
   (`persisted`, `genuine_5xx`, `rejected`, `honeypot`, `rate_limited`) labels;
   `nexus_lead_retention_run_total{outcome="success"|"failed"}` and the
@@ -994,12 +1261,28 @@ backup times. Incident response also freezes an explicit `recoveryCutoffUtc`; th
 external audit checkpoint must continuously cover through that cutoff.
 
 `docs/runbooks/cloud-alpha-recovery.md` is the executable recovery runbook. It restores
-PostgreSQL into an isolated environment, runs migrations, purges leads already beyond
-`retentionUntil`, and reapplies post-snapshot lead-deletion AuditEvents from the
-operations audit export whose sequence is after the database snapshot checkpoint and
-whose occurrence is at or before `recoveryCutoffUtc`. Missing continuous external
-watermark coverage fails promotion. Alpha does not prune ProjectRevision or Release
-rows. The
+PostgreSQL into an isolated environment and runs migrations. Before promotion it
+enumerates every snapshot `Lead` in `DELETION_PENDING`, including a Lead captured after
+pending was committed but before hard-delete. For each one, recovery resolves its
+unique deletion `AuditEvent`, requires the immutable durable external object and
+contiguous checkpoint coverage through that event sequence, reconciles its notification
+fence using the same SENDING/UNKNOWN provider rules, and finishes the normal purge. An
+unresolved UNKNOWN delivery, missing external object, checksum mismatch, or checkpoint
+gap blocks promotion; alert/manual-block state never substitutes for delivery evidence.
+Recovery preserves `providerMessageId`, bounded provider outcome evidence, and
+`providerIdempotencyExpiresAt`. It may retrieve provider state only by a known provider
+message id, may repeat the identical request only before the stored deadline, and must
+not start another send after that deadline without explicit durable non-delivery
+evidence; neither restore nor elapsed time creates such evidence.
+
+Recovery also purges leads already beyond `retentionUntil` and retains replay of all
+post-cutoff deletion tombstones: it reapplies post-snapshot lead-deletion AuditEvents
+from the operations audit export whose sequence is after the database snapshot
+checkpoint and whose occurrence is at or before `recoveryCutoffUtc`. Missing continuous
+external watermark coverage fails promotion. It inventories every retained
+`IdempotencyRecord.requestFingerprint` version and blocks promotion if the recovered
+`idempotencyHmacKeyring` cannot verify one. Alpha does not prune ProjectRevision or
+Release rows. The
 required media set therefore traverses managed references from every current
 `Project.draft`, every retained `ProjectRevision.siteConfig`, every retained immutable
 `Release.siteConfig` (active or inactive rollback candidate), every `ActiveRelease`, and
@@ -1023,28 +1306,39 @@ drill before Alpha launch, monthly, and after backup/storage-policy changes. Evi
 records the recoveryPairId, both source ids, all UTC cutoffs/checkpoints, manifest
 verification, and measured RPO/RTO.
 
+The recovery acceptance fixture takes its database snapshot between
+`DELETION_PENDING` and hard-delete: the Lead, identifier-only Outbox row, idempotency
+tombstone, and deletion AuditEvent exist at the snapshot; the durable external audit
+object/checkpoint and provider result are completed around the cutoff. The drill must
+either reconcile a confirmed terminal provider outcome, verify audit coverage, and
+finish purge before traffic, or fail promotion. It must never resurrect the Lead, omit
+the snapshot-pending row from enumeration, or treat UNKNOWN as permission to purge.
+
 ## Cross-repository acceptance matrix
 
-| Contract             | Required evidence                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Site lifecycle owner | architecture test finds only `sites` lifecycle repositories and no forbidden infrastructure imports                                        |
-| Tenant isolation     | authenticated workspace A cannot read/write B; public slug/page lookup cannot escape its project or release                                |
-| Schema bounds        | mirrored golden fixtures agree on every byte/count/depth/string boundary and reject unknown versions before a transaction                  |
-| Response-loss retry  | create/save/publish/lead commit, simulated connection loss, retry, and row counts prove one result                                         |
-| OCC race             | different keys at one expected version produce one success and one version conflict                                                        |
-| Active release       | composite FK and public join cannot activate or expose another project's release                                                           |
-| v4 media policy      | both shipped bundled forms canonicalize to `images/...`; data URL/traversal/query/fragment fail before transaction                         |
-| v5 media safety      | readiness checks plus publish/delete race and draft/history/active/inactive/rollback reference deletion tests pass                         |
-| v5 compatibility     | P1-06 retains v4 adapter and stores one v5 result; post-P1 retirement requires P1-09 telemetry plus 44 zero-v4 days                        |
-| Typed booking        | booking is stored separately only for the active release's declared target form                                                            |
-| Lead atomicity       | canonical UUID-v4 stores atomically; text/PII key rejects; deleted/purged PII-free tombstone replays without new Lead/Outbox               |
-| Privacy/retention    | notice version binds consent; retention bound, owner delete, expiry purge, and backup erasure behavior pass without PII logs               |
-| Append-only audit    | transaction-locked allocator is gap-free; eventId export/checkpoint is durable; lost export blocks deletion/resurrection/promotion         |
-| Outbox fencing       | claims do not spend failure budget; late/final-claim crash repeats one ordinal; max-th recorded failure dead-letters safely                |
-| Secret hygiene       | queued auth secrets are encrypted, expire, redact, and never appear in logs/payload snapshots                                              |
-| Metrics and alerts   | lead error zero/min-sample rules, abuse warning, failed purge page, overdue backlog warn/page, and other thresholds pass                   |
-| DB and R2 recovery   | explicit DB/inventory UTC pair is complete and post-cutoff; all assets/tombstones restore with no dangling/resurrected data within RPO/RTO |
-| Public deep link     | fresh browser navigation and refresh work for `/p/:publicSlug` and its optional page slug                                                  |
+| Contract             | Required evidence                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Site lifecycle owner | architecture test finds only `sites` lifecycle repositories and no forbidden infrastructure imports                                  |
+| Tenant isolation     | authenticated workspace A cannot read/write B; public slug/page lookup cannot escape its project or release                          |
+| Schema bounds        | mirrored golden fixtures agree on every byte/count/depth/string boundary and reject unknown versions before a transaction            |
+| Response-loss retry  | create/save/publish/activate/lead commit, simulated connection loss, retry, and row counts prove one result                          |
+| OCC race             | different keys at one expected version produce one success and one version conflict                                                  |
+| Active release       | composite FK and public join cannot activate or expose another project's release                                                     |
+| Idempotency privacy  | versioned keyed HMAC replay/rotation works; old keys recover; no canonical request or plaintext PII persists                         |
+| Credentialed CORS    | exact app origin, credentials, preflight methods/headers, Vary, and denied wildcard/reflection cases pass                            |
+| Capabilities rollout | `V4_COMPAT` advertises read 4/5, accepts/writes 4; P1-08 obeys it; P1-09 enters `V5_ACTIVE`, an irreversible accept-4/5/write-5 mode |
+| v4 media policy      | both shipped bundled forms canonicalize to `images/...`; data URL/traversal/query/fragment fail before transaction                   |
+| v5 media safety      | readiness checks plus publish/delete race and draft/history/active/inactive/rollback reference deletion tests pass                   |
+| v5 compatibility     | P1-06 retains v4 up-conversion; post-flip v5 never down-converts; rollback stays v5-capable; retirement needs 44 qualifying days     |
+| Typed booking        | booking is stored separately only for the active release's declared target form                                                      |
+| Lead atomicity       | canonical UUID-v4 stores atomically; text/PII key rejects; deleted/purged PII-free tombstone replays without new Lead/Outbox         |
+| Privacy/retention    | notice version binds consent; retention bound, owner delete, expiry purge, and backup erasure behavior pass without PII logs         |
+| Append-only audit    | transaction-locked allocator is gap-free; eventId export/checkpoint is durable; lost export blocks deletion/resurrection/promotion   |
+| Outbox fencing       | UNKNOWN cannot cancel/purge; durable provider correlation and the 24-hour retry window fence late success without duplicate send     |
+| Secret hygiene       | queued auth secrets are encrypted, expire, redact, and never appear in logs/payload snapshots                                        |
+| Metrics and alerts   | lead error zero/min-sample rules, abuse warning, failed purge page, overdue backlog warn/page, and other thresholds pass             |
+| DB and R2 recovery   | cutoff pair plus every snapshot-pending Lead/HMAC key reconcile; UNKNOWN/export gaps block promotion within RPO/RTO                  |
+| Public deep link     | fresh browser navigation and refresh work for `/p/:publicSlug` and its optional page slug                                            |
 
 ## Common verification gate
 
@@ -1087,7 +1381,7 @@ implement business tables, endpoints, or Angular changes.
 - Create: `test/architecture/module-boundaries.spec.ts`
 - Modify: `package.json`, `tsconfig.json`, `src/app.module.ts`
 
-- [ ] **Step 1: Create and connect the separate repository**
+- [x] **Step 1: Create and connect the separate repository**
 
 ```bash
 git clone git@github.com:Sa1ivan/Nexus.BC.git
@@ -1097,33 +1391,61 @@ Run the exact clone command from the parent directory so it creates sibling
 `../Nexus.BC`, then scaffold a strict NestJS 11 application there. Verify its `.git`
 and `origin`; do not nest it in Nexus.UI.
 
-- [ ] **Step 2: Pin Node 24 and verification commands**
+- [x] **Step 2: Pin Node 24 and verification commands**
 
   `.nvmrc` contains `24`; `engines.node` is `>=24`. Add `lint`, `architecture`, `test`,
   `test:e2e`, `build`, `format`, `format:check`, and composite `verify` scripts.
 
-- [ ] **Step 3: Write the RED architecture test**
+- [x] **Step 3: Write the RED architecture test**
 
-  Parse imports under `src/modules` with the TypeScript compiler API. Enforce the
-  same-module layer graph and allow cross-module imports only through
-  `application/public.ts`. Assert only module infrastructure, `shared/database`, and
-  named Prisma adapters under `shared/idempotency` or `shared/audit` import Prisma
-  symbols; controllers contain neither Prisma nor provider SDK symbols.
+  Build a TypeScript `Program`/`TypeChecker` using the real `tsconfig.json`, then inspect
+  `ImportDeclaration`, `ExportDeclaration`, `ImportEqualsDeclaration`, dynamic import,
+  and `ImportTypeNode` edges under `src`. Resolve relative paths and tsconfig aliases to
+  canonical real files, follow every re-export, and trace every derived alias through
+  `getAliasedSymbol` to its declaration origin. Enforce the same-module layer graph and
+  allow a cross-module origin only through that owner's
+  `application/public.ts`. That public file may export only application-layer ports,
+  DTO types, and explicit DI tokens—never domain or concrete providers. Fixtures prove
+  an illegal dependency cannot be hidden behind shared and re-export barrels,
+  type-only imports, `ImportTypeNode`, or multi-hop aliases.
 
-- [ ] **Step 4: Add root modules and Node 24 CI**
+  Classify all package origins matching `@prisma/*` and all local symbols whose traced
+  declaration origin is under exact `src/generated/prisma`. Prisma origins are allowed
+  only from module `infrastructure/**`, `src/shared/database/**`, exact
+  `src/shared/idempotency/prisma-idempotency.adapter.ts`, and exact
+  `src/shared/audit/prisma-audit-writer.ts`; none may cross an application/API/public
+  boundary. The provider owner map is executable: `@aws-sdk/*` may originate only in
+  media infrastructure or the exact
+  `src/shared/audit/infrastructure/r2-recovery-audit-storage.ts` adapter; `resend` may
+  originate only in notifications infrastructure. The exact shared audit adapter owns
+  only the separately credentialed recovery bucket and cannot expose the media module's
+  product-object operations. Resolve controller decorators through aliases and wrappers
+  back to `@nestjs/common` `Controller`, then assert every such controller has no
+  Prisma/provider SDK origin and delegates each handler to one application use case.
+  Include positive fixtures for the two exact shared Prisma adapters and the exact
+  recovery-bucket AWS adapter, plus negative laundering/provider-owner fixtures for all
+  other shared paths and module owners.
+
+- [x] **Step 4: Add root modules and Node 24 CI**
 
   Create empty root modules for `auth`, `workspaces`, `sites`, `media`, `forms`, and
   `notifications`. `AppModule` imports them without business providers. GitHub Actions
   uses `actions/setup-node` with Node 24, PostgreSQL 17, `npm ci`, migrations, `verify`,
-  and the production dependency audit.
+  and `npm audit --omit=dev --audit-level=moderate`.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npm run verify
+npm audit --omit=dev --audit-level=moderate
 git add .nvmrc .env.example .github package.json package-lock.json tsconfig.json src test
 git commit -m "chore: bootstrap Nexus.BC architecture"
 ```
+
+**Completion evidence (2026-08-01):** backend commits `d9fd37a` and `64285c7`;
+Node `v24.18.1` completed `npm run verify` with 4/4 architecture tests and 1/1
+end-to-end test, and `npm audit --omit=dev --audit-level=moderate` reported zero
+vulnerabilities. The backend worktree was clean after the follow-up commit.
 
 ## Task P1-02: Typed configuration, errors, health, database, and transaction kernel
 
@@ -1142,18 +1464,24 @@ git commit -m "chore: bootstrap Nexus.BC architecture"
 
 - [ ] **Step 1: Write RED configuration and health tests**
 
-  Outside test mode bootstrap fails if database, JWT/refresh, web origin, R2, Resend,
-  email-from, or outbox encryption configuration is missing. `/v1/health/live` returns
-  200 independently; `/v1/health/ready` returns 503 when PostgreSQL is unavailable.
+  Outside test mode bootstrap fails if database, JWT/refresh, web-origin allowlist, R2,
+  Resend, email-from, outbox encryption, or idempotency HMAC active-version/keyring
+  configuration is missing. `/v1/health/live` returns 200 independently;
+  `/v1/health/ready` returns 503 when PostgreSQL is unavailable. Add exact CORS tests
+  for allowed credentialed actual/preflight calls, disallowed lookalike/null/foreign
+  origins, an additional valid HTTPS origin returning 403 `CORS_ORIGIN_DENIED`,
+  methods/headers, `Vary: Origin`, and no wildcard/reflection.
 
 - [ ] **Step 2: Implement one typed configuration boundary**
 
   Only its validation factory reads `process.env`. Include `nodeEnv`, `port`,
-  `databaseUrl`, `webOrigin`, `bookingTimeZone` (an IANA zone; Alpha defaults to
-  `Europe/Moscow`), `privacyNoticeUrl`, `privacyNoticeVersion`, `leadRetentionDays`
-  (1-365, default 90), access/refresh secrets, R2 settings, Resend settings, `emailFrom`,
-  and a 32-byte outbox secret-encryption key. Production rejects non-HTTPS origins and
-  privacy notice URLs.
+  `databaseUrl`, the one typed `webOrigins` allowlist, `bookingTimeZone` (an IANA zone;
+  Alpha defaults to `Europe/Moscow`), `privacyNoticeUrl`, `privacyNoticeVersion`,
+  `leadRetentionDays` (1-365, default 90), access/refresh secrets, R2 settings, Resend
+  settings, `emailFrom`, a 32-byte outbox secret-encryption key,
+  `idempotencyHmacActiveKeyVersion`, and `idempotencyHmacKeyring`. Production rejects
+  non-HTTPS origins and privacy notice URLs. Implement the exact credentialed CORS
+  middleware contract above from this configuration, including preflight before guards.
 
 - [ ] **Step 3: Standardize API errors**
 
@@ -1169,6 +1497,14 @@ git commit -m "chore: bootstrap Nexus.BC architecture"
   foundation migration with singleton `AuditSequence` bootstrap and `AuditEvent`, expose
   only the transaction-aware allocator/append port, and test row locking, uniqueness,
   rollback number reuse, concurrent gap-free commit order, and metadata allowlisting.
+  Prisma client generation is fixed to this exact output and all source imports use it:
+
+  ```prisma
+  generator client {
+    provider = "prisma-client"
+    output = "../src/generated/prisma"
+  }
+  ```
 
 - [ ] **Step 5: Verify and commit**
 
@@ -1265,8 +1601,9 @@ git commit -m "feat: add identity and workspace tenancy"
   Use the reconciled Prisma fields and uniqueness constraints above. Creation generates
   stable `publicSlug`/`publicUrl`, version 1, and revision 1 in one `sites` transaction.
   Add `Workspace.projects` and the matching Project workspace relation in this
-  migration. Add the shared idempotency adapter without putting business rules in
-  `shared`.
+  migration. Add exact `src/shared/idempotency/prisma-idempotency.adapter.ts` without
+  putting business rules in `shared`. It stores only the versioned HMAC fingerprint and
+  allowlisted non-PII result defined above.
 
 - [ ] **Step 3: Write RED repository and HTTP contract tests**
 
@@ -1274,7 +1611,10 @@ git commit -m "feat: add identity and workspace tenancy"
   save version increment, immutable revisions, tenant isolation, bounds, validation
   before writes, public identity stability, operation uniqueness, all idempotency matrix
   create/save cases, bundled-source compatibility/canonicalization, and an OCC race with
-  different keys.
+  different keys. Prove RFC 8785 semantic equality, changed-payload conflict,
+  active/old-key HMAC replay across rotation, unknown/missing fingerprint-version
+  failure, constant-time digest comparison, and database/log snapshots containing no
+  canonical request or plaintext PII.
 
 - [ ] **Step 4: Implement atomic save**
 
@@ -1335,7 +1675,10 @@ git commit -m "test: mirror cloud SiteConfig v4 contract"
   Cover atomic OCC/revision/release/activation, immutable public output after later
   draft edits, rollback pointer-only behavior, operation uniqueness, response-loss
   retry, different-key OCC race, tenant-isolated composite joins, unknown slug/page
-  404, and no draft/workspace/user leakage.
+  404, and no draft/workspace/user leakage. Run the exact activate matrix: same activate
+  key and release concurrently returns one stored result and one pointer/audit change;
+  same activate key after response loss returns the original result; reusing that key
+  for another release returns `409 IDEMPOTENCY_KEY_REUSED` without pointer movement.
 
 - [ ] **Step 3: Implement publish as one sites transaction**
 
@@ -1378,6 +1721,8 @@ git commit -m "feat: add immutable active releases"
 - Create upload/complete/delete use cases and media controller
 - Create: `src/modules/media/infrastructure/r2-object-storage.ts`
 - Create: `contracts/site-config/v5.schema.json` and v5 fixtures
+- Create: `src/shared/http/capabilities.controller.ts`
+- Modify: `src/shared/config/app-config.schema.ts`, `.env.example`
 - Modify: `src/modules/sites/application/*`, `prisma/schema.prisma`
 - Test: `test/contract/object-storage.contract.ts`
 - Test: `test/contract/site-config-v5.contract.ts`
@@ -1423,13 +1768,23 @@ git commit -m "feat: add immutable active releases"
 
 - [ ] **Step 4: Execute the synchronized v5 rollout**
 
-  Follow the P1-06 compatibility rollout steps in this plan. The discriminated v5 union
-  is the only place `assetId` enters SiteConfig. Convert safe v4 external media and
-  canonicalized `images/...` bundled media without rewriting old releases. Backend
-  capability discovery gates frontend v5 writes. Test a stale pre-v5 tab saving and
-  publishing bounded v4, atomic conversion to one v5 result, OCC/idempotency, and
-  immutable v4-release reads. Keep v4 input compatibility enabled in the P1-06 commit;
-  telemetry, observation, and any later retirement are P1-09/P1-10/post-P1 work.
+  Follow the exact backend-first compatibility rollout above. P1-06 implements
+  `GET /v1/capabilities`, v4/v5 readers, the two exhaustively mapped handler tuples, and
+  the monotonic `SiteConfigRolloutState` guard. Release verification runs with
+  `siteConfigRolloutMode = 'V4_COMPAT'`: read versions are `[4, 5]`, accepted input is
+  exactly v4 `[4]`, and every create/save/publish writes v4. The compiled
+  `V5_ACTIVE` tuple accepts `[4, 5]` and writes 5, but v5 input is rejected before a
+  transaction while the configured mode is `V4_COMPAT`; P1-06 does not deploy or flip
+  production writes. A persisted activation marker makes a `V4_COMPAT` process reject
+  mutations/fail readiness, and tests prove a mode/configuration regression cannot
+  write. The discriminated v5 union is the only place `assetId` enters SiteConfig.
+  Convert safe v4 external media and canonicalized `images/...` bundled media upward
+  without rewriting old releases; do not implement any managed-v5-to-v4 conversion.
+  Test both DTO tuples, `Cache-Control: no-store`, mode/handler agreement, marker races,
+  first-v5 persistence ordering, and the bounded request-header parser. Keep v4 input
+  compatibility available only through the post-flip up-converter; the dual-capable
+  frontend is P1-08, the irreversible deployed flip/telemetry is P1-09, and
+  observation/retirement remains later.
 
 - [ ] **Step 5: Add media endpoints**
 
@@ -1449,7 +1804,7 @@ POST   /v1/workspaces/:workspaceId/media/import-batches/:batchId/media/:assetId/
 # Nexus.BC
 npx prisma migrate dev --name managed_media_site_config_v5
 npm run verify
-git add contracts prisma src/modules/media src/modules/sites test
+git add contracts prisma src/modules/media src/modules/sites src/shared/http src/shared/config .env.example test
 git commit -m "feat: add managed media and SiteConfig v5"
 
 # Nexus.UI coordinated PR
@@ -1468,13 +1823,16 @@ git commit -m "feat: support managed media SiteConfig v5"
 - Extend: `src/modules/workspaces/application/*` and workspace API composition query
 - Create: `src/modules/notifications/infrastructure/resend-email-sender.ts`
 - Create: `src/modules/notifications/infrastructure/outbox-worker.ts`
+- Create: `src/modules/notifications/api/resend-webhook.controller.ts`
 - Modify: `src/modules/notifications/infrastructure/prisma-outbox.ts`
+- Modify: `src/main.ts` to preserve the bounded raw webhook body for verification
 - Create: `src/shared/audit/audit-exporter.ts`
-- Create: `src/shared/audit/versioned-recovery-audit-storage.ts`
+- Create: `src/shared/audit/infrastructure/r2-recovery-audit-storage.ts`
 - Modify: `src/shared/config/app-config.schema.ts`, `.env.example`
 - Modify: `prisma/schema.prisma`
 - Test: `test/e2e/forms.e2e-spec.ts`
 - Test: `test/e2e/outbox-worker.e2e-spec.ts`
+- Test: `test/e2e/resend-webhook.e2e-spec.ts`
 - Test: `test/contract/audit-exporter.contract.ts`
 
 - [ ] **Step 1: Add Lead and submission DTO schema**
@@ -1497,31 +1855,68 @@ git commit -m "feat: support managed media SiteConfig v5"
   the project-lifetime idempotency tombstone contains no PII/deletion disclosure. Test
   canonical client UUID-v4 acceptance and pre-transaction rejection of text/email/phone,
   uppercase, malformed, or non-v4 submission ids. Assert no lead content/PII appears in
-  audit, metrics, or logs.
+  the HMAC fingerprint, idempotency response, audit, metrics, or logs. Prove
+  `LEAD_SUBMITTED` uses only `{ releaseId, outcome: "accepted" }` metadata.
 
 - [ ] **Step 3: Implement the forms transaction coordinator**
 
   Through exported ports, lock/read active release, validate its immutable form/privacy
   notice, write Lead with `retentionUntil`, enqueue `{ leadId }`, append the allowlisted
-  audit event, and persist the 202 idempotency result in one transaction. Any failure
-  commits none. The honeypot branch persists only its idempotency result in that same
-  coordinator and creates no Lead, Outbox, or audit event. Resend failure after commit
-  never removes or hides a genuine lead. Implement owner deletion and hourly bounded
-  purge with the durable-tombstone, delivery-fence, cancel/redact/delete, 202-pending,
-  and final-204 semantics above.
+  `LEAD_SUBMITTED` AuditEvent, and persist the 202 idempotency result in one transaction.
+  The event uses resource type `Lead`, its non-PII Lead id, and exactly
+  `{ releaseId, outcome: "accepted" }` metadata. Any failure commits none. The honeypot
+  branch persists only its idempotency result in that same coordinator and creates no
+  Lead, Outbox, or audit event. Resend failure after commit never removes or hides a
+  genuine lead. Implement owner deletion and hourly bounded purge with the
+  durable-tombstone, delivery-fence, cancel/redact/delete, 202-pending, and final-204
+  semantics above.
 
 - [ ] **Step 4: Implement lease/retry/dead-letter delivery**
 
   Implement the exact 60-second lease, `SKIP LOCKED`, reclaim, attempts, capped
   exponential backoff/jitter, fresh claimToken fencing, 45-second provider timeout,
-  provider idempotency, delivery marking, and secret redaction semantics. Test a late
-  worker after reclaim, zero-row stale transitions, crash after the final logical claim,
-  repeated ordinal/provider de-duplication, maxAttempts recorded failed outcomes, and
-  dead-letter only after the max-th observed failure. Also test deletion before send,
-  deletion during SENDING, provider completion versus deletion, and lease-expiry
-  reclaim/cancel. A lead
-  is never purged underneath an in-flight call. Notifications reads lead content through
-  a forms application port and never accesses forms infrastructure/tables.
+  UNKNOWN reconciliation, provider correlation, delivery marking, and secret redaction
+  semantics. Enforce the 24-hour Resend idempotency window with the exact non-PII
+  `nexus_event_id` tag. `providerIdempotencyExpiresAt` is fixed in a durable transaction
+  that must be committed before any provider network call; if that pre-call transaction
+  fails, send nothing. Store durable `providerMessageId`, bounded outcome observation,
+  fixed expiry, verified-webhook correlation, and byte-identical in-window continuation.
+
+  Implement public `POST /v1/webhooks/resend` in exact
+  `src/modules/notifications/api/resend-webhook.controller.ts`. Add the required typed
+  `resendWebhookSigningSecret`. The raw webhook body hard cap is exactly 65,536 bytes.
+  Modify `src/main.ts` so a streaming raw-body reader for this route runs before the
+  global JSON parser; chunked requests and requests without `Content-Length` use the
+  same stream byte count. A declared oversize request or the 65,537th byte returns 413
+  before signature verification, JSON parsing, logging, or database access; that 413
+  creates no `ResendWebhookReceipt` and makes no Outbox mutation. After this gate, pass
+  the raw bytes with `svix-id`, `svix-timestamp`, and `svix-signature` to Resend/Svix;
+  verify the signature and timestamp against the raw bytes with a five-minute tolerance
+  before JSON parsing, logging, or database access. The notifications-owned
+  `ResendWebhookReceipt` schema above uses
+  unique `svixId` for durable replay de-duplication; a duplicate returns 204 without a
+  second state transition. Apply the bounded event mapping above, require
+  `data.tags.nexus_event_id` to be a canonical UUID, correlate it with bounded
+  `data.email_id`, and bind only a
+  null or equal provider id. A providerMessageId mismatch alerts and makes no Outbox
+  transition. Store no raw webhook or PII and never query Resend by `eventId`.
+
+  Test exact 65,536-byte acceptance, declared oversize, chunked/no-content-length
+  overflow at byte 65,537 with 413 and no verification/log/DB effects, missing/invalid/
+  stale Svix headers, mutated raw bytes, signature verification before parsing/logging/
+  database access, the timestamp boundary, duplicate/concurrent `svix-id`, every mapped
+  and ignored event, unmatched/malformed tags, null/equal provider-id binding, mismatch,
+  and atomic crash/retry behavior. Also test a late worker after reclaim, zero-row stale
+  transitions, crash after the final logical claim, repeated ordinal/provider
+  de-duplication, maxAttempts recorded failed outcomes, and dead-letter only after the
+  max-th observed failure. Add the exact late provider success after local timeout and
+  lease expiry race: deletion is pending, the Lead is not purged while UNKNOWN, a fenced
+  response or verified durable correlation confirms DELIVERED, and only then may deletion
+  finish. Prove that no provider id means no lookup by `eventId` alone and that an expired
+  window forbids a new send without explicit non-delivery evidence. Also prove READY whose call
+  never started can cancel, repeated UNKNOWN/manual block cannot purge, and no PII send
+  may start after terminal cancellation or hard-delete. Notifications reads lead content
+  through a forms application port and never accesses forms infrastructure/tables.
 
   In this task, ship the production audit exporter/checkpoint storage adapter and typed
   recovery-bucket credentials required by final deletion. Run exporter contract tests
@@ -1542,10 +1937,11 @@ GET   /v1/workspaces/:workspaceId/metrics
 Accepted genuine and honeypot submissions both return a generic 202 envelope. Inbox
 endpoints require membership; status changes accept only `READ` or `ARCHIVED` from
 the owner/editor policy, while delete requires `OWNER`, returns 202 while
-DELETION_PENDING, and returns repeat-safe 204 only after final purge. The metrics query
-authorizes through workspaces, then composes project-summary counts from the sites read
-port and lead counts from the forms read port; it does not import either module's
-infrastructure.
+DELETION_PENDING, and returns repeat-safe 204 only after final purge. PATCH and DELETE
+use the natural Lead id/state semantics above and do not require or create a shared
+idempotency record. The metrics query authorizes through workspaces, then composes
+project-summary counts from the sites read port and lead counts from the forms read
+port; it does not import either module's infrastructure.
 
 - [ ] **Step 6: Verify and commit**
 
@@ -1583,31 +1979,43 @@ git commit -m "feat: add transactional lead capture"
   Introduce exactly `ProjectRepository`, `PublicSiteRepository`,
   `LeadInboxRepository`, `WorkspaceReadRepository`, and local
   `ActiveProjectPreference` with the operations/consumers table above. Use the four
-  named HTTP adapters. Remove cloud use of the current broad repository; do not create
-  a broad network facade.
+  named HTTP adapters. `ProjectRepository.activateRelease` is the only frontend rollback
+  command and calls the authenticated activation endpoint. Remove cloud use of the
+  current broad repository; do not create a broad network facade.
 
 - [ ] **Step 3: Add focused contract suites**
 
   Run editor behavior against local/cloud editor adapters, public read/submit behavior
   against local/cloud public adapters, inbox behavior against local/cloud inbox
   adapters, and dashboard summaries against local/cloud workspace adapters. Assert
-  DTO/domain mapping, stable public identity, version conflicts, typed booking, and
-  unchanged stored data after rejected saves.
+  DTO/domain mapping, stable public identity, version conflicts, typed booking,
+  `activateRelease` pointer-only rollback with response-loss replay, and unchanged
+  stored data after rejected saves. Add the exact capability DTO/no-store
+  contract and prove `V4_COMPAT` maps only to read `[4, 5]`, accepted input `[4]`, and
+  write 4, while `V5_ACTIVE` maps only to read/accepted `[4, 5]` and write 5. The client
+  emits the capability-advertised version and refuses any impossible tuple.
 
 - [ ] **Step 4: Implement secure auth session handling**
 
   Keep access tokens in a Signal store, never localStorage. Refresh uses credentials,
   one failed 401 triggers exactly one serialized refresh/retry, and logout clears memory
-  even if revocation fails.
+  even if revocation fails. The API client sends credentials and the bounded
+  `Nexus-Client-Capabilities` header. Browser tests from `https://app.nexus.site` prove
+  the exact allowed OPTIONS/actual CORS response, required methods/headers and
+  `Vary: Origin`; wildcard, reflected, lookalike, null, and foreign origins fail.
 
 - [ ] **Step 5: Implement bounded local-to-cloud migration**
 
   Offer export first; read at most 5,242,880 bytes; accept only v1-v4 source; normalize
-  v1-v3 to v4; extract data URLs; reject unsupported data; validate the deterministic
-  extracted v4 representation against all limits including 1,048,576 bytes; stage and
-  verify the extracted media in one workspace import batch; convert media to v5; then
-  create through the editor port with that batch id. Record local-to-cloud ids only
-  after success and never delete local data automatically.
+  v1-v3 to v4; extract data URLs; reject unsupported data; and validate the deterministic
+  extracted v4 representation against all limits including 1,048,576 bytes. Before the
+  flip, migration is dry-run/preview and performs no cloud write: no import batch,
+  upload, completion, or project create is allowed while the fresh capability mode is
+  `V4_COMPAT`. Implement the gated continuation, but real data-URL migration executes
+  only after `V5_ACTIVE`: repeat the bounded parse/validation, stage and verify media in
+  one workspace import batch, convert media to v5, and create through the editor port
+  with that batch id. Record local-to-cloud ids only after success and never delete local
+  data automatically. A mode change during the flow aborts before its next write.
 
 - [ ] **Step 6: Use media/public contracts**
 
@@ -1622,10 +2030,13 @@ git commit -m "feat: add transactional lead capture"
 
 - [ ] **Step 7: Write the cloud browser scenario**
 
-  Use isolated owner/visitor contexts to cover create/migrate, second-session autosave,
-  media upload, publish, direct public deep-link refresh, typed booking submission,
-  inbox display, response-loss retry, stale first-session save, and a retained pre-v5
-  tab whose v4 save/publish returns and reloads the single converted v5 result.
+  Use isolated owner/visitor contexts to cover v4 create, second-session autosave,
+  publish, direct public deep-link refresh, typed booking submission,
+  inbox display, response-loss retry, activation rollback, stale first-session save, and a retained pre-v5
+  tab. Against `V4_COMPAT`, prove v4 create/save/publish behavior and prove a data-URL
+  migration stops at dry-run preview without any media/import/project cloud write. Run
+  the real migration, managed-media save, and migrated-project checks only in P1-09 after
+  `V5_ACTIVE`; deployment and the irreversible flip belong only to P1-09.
 
 - [ ] **Step 8: Verify and commit frontend**
 
@@ -1664,7 +2075,32 @@ git commit -m "feat: connect Nexus to split cloud repositories"
   domain or SSR setup is included. Configure daily encrypted PostgreSQL backups, R2
   versioning, 30-day database backup/object-version retention, application media soft
   delete, daily immutable R2 inventory, and recovery-role access to meet RPO <= 24 hours
-  and RTO <= 4 hours.
+  and RTO <= 4 hours. P1-09 first deploys the dual-mode backend with
+  `siteConfigRolloutMode = 'V4_COMPAT'`, whose derived tuple reads `[4, 5]`, accepts only
+  `[4]`, and writes 4. Then deploy the P1-08 dual-capable frontend, verify old and new
+  sessions still read/emit v4, and prove local data-URL migration remains preview-only.
+
+  The production transition first blocks new mutations and drains all in-flight writers.
+  It then calls `pg_advisory_xact_lock(SITECONFIG_ROLLOUT_LOCK_ID)` to acquire the same
+  database rollout fence checked by every sites write, creates and commits the monotonic
+  `SiteConfigRolloutState.v5ActivatedAt` marker while holding that fence, and admits only
+  instances configured as `V5_ACTIVE`. It verifies the derived read `[4, 5]` / accepted
+  `[4, 5]` / write 5 tuple and only then re-enables mutations. A v5 write cannot commit
+  before the marker, and an old
+  `V4_COMPAT` process observing the marker fails readiness and rejects writes. After the
+  first persisted v5 result, the system cannot return to `V4_COMPAT`; the transition is
+  irreversible and neither configuration nor startup may select the old mode.
+  Bounded v4 create/save/publish is up-converted and persisted only as v5; managed v5 is
+  never down-converted.
+
+  Run real data-URL migration only after a fresh no-store capability response reports
+  `V5_ACTIVE`, including upload/completion, import-batch attachment, v5 project creation,
+  reload, publish, and public rendering. A backend rollback must preserve `V5_ACTIVE`
+  and dual-input semantics; a frontend rollback may select only a v5-capable build. If
+  either compatible artifact is unavailable, use read-only/maintenance recovery until
+  it is restored—never start a v4 writer, advertise the v4 tuple, or convert managed v5
+  to v4. Re-run credentialed CORS preflight/actual tests against the deployed
+  application and API origins.
 
 - [ ] **Step 3: Add append-only audit, metrics, and concrete alerts**
 
@@ -1679,30 +2115,48 @@ git commit -m "feat: connect Nexus to split cloud repositories"
   payload, and label PII rejection. Lead tests
   explicitly cover the genuine-submission minimum/zero-sample rule, abuse warning
   without paging, one failed retention-run page, 24-hour overdue-backlog warning, and
-  60-minute overdue-backlog page; health probes remain safe.
+  60-minute overdue-backlog page; health probes remain safe. Capability tests assert the
+  exact bounded capability labels and the exact `site_config_write_total` input-version,
+  operation, and result values; closed 24-hour UTC window numerator/denominator;
+  inclusion of missing/invalid headers in the denominator; no PII/high-cardinality
+  identifiers; and the exact accepted-v4 reset plus non-counting rules for the later
+  retirement observation.
 
 - [ ] **Step 4: Prove PostgreSQL plus R2 recovery and lease reclaim**
 
   Back up staging data containing a project, revision, release, ActiveRelease, media,
   retained and expired/deleted leads, AuditEvents, idempotency record, and leased outbox
-  row. Fixtures put distinct managed assets in the current draft, a retained revision,
-  an inactive rollback Release, the active Release, and a retained Lead's Release, plus
-  one standalone unreferenced READY MediaAsset visible in the media library.
+  row. Include the exact fixture whose snapshot is between `DELETION_PENDING` and
+  hard-delete, with its Lead, Outbox fence, deletion event, and HMAC idempotency
+  tombstone present. Fixtures also put distinct managed assets in the current draft, a
+  retained revision, an inactive rollback Release, the active Release, and a retained
+  Lead's Release, plus one standalone unreferenced READY MediaAsset visible in the media
+  library.
   Record a DB backup id/cutoff, generate and verify its R2 inventory strictly after that
   cutoff, and persist the recovery pair manifest. Execute the runbook into an isolated
   environment, select the latest complete <=24-hour pair, freeze recoveryCutoffUtc,
   require continuous external deletion checkpoint coverage, reapply every newer
-  tombstone through that cutoff, and prove incomplete/pre-cutoff inventory or missing
-  audit coverage blocks promotion. Then reapply deletion events/retention
-  purge, traverse every retained reference class and every retained non-deleted
-  MediaAsset row, restore exact R2 versions from inventory, and reject any dangling row
-  or reference. Verify bytes/checksum/MIME/dimensions, editor current-draft rendering,
-  revision/history access, rollback then rendering, original active public rendering,
-  retained lead context, and media-library listing/object access for the standalone
-  asset. Also test that cleanup coordinates row/object deletion before its snapshot.
-  Prove an expired restored lease is reclaimed without duplicating the provider event
-  and record pair/source ids, UTC cutoffs/checkpoints, completeness evidence, measured
-  RPO <= 24 hours, and RTO <= 4 hours.
+  post-cutoff deletion tombstone through that cutoff, and prove incomplete/pre-cutoff
+  inventory or missing audit coverage blocks promotion. Enumerate every restored
+  DELETION_PENDING Lead before traffic, require its deletion AuditEvent durable object
+  plus checkpoint coverage, reconcile its delivery fence, and finish purge. The exact
+  snapshot-between-pending-and-hard-delete fixture must purge without resurrection; an
+  unresolved UNKNOWN delivery or export gap must block promotion. Verify every retained
+  fingerprint version has a recovered HMAC verification key. Then traverse every
+  retained reference class and every retained non-deleted MediaAsset row, restore exact
+  R2 versions from inventory, and reject any dangling row or reference. Verify
+  bytes/checksum/MIME/dimensions, editor current-draft rendering, revision/history
+  access, rollback then rendering, original active public rendering, retained lead
+  context, and media-library listing/object access for the standalone asset. Also test
+  that cleanup coordinates row/object deletion before its snapshot. Prove an expired
+  restored SENDING lease becomes UNKNOWN while preserving `providerMessageId` and its
+  remaining 24-hour deduplication window, then reconciles through a fenced response,
+  verified webhook, exact provider-id lookup, or safe in-window identical continuation
+  without a duplicate provider event. An expired deduplication window without explicit
+  non-delivery evidence blocks retry and promotion; lease expiry alone cannot cancel or
+  purge it. Record
+  pair/source ids, UTC cutoffs/checkpoints, completeness evidence, measured RPO <= 24
+  hours, and RTO <= 4 hours.
 
 - [ ] **Step 5: Verify and commit per repository**
 
@@ -1757,41 +2211,56 @@ npm audit --omit=dev --audit-level=moderate
   publish/delete serialization, stale-v4 tab conversion/retirement observation without
   adapter removal, bundled-media
   compatibility, honeypot and deleted-submission replay, privacy notice mismatch,
-  async owner delete/retention purge versus SENDING delivery, late-worker claim fencing,
-  max-attempt delivery, durable deletion-export loss/retry/watermark gaps, audit PII
-  rejection, every metrics alert threshold, Resend outage with stored lead, and complete
-  cutoff-paired PostgreSQL/versioned-R2 recovery within RPO/RTO.
+  async owner delete/retention purge versus SENDING/UNKNOWN delivery, the late provider
+  success after timeout/lease-expiry race, Resend 24-hour-window expiry without unsafe
+  retry, late-worker claim fencing, max-attempt
+  delivery, durable deletion-export loss/retry/watermark gaps, snapshot-pending Lead
+  recovery, audit PII rejection, every metrics alert threshold, Resend outage with stored
+  lead, and complete cutoff-paired PostgreSQL/versioned-R2 recovery within RPO/RTO.
 
 - [ ] **Step 4: Update handoff and execution program**
 
   Mark P1 complete only with evidence for every Gate P1 checkbox. Build the P2 plan
   from deployed contracts, incidents, measurements, and user feedback. P2 may then
-  address wildcard/custom domains and SSR. Once P1-09 write-version/capability telemetry
-  is live, record the UTC start and progress of the 44-consecutive-day zero-v4
-  observation. A v4 write resets it. Cloud Alpha may complete with the adapter enabled;
-  a satisfied observation only authorizes a later reviewed retirement change and P1-10
+  address wildcard/custom domains and SSR. Once P1-09 rollout-mode/capability telemetry
+  is live, record each 24-hour UTC window's accepted-v4 count and capability
+  numerator/denominator for the 44-day observation. Apply the exact reset and
+  zero-denominator rules above. Cloud Alpha may complete with the adapter enabled; a
+  satisfied observation only authorizes a later reviewed retirement change and P1-10
   never disables v4 input itself.
 
 ## Gate P1
 
 - [ ] Separate backend repository has a green Node 24 CI gate.
-- [ ] Architecture tests enforce the module/table matrix and forbid cross-module
-      infrastructure imports while allowing declared database foreign keys.
+- [ ] Architecture tests resolve re-exports, shared barrels, aliases, `ImportTypeNode`,
+      Prisma origins, provider owner mappings, and wrapped controller decorators.
+      `@aws-sdk/*` is allowed only in media infrastructure and the exact
+      `src/shared/audit/infrastructure/r2-recovery-audit-storage.ts`; every other shared
+      path, including every other `src/shared/audit/**`, is rejected, with no broader
+      `shared` or `shared/audit` allowance. Declared database foreign keys and the two
+      exact shared Prisma adapters remain allowed.
+- [ ] Production dependency gates use `npm audit --omit=dev --audit-level=moderate`.
 - [ ] A new user can register, verify email, create a workspace/project, and receive a
       stable path-based public URL.
+- [ ] Credentialed CORS allows only the typed `https://app.nexus.site` origin with exact
+      methods/headers, preflight, credentials, and `Vary: Origin`; wildcard/reflection
+      and disallowed origins fail.
 - [ ] Mirrored v4/v5 schemas and golden-fixture manifests match across repositories.
-- [ ] Create/save/publish/lead pass same-key, changed-payload, OCC-race, and
-      commit-succeeded/response-lost tests.
+- [ ] Create/save/publish/activate/lead pass same-key, changed-payload, OCC-race, and
+      commit-succeeded/response-lost tests using versioned keyed HMAC fingerprints; key
+      rotation/recovery works without stored canonical request or plaintext PII.
 - [ ] Public queries read only the tenant-isolated immutable `ActiveRelease` join.
 - [ ] Managed media publish checks ownership, readiness, MIME/magic, bytes, dimensions,
       checksum, and deletion state.
 - [ ] Save/publish lock every managed asset through the transactional media port;
       deletion rejects every retained draft/revision/active/inactive/rollback reference,
       and publish/delete race tests prove a serial outcome.
-- [ ] P1-06 retains bounded v4 input compatibility and stale tabs save/publish to one
-      stored v5 result; immutable v4 releases remain readable. After P1-09 metrics, P1-10
-      may start/record 44 consecutive zero-v4 days, but retirement requires a later
-      reviewed change and is not a Cloud Alpha prerequisite.
+- [ ] P1-06 implements the guarded `V4_COMPAT` read 4/5, accept/write 4 tuple; P1-08
+      implements the dual-capable no-store consumer/header and preview-only pre-flip
+      migration; P1-09 irreversibly activates `V5_ACTIVE`, accepts 4/5, writes only v5,
+      and runs real migration. Stale v4 up-converts to one v5 result; rollback stays
+      v5-capable or read-only, managed v5 never down-converts, immutable v4 remains
+      readable, and retirement requires 44 qualifying windows plus later review.
 - [ ] Typed booking context is separate and accepted only for the active release's
       declared form target.
 - [ ] Lead, idempotency result, and identifier-only outbox event commit atomically.
@@ -1803,13 +2272,20 @@ npm audit --omit=dev --audit-level=moderate
       creating no Lead or Outbox.
 - [ ] Consent binds to the configured privacy notice version; bounded retention,
       owner-only deletion, scheduled expiry purge, and no-PII logging/audit are proven.
+- [ ] Genuine accepted leads append exactly one `LEAD_SUBMITTED` event with only
+      `{ releaseId, outcome: "accepted" }`; honeypots append none.
 - [ ] Singleton AuditSequence allocation is locked in the business transaction and
       proves rollback reuse plus gap-free concurrent commit order; AuditEvent mutation
       and PII metadata are rejected.
 - [ ] Fresh per-claim outbox fencing prevents late-worker mutation; claims/crashes do not
       spend failure budget; final-claim crash repeats the same logical ordinal;
-      maxAttempts recorded failures dead-letter; deletion-vs-SENDING and lease-expiry
-      races reach a safe terminal state without purging in flight.
+      maxAttempts recorded failures dead-letter; timeout/lease-expired SENDING becomes
+      UNKNOWN and cannot cancel/purge. The fixed expiry commits before send; signed raw
+      Svix webhooks use unique receipts, bounded event/tag correlation, and exact
+      provider-id binding. Fenced responses, verified webhook correlation, or known
+      provider-message lookup recover late success; retries obey Resend's 24-hour window
+      and require explicit non-delivery evidence after expiry. No PII send starts after
+      cancellation/hard-delete and there is no provider lookup by eventId alone.
 - [ ] Privacy/retention deletion returns 202 pending and finalizes only after its PII-free
       eventId tombstone is idempotently exported with continuous external checkpoint
       coverage by the P1-07 production adapter; lost export retries/alerts and cannot
@@ -1829,15 +2305,21 @@ npm audit --omit=dev --audit-level=moderate
       RTO <= 4 hours.
 - [ ] Recovery records UTC DB/inventory/recovery cutoffs and source/pair ids; inventory is
       verified after the DB cutoff and complete for that snapshot, deletion watermark
-      covers recovery cutoff, and any incomplete pair/gap blocks promotion.
-- [ ] Both production dependency trees pass `npm audit --omit=dev`.
+      covers recovery cutoff, every snapshot DELETION_PENDING Lead and retained HMAC key
+      version reconciles, and any incomplete pair/UNKNOWN/export gap blocks promotion.
+- [ ] Both production dependency trees pass
+      `npm audit --omit=dev --audit-level=moderate`.
 
 ## Architecture review checklist
 
 - [ ] Every controller delegates to one application use case.
-- [ ] Every provider SDK is behind a port in owning infrastructure.
+- [ ] Every provider SDK is behind a port in owning infrastructure; AWS belongs only to
+      media infrastructure and the exact
+      `src/shared/audit/infrastructure/r2-recovery-audit-storage.ts` recovery-bucket
+      adapter; Resend belongs only to notifications infrastructure.
 - [ ] No business module imports another module's infrastructure.
-- [ ] Cross-module calls use only `application/public.ts` ports.
+- [ ] Cross-module calls use only `application/public.ts` application ports/DTOs/DI
+      tokens, with transitive alias/re-export/type-import laundering rejected.
 - [ ] No Prisma type crosses an application or API boundary.
 - [ ] The ownership matrix has one writer for each table.
 - [ ] `sites` coordinates atomic save/publish; `forms` coordinates atomic lead/outbox.

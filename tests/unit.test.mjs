@@ -7,6 +7,31 @@ async function source(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 }
 
+function markdownSection(markdown, heading) {
+  const lines = markdown.split('\n');
+  const start = lines.indexOf(heading);
+
+  assert.notEqual(start, -1, `Missing Markdown section: ${heading}`);
+
+  const level = heading.match(/^#+/u)?.[0].length;
+  assert.ok(level, `Markdown heading has no level: ${heading}`);
+
+  const nextHeading = new RegExp(`^#{1,${level}}\\s`, 'u');
+  let inFence = false;
+  let end = lines.length;
+
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^```/u.test(lines[index])) {
+      inFence = !inFence;
+    } else if (!inFence && nextHeading.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+
+  return lines.slice(start, end).join('\n');
+}
+
 async function importTypeScriptModule(path) {
   const compiled = ts.transpileModule(await source(path), {
     compilerOptions: {
@@ -129,6 +154,374 @@ test('cloud plan targets the separate Nexus.BC repository', async () => {
   assert.match(phaseOnePlan, /git clone git@github\.com:Sa1ivan\/Nexus\.BC\.git/u);
   assert.match(phaseOnePlan, /Backend local path: sibling `\.\.\/Nexus\.BC`/u);
   assert.doesNotMatch(phaseOnePlan, /Nexus(?:-Backend|\.Backend)/u);
+});
+
+test('cloud plan makes the backend architecture gate resistant to dependency laundering', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const architecture = markdownSection(
+    phaseOnePlan,
+    '## Task P1-01: Bootstrap the separate backend repository',
+  );
+  const foundation = markdownSection(
+    phaseOnePlan,
+    '## Task P1-02: Typed configuration, errors, health, database, and transaction kernel',
+  );
+  const checklist = markdownSection(phaseOnePlan, '## Architecture review checklist');
+  const gate = markdownSection(phaseOnePlan, '## Gate P1');
+
+  assert.match(phaseOnePlan, /P1-00 and\s+> P1-01 are complete in this document/u);
+  assert.equal((architecture.match(/^- \[x\] \*\*Step [1-5]:/gmu) ?? []).length, 5);
+  assert.match(architecture, /Completion evidence \(2026-08-01\)[^.]+`d9fd37a` and `64285c7`/u);
+  assert.match(
+    architecture,
+    /Node `v24\.18\.1`[\s\S]{0,200}4\/4 architecture tests[\s\S]{0,100}1\/1/u,
+  );
+  assert.match(architecture, /audit[^.]+moderate[^.]+zero\s+vulnerabilities/u);
+  assert.match(architecture, /ImportTypeNode/u);
+  assert.match(architecture, /shared and re-export barrels/u);
+  assert.match(
+    architecture,
+    /application\/public\.ts`[\s\S]{0,100}export only application-layer ports,\s+DTO types, and explicit DI tokens/u,
+  );
+  assert.match(architecture, /trace every derived alias/u);
+  assert.match(architecture, /`@prisma\/\*`/u);
+  assert.match(architecture, /`src\/generated\/prisma`/u);
+  assert.match(architecture, /`@aws-sdk\/\*`[^.]+media[^.]+infrastructure/u);
+  assert.match(
+    architecture,
+    /exact\s+`src\/shared\/audit\/infrastructure\/r2-recovery-audit-storage\.ts`/u,
+  );
+  assert.match(architecture, /`resend`[^.]+notifications[^.]+infrastructure/u);
+  assert.match(architecture, /controller decorators through aliases and wrappers/u);
+  assert.match(architecture, /`src\/shared\/audit\/prisma-audit-writer\.ts`/u);
+  assert.match(foundation, /output\s*=\s*"\.\.\/src\/generated\/prisma"/u);
+  assert.match(
+    architecture,
+    /positive fixtures[^.]+two exact shared Prisma adapters[^.]+recovery-bucket AWS adapter/u,
+  );
+  assert.match(
+    checklist,
+    /AWS belongs only to\s+media infrastructure and the exact\s+`src\/shared\/audit\/infrastructure\/r2-recovery-audit-storage\.ts`[^.]+Resend belongs only to notifications infrastructure/u,
+  );
+  assert.match(
+    gate,
+    /`@aws-sdk\/\*`[^.]+only in media infrastructure[^.]+exact\s+`src\/shared\/audit\/infrastructure\/r2-recovery-audit-storage\.ts`/u,
+  );
+  assert.match(
+    gate,
+    /every other shared\s+path[^.]+every other `src\/shared\/audit\/\*\*`[^.]+rejected/u,
+  );
+  assert.match(gate, /no broader\s+`shared` or `shared\/audit` allowance/u);
+  assert.match(architecture, /npm audit --omit=dev --audit-level=moderate/u);
+});
+
+test('cloud plan fingerprints idempotent requests with a recoverable versioned HMAC keyring', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const idempotency = markdownSection(phaseOnePlan, '## Idempotency and concurrency');
+  const recovery = markdownSection(
+    phaseOnePlan,
+    '## Task P1-09: Railway deployment, static hosting, observability, and recovery',
+  );
+
+  assert.match(idempotency, /HMAC-SHA-256/u);
+  assert.match(idempotency, /RFC 8785 canonical semantic\s+request/u);
+  assert.match(idempotency, /hmac-sha256:v<keyVersion>:<64-lowercase-hex>/u);
+  assert.match(idempotency, /idempotencyHmacKeyring/u);
+  assert.match(idempotency, /idempotencyHmacActiveKeyVersion/u);
+  assert.match(idempotency, /retain\s+every old verification key[^.]+record lifetime/u);
+  assert.match(
+    recovery,
+    /every retained\s+fingerprint version[^.]+recovered HMAC verification key/u,
+  );
+  assert.match(idempotency, /fingerprint[^.]+never contain\s+plaintext PII/u);
+  assert.doesNotMatch(phaseOnePlan, /requestHash/u);
+  assert.doesNotMatch(phaseOnePlan, /lowercase SHA-256 request hash/u);
+});
+
+test('cloud plan reconciles unknown Resend outcomes without exceeding provider guarantees', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const outbox = markdownSection(phaseOnePlan, '## Outbox schema and delivery semantics');
+  const formsTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-07: Server-side forms, lead inbox, and leased notifications',
+  );
+  const ownership = markdownSection(phaseOnePlan, '### Module/table ownership matrix');
+
+  assert.match(outbox, /providerMessageId/u);
+  assert.match(outbox, /providerIdempotencyExpiresAt/u);
+  assert.match(
+    outbox,
+    /model ResendWebhookReceipt \{[\s\S]{0,300}svixId\s+String\s+@id @db\.VarChar\(128\)[\s\S]{0,300}eventId\s+String\?\s+@db\.Uuid[\s\S]{0,300}providerMessageId\s+String\?\s+@db\.VarChar\(128\)/u,
+  );
+  assert.match(outbox, /Resend[^.]+24-hour\s+idempotency\s+window/u);
+  assert.match(outbox, /raw webhook body hard cap is exactly 65,536 bytes/u);
+  assert.match(outbox, /chunked[^.]+without `Content-Length`[^.]+stream byte\s+count/u);
+  assert.match(
+    outbox,
+    /65,537th byte[^.]+413[^.]+before signature verification,\s+JSON parsing,\s+logging,\s+or\s+database access/u,
+  );
+  assert.match(outbox, /413[^.]+no `ResendWebhookReceipt`[^.]+no Outbox mutation/u);
+  assert.match(outbox, /non-PII Resend tag,[\s\S]{0,100}"nexus_event_id"/u);
+  assert.match(
+    outbox,
+    /transaction sets `providerIdempotencyExpiresAt`[^.]+commits before any\s+provider network call/u,
+  );
+  assert.match(outbox, /verified webhook[^.]+`nexus_event_id`[^.]+providerMessageId/u);
+  assert.match(
+    outbox,
+    /verify the signature and timestamp against the raw bytes\s+before JSON\s+parsing, logging, or database access/u,
+  );
+  assert.match(
+    outbox,
+    /`email\.sent`, `email\.delivered`, `email\.bounced`, and `email\.complained`[^.]+DELIVERED/u,
+  );
+  assert.match(outbox, /`email\.delivery_delayed`[^.]+UNKNOWN/u);
+  assert.match(
+    outbox,
+    /`email\.failed` and `email\.suppressed`[^.]+explicit non-delivery[^.]+READY\/DEAD_LETTER/u,
+  );
+  assert.match(outbox, /Other verified types[^.]+receipt-only `IGNORED`[^.]+never mutate Outbox/u);
+  assert.match(outbox, /cannot look up[^.]+Resend[^.]+eventId alone/u);
+  assert.match(
+    outbox,
+    /after[^.]+providerIdempotencyExpiresAt[^.]+must not[^.]+send[^.]+explicit\s+non-delivery\s+evidence/iu,
+  );
+  assert.match(outbox, /UNKNOWN[^.]+DELETION_PENDING/u);
+  assert.match(formsTask, /24-hour\s+Resend\s+idempotency\s+window/u);
+  assert.match(
+    formsTask,
+    /`providerIdempotencyExpiresAt`[^.]+durable transaction[^.]+committed before any provider network call/u,
+  );
+  assert.match(formsTask, /raw webhook body hard cap is exactly 65,536 bytes/u);
+  assert.match(formsTask, /chunked[^.]+without `Content-Length`[^.]+stream byte\s+count/u);
+  assert.match(
+    formsTask,
+    /65,537th byte[^.]+413[^.]+before signature verification,\s+JSON parsing,\s+logging,\s+or\s+database access/u,
+  );
+  assert.match(formsTask, /413[^.]+no `ResendWebhookReceipt`[^.]+no Outbox mutation/u);
+  assert.match(formsTask, /`POST \/v1\/webhooks\/resend`/u);
+  assert.match(formsTask, /`src\/modules\/notifications\/api\/resend-webhook\.controller\.ts`/u);
+  assert.match(formsTask, /`resendWebhookSigningSecret`/u);
+  assert.match(formsTask, /Modify: `src\/main\.ts`/u);
+  assert.match(formsTask, /Test: `test\/e2e\/resend-webhook\.e2e-spec\.ts`/u);
+  assert.match(formsTask, /raw bytes with `svix-id`, `svix-timestamp`, and `svix-signature`/u);
+  assert.match(
+    formsTask,
+    /verify the signature and timestamp against the raw bytes with a five-minute tolerance\s+before JSON\s+parsing, logging, or database access/u,
+  );
+  assert.match(formsTask, /unique `svixId`[^.]+duplicate[^.]+204/u);
+  assert.match(formsTask, /bounded event mapping/u);
+  assert.match(formsTask, /`data\.tags\.nexus_event_id`[^.]+canonical UUID/u);
+  assert.match(formsTask, /providerMessageId mismatch[^.]+no Outbox\s+transition/u);
+  assert.match(ownership, /`notifications`[^\n]+`Outbox`, `ResendWebhookReceipt`/u);
+  assert.match(formsTask, /late provider success after local timeout and\s+lease expiry/u);
+  assert.match(formsTask, /no provider id[^.]+no lookup by `eventId` alone/u);
+  assert.match(
+    formsTask,
+    /no\s+PII\s+send\s+may\s+start\s+after\s+terminal\s+cancellation\s+or\s+hard-delete/iu,
+  );
+  assert.doesNotMatch(outbox, /queries provider state or performs an idempotent continuation/u);
+  assert.doesNotMatch(outbox, /expired SENDING lease may be fenced and cancelled/u);
+  assert.doesNotMatch(outbox, /call cannot outlive its lease/u);
+});
+
+test('cloud plan blocks recovery promotion on snapshot deletion and delivery gaps', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const recoveryContract = markdownSection(
+    phaseOnePlan,
+    '## Alpha metrics, alerts, and recovery objectives',
+  );
+  const recoveryTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-09: Railway deployment, static hosting, observability, and recovery',
+  );
+
+  assert.match(recoveryContract, /enumerates every snapshot `Lead` in `DELETION_PENDING`/u);
+  assert.match(
+    recoveryContract,
+    /deletion `AuditEvent`[^.]+durable external object[^.]+checkpoint coverage/u,
+  );
+  assert.match(recoveryContract, /reconciles its notification\s+fence/u);
+  assert.match(recoveryContract, /unresolved UNKNOWN delivery[^.]+blocks promotion/u);
+  assert.match(recoveryContract, /snapshot[^.]+between\s+`DELETION_PENDING` and hard-delete/u);
+  assert.match(recoveryContract, /post-cutoff deletion tombstones/u);
+  assert.match(recoveryTask, /providerMessageId[^.]+24-hour\s+deduplication\s+window/u);
+  assert.match(recoveryTask, /expired deduplication window[^.]+explicit\s+non-delivery evidence/u);
+});
+
+test('cloud plan defines the exact credentialed cross-origin API contract', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const cors = markdownSection(phaseOnePlan, '### Credentialed cross-origin API contract');
+  const foundation = markdownSection(
+    phaseOnePlan,
+    '## Task P1-02: Typed configuration, errors, health, database, and transaction kernel',
+  );
+
+  assert.match(cors, /Production `webOrigins` equals exactly `\["https:\/\/app\.nexus\.site"\]`/u);
+  assert.match(cors, /Access-Control-Allow-Credentials: true/u);
+  assert.match(cors, /OPTIONS[^.]+204/u);
+  assert.match(cors, /GET, POST, PUT, PATCH, DELETE, OPTIONS/u);
+  assert.match(cors, /Authorization, Content-Type, Idempotency-Key, Nexus-Client-Capabilities/u);
+  assert.match(cors, /Vary: Origin/u);
+  assert.match(cors, /no wildcard or reflected origin/u);
+  assert.doesNotMatch(cors, /Production contains `https:\/\/app\.nexus\.site`/u);
+  assert.match(foundation, /additional valid HTTPS origin[^.]+403 `CORS_ORIGIN_DENIED`/u);
+});
+
+test('cloud plan defines capability DTO rollout, caching, and bounded telemetry', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const capabilities = markdownSection(
+    phaseOnePlan,
+    '### API capability discovery and rollout signal',
+  );
+  const mediaTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-06: Managed media and synchronized SiteConfig v5',
+  );
+  const deploymentTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-09: Railway deployment, static hosting, observability, and recovery',
+  );
+  const frontendTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-08: Angular auth, split cloud ports, and bounded local migration',
+  );
+  const rollout = markdownSection(phaseOnePlan, '## SiteConfig contracts');
+  const acceptance = markdownSection(phaseOnePlan, '## Cross-repository acceptance matrix');
+  const observability = markdownSection(
+    phaseOnePlan,
+    '## Alpha metrics, alerts, and recovery objectives',
+  );
+
+  assert.match(capabilities, /GET \/v1\/capabilities/u);
+  assert.match(capabilities, /type SiteConfigRolloutMode = 'V4_COMPAT' \| 'V5_ACTIVE'/u);
+  assert.match(
+    capabilities,
+    /rolloutMode: 'V4_COMPAT'[\s\S]{0,200}readVersions: readonly \[4, 5\][\s\S]{0,200}acceptedInputVersions: readonly \[4\][\s\S]{0,200}writeVersion: 4/u,
+  );
+  assert.match(
+    capabilities,
+    /rolloutMode: 'V5_ACTIVE'[\s\S]{0,200}readVersions: readonly \[4, 5\][\s\S]{0,200}acceptedInputVersions: readonly \[4, 5\][\s\S]{0,200}writeVersion: 5/u,
+  );
+  assert.match(capabilities, /Cache-Control: no-store/u);
+  assert.match(capabilities, /siteConfigRolloutMode: SiteConfigRolloutMode/u);
+  assert.match(capabilities, /only configurable SiteConfig\s+rollout field/u);
+  assert.doesNotMatch(
+    capabilities,
+    /siteConfig(?:ReadVersions|AcceptedInputVersions|WriteVersion)/u,
+  );
+  assert.match(capabilities, /Nexus-Client-Capabilities[\s\S]{0,250}128 ASCII bytes/u);
+  assert.match(capabilities, /24-hour UTC\s+window/u);
+  assert.match(capabilities, /denominator is every authenticated editor API\s+request/u);
+  assert.match(capabilities, /denominator[^.]+including missing, invalid/u);
+  assert.match(capabilities, /no PII or\s+high-cardinality identifiers/u);
+  assert.match(
+    mediaTask,
+    /Modify: `src\/shared\/config\/app-config\.schema\.ts`, `.env\.example`/u,
+  );
+  assert.match(
+    mediaTask,
+    /git add contracts prisma src\/modules\/media src\/modules\/sites src\/shared\/http src\/shared\/config \.env\.example test/u,
+  );
+  assert.match(
+    mediaTask,
+    /`siteConfigRolloutMode = 'V4_COMPAT'`[^.]+accepted input is\s+exactly v4[^.]+writes v4/u,
+  );
+  assert.match(frontendTask, /Before the\s+flip[^.]+dry-run\/preview[^.]+no cloud write/u);
+  assert.match(frontendTask, /real data-URL migration[^.]+only after `V5_ACTIVE`/u);
+  assert.match(rollout, /only permitted transition is `V4_COMPAT` to\s+`V5_ACTIVE`/u);
+  assert.match(rollout, /first\s+persisted v5[^.]+cannot return to `V4_COMPAT`/u);
+  assert.match(rollout, /Never down-convert managed v5/u);
+  assert.match(
+    rollout,
+    /model SiteConfigRolloutState \{[\s\S]{0,200}key\s+String\s+@id @db\.VarChar\(32\)[\s\S]{0,200}v5ActivatedAt\s+DateTime/u,
+  );
+  assert.match(rollout, /fixed singleton key `site-config`/u);
+  assert.match(rollout, /pg_advisory_xact_lock\(SITECONFIG_ROLLOUT_LOCK_ID\)/u);
+  assert.match(
+    deploymentTask,
+    /backend rollback[^.]+preserve `V5_ACTIVE`[^.]+dual-input semantics/u,
+  );
+  assert.match(deploymentTask, /frontend rollback[^.]+v5-capable build/u);
+  assert.match(deploymentTask, /read-only\/maintenance recovery/u);
+  assert.match(deploymentTask, /real data-URL migration[^.]+after[^.]+`V5_ACTIVE`/u);
+  assert.match(
+    deploymentTask,
+    /drain[^.]+in-flight writers[\s\S]{0,500}pg_advisory_xact_lock\(SITECONFIG_ROLLOUT_LOCK_ID\)[\s\S]{0,500}SiteConfigRolloutState\.v5ActivatedAt[\s\S]{0,500}only[^.]+`V5_ACTIVE`/u,
+  );
+  assert.match(
+    deploymentTask,
+    /first persisted v5[^.]+cannot return to `V4_COMPAT`[^.]+irreversible/u,
+  );
+  assert.match(deploymentTask, /managed v5[^.]+never down-converted/u);
+  assert.match(
+    acceptance,
+    /Capabilities rollout[^\n]+`V4_COMPAT`[^\n]+`V5_ACTIVE`[^\n]+irreversible/u,
+  );
+  assert.doesNotMatch(phaseOnePlan, /rollback returns[^.]+persisted output to v4/u);
+  assert.match(
+    observability,
+    /operation \(`create`, `save`, `publish`\)[^.]+result \(`accepted`, `rejected`\)/u,
+  );
+  assert.match(observability, /site_config_write_total\{input_version="4",result="accepted"\}/u);
+});
+
+test('cloud plan scopes shared idempotency to exact operations and natural endpoint semantics', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const idempotency = markdownSection(phaseOnePlan, '## Idempotency and concurrency');
+  const frontendPorts = markdownSection(phaseOnePlan, '## Frontend ports and consumers');
+  const frontendTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-08: Angular auth, split cloud ports, and bounded local migration',
+  );
+
+  assert.match(idempotency, /create, save,\s+publish, and activate operations/u);
+  assert.match(idempotency, /public lead submission[\s\S]{0,500}`submissionId`/u);
+  assert.match(
+    idempotency,
+    /Media completion and delete[^.]+natural, resource-specific idempotency/u,
+  );
+  assert.match(idempotency, /Lead status and delete[^.]+natural, resource-specific idempotency/u);
+  assert.match(idempotency, /same activate key and release concurrently/u);
+  assert.match(idempotency, /same activate key after response loss/u);
+  assert.match(idempotency, /activate key reused for another release/u);
+  assert.match(frontendPorts, /`activateRelease`/u);
+  assert.match(frontendTask, /activateRelease[^.]+rollback/u);
+  assert.doesNotMatch(
+    phaseOnePlan,
+    /Authenticated mutation endpoints require an `Idempotency-Key`/u,
+  );
+});
+
+test('cloud plan audits accepted leads without inventing hidden pages', async () => {
+  const phaseOnePlan = await source(
+    'docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md',
+  );
+  const audit = markdownSection(phaseOnePlan, '## Append-only audit contract');
+  const formsTask = markdownSection(
+    phaseOnePlan,
+    '## Task P1-07: Server-side forms, lead inbox, and leased notifications',
+  );
+  const activeRelease = markdownSection(phaseOnePlan, '## Active release and public isolation');
+
+  assert.match(audit, /`LEAD_SUBMITTED`/u);
+  assert.match(audit, /LEAD_SUBMITTED[^.]+\{ releaseId, outcome: "accepted" \}[^.]+non-PII/u);
+  assert.match(formsTask, /`LEAD_SUBMITTED` AuditEvent/u);
+  assert.doesNotMatch(activeRelease, /(?:hidden[^.\n]{0,32}page|page[^.\n]{0,32}hidden)/iu);
 });
 
 test('domain model includes publishable MVP contracts', async () => {
