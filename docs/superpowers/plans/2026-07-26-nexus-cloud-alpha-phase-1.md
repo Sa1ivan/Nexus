@@ -1478,7 +1478,7 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   configuration still boots, health routes return 404, and CORS is absent. The new
   test file passes ESLint and Prettier checks.
 
-- [ ] **Step 2: Implement one typed configuration boundary**
+- [x] **Step 2: Implement one typed configuration boundary**
 
   Only its validation factory reads `process.env`. Include `nodeEnv`, `port`,
   `databaseUrl`, the one typed `webOrigins` allowlist, `bookingTimeZone` (an IANA zone;
@@ -1488,6 +1488,20 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   `idempotencyHmacActiveKeyVersion`, and `idempotencyHmacKeyring`. Production rejects
   non-HTTPS origins and privacy notice URLs. Implement the exact credentialed CORS
   middleware contract above from this configuration, including preflight before guards.
+
+  **Completion evidence (2026-08-04):** `APP_CONFIG` is produced by one validated
+  factory, and the architecture gate proves that alternate `process.env`, bracket,
+  `globalThis`, and `node:process` access forms cannot bypass that boundary. Production
+  enforces the singleton `https://app.nexus.site` origin, HTTPS privacy URL, bounded
+  retention, 32-character JWT secrets, exact 32-byte outbox encryption, and canonical
+  versioned HMAC keys. Credentialed CORS uses the validated allowlist, returns the exact
+  headers and preflight surface before guards, denies non-allowlisted origins with
+  `CORS_ORIGIN_DENIED`, and varies all responses by `Origin`. On Node `v24.19.0`, lint,
+  architecture (`6/6`), unit command, baseline E2E (`1/1`), build, format, and production
+  audit pass. The runtime suite is `34/37`; its only remaining RED cases are the two
+  missing health endpoints and the allowed actual request that reaches the still-missing
+  liveness route and therefore receives 404. Those route expectations remain assigned to
+  the later liveness/readiness work.
 
 - [ ] **Step 3: Standardize API errors**
 

@@ -18,26 +18,26 @@
 - [x] Последний полный frontend gate зелёный.
 - [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
 - [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
-- [x] `Nexus.UI/develop` синхронизирован с `origin/develop` на `5a86855`.
-- [x] `Nexus.BC/develop` синхронизирован с `origin/develop` на `64285c7`.
-- [ ] `SESSION_HANDOFF.md` пока untracked и не входит в Git.
+- [x] `SESSION_HANDOFF.md` теперь отслеживается Git и обновлён после P1-02 Step 2.
+- [x] Локальные commits P1-02 Step 1 и Step 2 созданы в обоих repositories.
 - [ ] Локальный `origin` всё ещё указывает на старый
       `git@github.com:Sa1ivan/Nexus.git`; GitHub перенаправляет push в
       `Sa1ivan/Nexus.UI`.
-- [ ] В `Nexus.BC` пока реализован только bootstrap; typed runtime foundation,
-      cloud persistence и настоящее public hosting ещё отсутствуют.
-- [x] P1-02 Step 1 — 23 RED configuration/health/CORS tests добавлены и падают
-      по ожидаемым причинам.
-- [ ] P1-02 Step 2 — typed configuration boundary и credentialed CORS — следующий
-      implementation step после применимых architecture follow-up.
+- [ ] В `Nexus.BC` реализованы bootstrap, typed runtime configuration и exact
+      credentialed CORS; cloud persistence и настоящее public hosting ещё отсутствуют.
+- [x] P1-02 Step 1 — исходные 23 RED configuration/health/CORS tests добавлены;
+      первоначальные ожидаемые failures подтверждены до реализации.
+- [x] P1-02 Step 2 — typed configuration boundary и credentialed CORS — реализован,
+      проверен и закоммичен как `6f47dc6`.
+- [ ] P1-02 Step 3 — единый безопасный API error envelope — следующий шаг.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Закрыть применимые P1-01 architecture follow-up, затем выполнить P1-02 Step 2:
-> единую typed configuration boundary и точный credentialed CORS contract.**
+> **Выполнить P1-02 Step 3: единый API error envelope с request ID, точным status/code
+> mapping и без утечки stack traces или secret-bearing details.**
 
-RED подтверждён. Продолжать P1-02 по порядку: typed configuration, stable API
-errors, Prisma/transactions/audit, затем общий verification gate.
+Configuration/CORS foundation подтверждён. Продолжать P1-02 по порядку: stable API
+errors, Prisma/transactions/audit и health, затем общий verification gate.
 
 ## 2. Приоритет источников
 
@@ -151,9 +151,9 @@ Product recommendation:
 
 - frontend foundation: около `7/10`;
 - P1 architecture/contracts: review закрыт, plan готов к пошаговому исполнению;
-- реализованный backend: P1-01 bootstrap/CI/architecture gate, без runtime
-  foundation и business capabilities;
-- production/cloud readiness: около `1/10`.
+- реализованный backend: P1-01 bootstrap/CI/architecture gate плюс typed runtime
+  configuration и CORS, без persistence и business capabilities;
+- production/cloud readiness: около `2/10`.
 
 Главный вывод снимка 30 июля был закрыт P1-00:
 
@@ -188,6 +188,8 @@ P1-01 в отдельном `/Users/dkhadzhiev/Projects/Nexus.BC`:
 
 P1-02 Step 1, 4 августа:
 
+- frontend commit `7753ca3 docs: advance Cloud Alpha runtime foundation`;
+- backend commit `a24deac test: define runtime foundation contracts`;
 - добавлен `test/e2e/health.e2e-spec.ts` с 23 focused RED cases;
 - покрыты обязательные non-test env groups, independent liveness, unavailable-DB
   readiness и exact credentialed CORS allow/deny/preflight contract;
@@ -198,6 +200,20 @@ P1-02 Step 1, 4 августа:
   guard, unsupported method/header не могут отражаться;
 - новый test file проходит ESLint и Prettier;
 - detailed Cloud Alpha plan отмечает Step 1 `[x]` и содержит RED evidence.
+
+P1-02 Step 2, 4 августа:
+
+- backend commit `6f47dc6 feat: add typed runtime configuration`;
+- `APP_CONFIG` валидирует полный runtime contract; только `loadAppConfig()` читает
+  `process.env`, а architecture gate ловит bracket, `globalThis` и `node:process`
+  bypass-формы;
+- production принимает только `https://app.nexus.site`, HTTPS privacy URL,
+  32-character JWT secrets, exact 32-byte outbox key и canonical versioned HMAC keys;
+- credentialed CORS использует exact allowlist, fixed methods/headers, выполняет
+  preflight до guards, возвращает `CORS_ORIGIN_DENIED` и всегда ставит `Vary: Origin`;
+- review после исправлений: Critical `0`, Important `0`, Minor `0`, verdict `Ready`;
+- runtime suite расширен до 37 тестов: `34/37` проходят, а три ожидаемых RED относятся
+  только к ещё отсутствующим liveness/readiness routes.
 
 ### Изменения 30 июля
 
@@ -336,23 +352,31 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Backend baseline review 4 августа 2026:
+Backend P1-02 Step 2 review 4 августа 2026 на Node `v24.19.0`:
 
 ```bash
-npm run verify
+npm run lint
+npm run architecture
+npm run test
+npm run build
+npm run format:check
 npm audit --omit=dev --audit-level=moderate
 ```
 
-Результат на Node `v24.19.0`:
-
 - lint: passed;
-- architecture: `4/4`;
+- architecture: `6/6`;
 - unit: no source tests yet, command passed with `--passWithNoTests`;
-- E2E: `1/1`;
+- baseline E2E: `1/1`;
+- runtime configuration/CORS/health E2E: `34/37`; единственные RED — missing
+  liveness route, missing readiness route и actual allowed-origin request к missing
+  liveness route;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
-- worktree после gate чистый.
+- backend worktree после commit `6f47dc6` чистый.
+
+Полный `npm run verify` намеренно остаётся RED до реализации health endpoints: это
+следующие два заранее сохранённых acceptance expectations, а не регрессия Step 2.
 
 Последний полный frontend snapshot остаётся от 30 июля 2026. Команда:
 
@@ -390,11 +414,10 @@ Frontend checkout:
 ```text
 path: /Users/dkhadzhiev/Projects/Nexus
 branch: develop
-HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
+snapshot parent before the final handoff commit: 7753ca3
 origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
-tracked modifications:
-  docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md
-untracked: SESSION_HANDOFF.md
+local committed work after origin: P1-02 plan/handoff updates
+worktree at handoff: clean
 ```
 
 Remote facts:
@@ -406,8 +429,10 @@ Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
 backend: git@github.com:Sa1ivan/Nexus.BC.git
 backend path: /Users/dkhadzhiev/Projects/Nexus.BC
 backend branch: develop
-backend HEAD/origin/develop: 64285c7
-backend untracked: test/e2e/health.e2e-spec.ts
+backend HEAD: 6f47dc6
+backend origin/develop: 64285c7
+backend local P1-02 commits: a24deac, 6f47dc6
+backend worktree: clean
 ```
 
 Без отдельной просьбы не:
@@ -443,11 +468,11 @@ P1-01 follow-up review 4 августа: `Critical: 0`, P1-02 Step 1 разре�
 
 ### P0 — блокирует безопасный Cloud Alpha
 
-#### R1. Backend runtime ещё отсутствует
+#### R1. Backend runtime реализован частично
 
-NestJS application scaffold и CI существуют. Prisma schema, migrations, runtime
-configuration, business endpoints, deployment image и staging environment ещё не
-реализованы.
+NestJS application scaffold, CI, typed runtime configuration и CORS существуют.
+Prisma schema, migrations, health/business endpoints, deployment image и staging
+environment ещё не реализованы.
 
 #### R2. Module rules противоречат транзакциям
 
@@ -684,9 +709,8 @@ review 4 августа подтвердил `npm run verify` и production audi
 ### P1-02 — platform and database foundation
 
 - [x] RED configuration/health/CORS tests: `23/23` ожидаемо RED.
-- [ ] **Следующий implementation step:** typed environment validation и exact
-      credentialed CORS.
-- [ ] Stable API error envelope.
+- [x] Typed environment validation и exact credentialed CORS (`6f47dc6`).
+- [ ] **Следующий implementation step:** stable API error envelope.
 - [ ] Request IDs и safe structured logs.
 - [ ] Liveness/readiness.
 - [ ] Prisma lifecycle.
@@ -890,27 +914,29 @@ npm audit --omit=dev --audit-level=moderate
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
 4. Открыть P1-02 в detailed Cloud Alpha plan.
-5. Сверить сохранённое Step 1 RED evidence: 23 теста должны падать из-за
-   отсутствующей runtime foundation, а не из-за ошибок тестового кода.
-6. Закрыть применимые P1-01 architecture follow-up из раздела 9.
-7. Реализовать P1-02 Step 2 с TDD, затем идти строго по Step 3 → Step 5.
+5. Сверить Step 2 evidence: lint/architecture/unit/build/format/audit и baseline E2E
+   зелёные; runtime suite `34/37`, три ожидаемых RED вызваны только отсутствующими
+   health routes.
+6. Реализовать P1-02 Step 3 с TDD: единый API error envelope
+   `{ error: { code, message, requestId, details? } }` для
+   validation/auth/authorization/not-found/conflict/rate-limit/500.
+7. Затем идти строго по Step 4 → Step 5, не перескакивая к business modules.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи текущий
-> открытый шаг P1-02. Не перескакивай к Prisma/business endpoints до подтверждённого
-> RED configuration/health/CORS contract и закрытия применимых architecture
-> follow-up из review 4 августа.
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-02 Step 3:
+> stable API errors и request ID с TDD. Сохрани три ожидаемых health RED до
+> соответствующего implementation шага и не переходи к business modules.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
 - `Nexus.UI` и `Nexus.BC` branch/upstream сверены после `git fetch` 4 августа.
-- P1-01 backend baseline подтверждён свежими `npm run verify` и production audit
-  на Node 24; независимый review не нашёл Critical findings.
+- P1-02 Step 2 подтверждён scoped gate и production audit на Node 24; повторный
+  независимый review после исправлений не нашёл Critical/Important/Minor findings.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
-- Backend risk register основан на review текущего plan/schema/contracts, а не на
-  выполненном backend implementation.
+- Backend risk register основан на review plan/contracts и уже частично подтверждён
+  typed configuration/CORS implementation; persistence/business пункты ещё не реализованы.
