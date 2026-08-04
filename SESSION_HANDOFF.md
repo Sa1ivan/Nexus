@@ -29,15 +29,19 @@
       первоначальные ожидаемые failures подтверждены до реализации.
 - [x] P1-02 Step 2 — typed configuration boundary и credentialed CORS — реализован,
       проверен и закоммичен как `6f47dc6`.
-- [ ] P1-02 Step 3 — единый безопасный API error envelope — следующий шаг.
+- [x] P1-02 Step 3 — единый безопасный API error envelope и request ID — реализован,
+      проверен и закоммичен как `991e6c3`.
+- [ ] P1-02 Step 4 — Prisma lifecycle, opaque transactions и append-only audit —
+      следующий шаг; health expectations также остаются открыты до общего Step 5 gate.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Выполнить P1-02 Step 3: единый API error envelope с request ID, точным status/code
-> mapping и без утечки stack traces или secret-bearing details.**
+> **Выполнить P1-02 Step 4: Prisma lifecycle, opaque transaction kernel,
+> append-only gap-free audit sequence и foundation migration; закрыть оставшиеся
+> health expectations до общего Step 5 gate.**
 
-Configuration/CORS foundation подтверждён. Продолжать P1-02 по порядку: stable API
-errors, Prisma/transactions/audit и health, затем общий verification gate.
+Configuration/CORS и stable API errors подтверждены. Продолжать P1-02 по порядку:
+Prisma/transactions/audit и health, затем общий verification gate.
 
 ## 2. Приоритет источников
 
@@ -152,7 +156,7 @@ Product recommendation:
 - frontend foundation: около `7/10`;
 - P1 architecture/contracts: review закрыт, plan готов к пошаговому исполнению;
 - реализованный backend: P1-01 bootstrap/CI/architecture gate плюс typed runtime
-  configuration и CORS, без persistence и business capabilities;
+  configuration, CORS и stable API errors, без persistence и business capabilities;
 - production/cloud readiness: около `2/10`.
 
 Главный вывод снимка 30 июля был закрыт P1-00:
@@ -214,6 +218,21 @@ P1-02 Step 2, 4 августа:
 - review после исправлений: Critical `0`, Important `0`, Minor `0`, verdict `Ready`;
 - runtime suite расширен до 37 тестов: `34/37` проходят, а три ожидаемых RED относятся
   только к ещё отсутствующим liveness/readiness routes.
+
+P1-02 Step 3, 4 августа:
+
+- backend commit `991e6c3 feat: standardize API error responses`;
+- server-owned UUID возвращается в `X-Request-ID` и каждом error envelope;
+- validation/authentication/authorization/not-found/conflict/rate-limit/500 сведены к
+  одному `{ error: { code, message, requestId, details? } }` contract;
+- standard Nest/provider/validator payloads, stacks и все 5xx details не выходят наружу;
+- explicit domain code/details разрешены только через trusted 4xx factory с runtime
+  validation и flat primitive public details;
+- CORS denial получает тот же envelope до Nest exception filter;
+- focused E2E: `13/13`, включая malformed JSON, cyclic/untrusted exceptions,
+  non-string JavaScript calls и попытки утечки explicit 500;
+- review после трёх security hardening cycles: Critical `0`, Important `0`, Minor `0`,
+  verdict `Ready`.
 
 ### Изменения 30 июля
 
@@ -352,7 +371,7 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Backend P1-02 Step 2 review 4 августа 2026 на Node `v24.19.0`:
+Backend P1-02 Step 3 review 4 августа 2026 на Node `v24.19.0`:
 
 ```bash
 npm run lint
@@ -367,16 +386,17 @@ npm audit --omit=dev --audit-level=moderate
 - architecture: `6/6`;
 - unit: no source tests yet, command passed with `--passWithNoTests`;
 - baseline E2E: `1/1`;
+- API error E2E: `13/13`;
 - runtime configuration/CORS/health E2E: `34/37`; единственные RED — missing
   liveness route, missing readiness route и actual allowed-origin request к missing
   liveness route;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
-- backend worktree после commit `6f47dc6` чистый.
+- backend worktree после commit `991e6c3` чистый.
 
 Полный `npm run verify` намеренно остаётся RED до реализации health endpoints: это
-следующие два заранее сохранённых acceptance expectations, а не регрессия Step 2.
+два заранее сохранённых endpoint expectations в трёх тестах, а не регрессия Step 3.
 
 Последний полный frontend snapshot остаётся от 30 июля 2026. Команда:
 
@@ -414,7 +434,7 @@ Frontend checkout:
 ```text
 path: /Users/dkhadzhiev/Projects/Nexus
 branch: develop
-snapshot parent before the final handoff commit: 7753ca3
+snapshot parent before the final handoff commit: 4f6c84a
 origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
 local committed work after origin: P1-02 plan/handoff updates
 worktree at handoff: clean
@@ -429,9 +449,9 @@ Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
 backend: git@github.com:Sa1ivan/Nexus.BC.git
 backend path: /Users/dkhadzhiev/Projects/Nexus.BC
 backend branch: develop
-backend HEAD: 6f47dc6
+backend HEAD: 991e6c3
 backend origin/develop: 64285c7
-backend local P1-02 commits: a24deac, 6f47dc6
+backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3
 backend worktree: clean
 ```
 
@@ -470,9 +490,9 @@ P1-01 follow-up review 4 августа: `Critical: 0`, P1-02 Step 1 разре�
 
 #### R1. Backend runtime реализован частично
 
-NestJS application scaffold, CI, typed runtime configuration и CORS существуют.
-Prisma schema, migrations, health/business endpoints, deployment image и staging
-environment ещё не реализованы.
+NestJS application scaffold, CI, typed runtime configuration, CORS и stable API error
+contract существуют. Prisma schema, migrations, health/business endpoints, deployment
+image и staging environment ещё не реализованы.
 
 #### R2. Module rules противоречат транзакциям
 
@@ -710,10 +730,10 @@ review 4 августа подтвердил `npm run verify` и production audi
 
 - [x] RED configuration/health/CORS tests: `23/23` ожидаемо RED.
 - [x] Typed environment validation и exact credentialed CORS (`6f47dc6`).
-- [ ] **Следующий implementation step:** stable API error envelope.
-- [ ] Request IDs и safe structured logs.
+- [x] Stable API error envelope и request IDs (`991e6c3`).
+- [ ] Safe structured logs.
 - [ ] Liveness/readiness.
-- [ ] Prisma lifecycle.
+- [ ] **Следующий implementation step:** Prisma lifecycle, opaque transactions и audit.
 - [ ] PostgreSQL schema и deployable migration.
 - [ ] Expand/contract migration policy.
 - [ ] Idempotency storage primitive.
@@ -914,27 +934,27 @@ npm audit --omit=dev --audit-level=moderate
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
 4. Открыть P1-02 в detailed Cloud Alpha plan.
-5. Сверить Step 2 evidence: lint/architecture/unit/build/format/audit и baseline E2E
-   зелёные; runtime suite `34/37`, три ожидаемых RED вызваны только отсутствующими
-   health routes.
-6. Реализовать P1-02 Step 3 с TDD: единый API error envelope
-   `{ error: { code, message, requestId, details? } }` для
-   validation/auth/authorization/not-found/conflict/rate-limit/500.
-7. Затем идти строго по Step 4 → Step 5, не перескакивая к business modules.
+5. Сверить Step 3 evidence: error E2E `13/13`, baseline `1/1`,
+   lint/architecture/unit/build/format/audit зелёные; runtime suite `34/37`, три
+   ожидаемых RED вызваны только отсутствующими health routes.
+6. Реализовать P1-02 Step 4 с TDD: Prisma lifecycle, opaque transaction context,
+   foundation migration и append-only gap-free audit sequence.
+7. Закрыть liveness/readiness expectations до Step 5 и не переходить к business
+   modules до полного P1-02 gate.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-02 Step 3:
-> stable API errors и request ID с TDD. Сохрани три ожидаемых health RED до
-> соответствующего implementation шага и не переходи к business modules.
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-02 Step 4:
+> Prisma lifecycle, opaque transactions и append-only audit с TDD. Закрой сохранённые
+> health RED до общего Step 5 gate и не переходи к business modules.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
 - `Nexus.UI` и `Nexus.BC` branch/upstream сверены после `git fetch` 4 августа.
-- P1-02 Step 2 подтверждён scoped gate и production audit на Node 24; повторный
-  независимый review после исправлений не нашёл Critical/Important/Minor findings.
+- P1-02 Step 3 подтверждён focused error E2E, scoped gate и production audit на Node
+  24; независимый review после security fixes не нашёл Critical/Important/Minor findings.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.

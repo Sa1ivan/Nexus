@@ -1503,12 +1503,25 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   liveness route and therefore receives 404. Those route expectations remain assigned to
   the later liveness/readiness work.
 
-- [ ] **Step 3: Standardize API errors**
+- [x] **Step 3: Standardize API errors**
 
   All non-2xx responses use `{ error: { code, message, requestId, details? } }`. Map
   validation 400, authentication 401, authorization 403, missing resource 404,
   idempotency/version conflicts 409, rate limits 429, and unexpected errors 500 without
   stack traces or secret-bearing details.
+
+  **Completion evidence (2026-08-04):** request ID middleware assigns a server-owned
+  UUID and returns it in `X-Request-ID` and every error body. The global filter maps the
+  required status classes to one envelope, hides standard Nest/provider/validator
+  payloads, stacks, and all 5xx details, and permits explicit domain codes/details only
+  through a validated trusted 4xx factory with flat primitive public details. CORS
+  denials use the same envelope before Nest filters. TDD captured `13/13` focused E2E,
+  including malformed JSON, cyclic/untrusted exceptions, non-string JavaScript calls,
+  and explicit 500 leakage attempts. Independent review after fixes reported Critical
+  `0`, Important `0`, Minor `0`, verdict `Ready`. On Node `v24.19.0`, lint,
+  architecture (`6/6`), unit command, baseline E2E (`1/1`), build, format, and production
+  audit pass. The existing runtime suite remains `34/37`; only the three previously
+  recorded missing-health-route expectations are RED.
 
 - [ ] **Step 4: Add Prisma lifecycle, opaque transactions, and append-only audit**
 
