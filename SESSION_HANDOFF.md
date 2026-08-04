@@ -3,8 +3,8 @@
 Актуально на 4 августа 2026 года.
 
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
-30 июля: P1-00 и P1-01 уже завершены, отдельный backend repository создан, а
-активная работа перешла к P1-02.
+30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
+следующая активная работа начинается с P1-03.
 
 ## 1. Executive status
 
@@ -18,30 +18,32 @@
 - [x] Последний полный frontend gate зелёный.
 - [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
 - [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
-- [x] `SESSION_HANDOFF.md` теперь отслеживается Git и обновлён после P1-02 Step 2.
-- [x] Локальные commits P1-02 Step 1 и Step 2 созданы в обоих repositories.
+- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после полного P1-02 gate.
+- [x] Локальные commits всех шагов P1-02 созданы в обоих repositories.
 - [ ] Локальный `origin` всё ещё указывает на старый
       `git@github.com:Sa1ivan/Nexus.git`; GitHub перенаправляет push в
       `Sa1ivan/Nexus.UI`.
-- [ ] В `Nexus.BC` реализованы bootstrap, typed runtime configuration и exact
-      credentialed CORS; cloud persistence и настоящее public hosting ещё отсутствуют.
+- [x] В `Nexus.BC` реализованы bootstrap, typed runtime configuration, exact
+      credentialed CORS, safe API errors, health, Prisma lifecycle, transaction kernel
+      и foundation audit persistence; business persistence и public hosting ещё
+      отсутствуют.
 - [x] P1-02 Step 1 — исходные 23 RED configuration/health/CORS tests добавлены;
       первоначальные ожидаемые failures подтверждены до реализации.
 - [x] P1-02 Step 2 — typed configuration boundary и credentialed CORS — реализован,
       проверен и закоммичен как `6f47dc6`.
 - [x] P1-02 Step 3 — единый безопасный API error envelope и request ID — реализован,
       проверен и закоммичен как `991e6c3`.
-- [ ] P1-02 Step 4 — Prisma lifecycle, opaque transactions и append-only audit —
-      следующий шаг; health expectations также остаются открыты до общего Step 5 gate.
+- [x] P1-02 Step 4 — Prisma lifecycle, opaque transactions, health и append-only audit —
+      реализован, проверен и закоммичен как `914787e`.
+- [x] P1-02 Step 5 — fresh-database migration и полный verification gate — закрыт.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Выполнить P1-02 Step 4: Prisma lifecycle, opaque transaction kernel,
-> append-only gap-free audit sequence и foundation migration; закрыть оставшиеся
-> health expectations до общего Step 5 gate.**
+> **Начать P1-03 Step 1: добавить identity/tenancy schema для User, Workspace,
+> Membership, rotating RefreshSession и hashed single-use verification/reset tokens.**
 
-Configuration/CORS и stable API errors подтверждены. Продолжать P1-02 по порядку:
-Prisma/transactions/audit и health, затем общий verification gate.
+P1-02 подтверждён миграцией с чистой PostgreSQL database, полным gate и независимым
+review. Продолжать detailed Cloud Alpha plan с P1-03 строго по шагам.
 
 ## 2. Приоритет источников
 
@@ -54,8 +56,8 @@ Prisma/transactions/audit и health, затем общий verification gate.
 5. `ROADMAP.md`.
 
 Важно: detailed Cloud Alpha plan прошёл P1-00 reconciliation и follow-up review.
-Checkbox state в нём evidence-bearing: P1-00 и P1-01 закрыты, P1-02 и следующие
-задачи выполняются строго по шагам.
+Checkbox state в нём evidence-bearing: P1-00–P1-02 закрыты, P1-03 и следующие задачи
+выполняются строго по шагам.
 
 Основные документы:
 
@@ -234,6 +236,27 @@ P1-02 Step 3, 4 августа:
 - review после трёх security hardening cycles: Critical `0`, Important `0`, Minor `0`,
   verdict `Ready`.
 
+P1-02 Steps 4–5, 4 августа:
+
+- backend commit `914787e feat: add backend runtime foundation`;
+- Prisma 7.9.1 PostgreSQL adapter, owned lifecycle и bounded readiness probe добавлены;
+- opaque `TransactionContext` выдаётся и раскрывается только restricted database
+  capability внутри активной транзакции;
+- foundation migration создаёт singleton `AuditSequence` и append-only `AuditEvent`;
+  database triggers запрещают обычные direct writes, mutations и truncation;
+- transaction-aware audit writer проверяет exact metadata/resource UUID, блокирует
+  allocator row и сохраняет gap-free commit order с reuse номера после rollback;
+- focused audit E2E `12/12`, readiness unit `3/3`, health/config/CORS `37/37`;
+- fresh PostgreSQL database принимает migration from empty, а повторный
+  `prisma migrate dev --name foundation` подтверждает отсутствие drift;
+- полный backend gate: architecture `8/8`, unit `3/3`, четыре E2E suites `63/63`,
+  lint/build/format зелёные, production audit — `0 vulnerabilities`;
+- независимый follow-up review: Critical `0`, Important `0`, Minor `0`, verdict
+  `Ready`;
+- application trust boundary зафиксирован явно: обычные same-role Prisma operations
+  защищены triggers/capability, но защита от malicious raw SQL под скомпрометированным
+  DB role требует будущего разделения migration/runtime roles.
+
 ### Изменения 30 июля
 
 ### `3dd44d5 fix: resolve builder follow-ups and bundle landing images`
@@ -371,32 +394,33 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Backend P1-02 Step 3 review 4 августа 2026 на Node `v24.19.0`:
+Backend P1-02 final gate 4 августа 2026 на Node `v24.19.0` и fresh PostgreSQL
+database `nexus_step4_review`:
 
 ```bash
-npm run lint
-npm run architecture
-npm run test
-npm run build
-npm run format:check
+npx prisma format
+npx prisma migrate dev --name foundation
+npm run verify
 npm audit --omit=dev --audit-level=moderate
 ```
 
 - lint: passed;
-- architecture: `6/6`;
-- unit: no source tests yet, command passed with `--passWithNoTests`;
+- architecture: `8/8`;
+- readiness unit: `3/3`;
 - baseline E2E: `1/1`;
 - API error E2E: `13/13`;
-- runtime configuration/CORS/health E2E: `34/37`; единственные RED — missing
-  liveness route, missing readiness route и actual allowed-origin request к missing
-  liveness route;
+- runtime configuration/CORS/health E2E: `37/37`;
+- audit/transaction/database-protection E2E: `12/12`;
+- all E2E: `63/63` в `4/4` suites;
+- foundation migration applied from empty; schema повторно подтверждена in sync;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
-- backend worktree после commit `991e6c3` чистый.
+- independent review: Critical `0`, Important `0`, Minor `0`, verdict `Ready`;
+- backend worktree после commit `914787e` чистый.
 
-Полный `npm run verify` намеренно остаётся RED до реализации health endpoints: это
-два заранее сохранённых endpoint expectations в трёх тестах, а не регрессия Step 3.
+После обновления plan/handoff текущий frontend source-contract gate проходит `42/42`,
+а Prettier подтверждает оба изменённых Markdown-файла.
 
 Последний полный frontend snapshot остаётся от 30 июля 2026. Команда:
 
@@ -434,9 +458,9 @@ Frontend checkout:
 ```text
 path: /Users/dkhadzhiev/Projects/Nexus
 branch: develop
-snapshot parent before the final handoff commit: 4f6c84a
+snapshot parent before the final handoff commit: de2c21b
 origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
-local committed work after origin: P1-02 plan/handoff updates
+local committed work after origin: P1-02 plan/handoff updates through the final gate
 worktree at handoff: clean
 ```
 
@@ -449,9 +473,9 @@ Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
 backend: git@github.com:Sa1ivan/Nexus.BC.git
 backend path: /Users/dkhadzhiev/Projects/Nexus.BC
 backend branch: develop
-backend HEAD: 991e6c3
+backend HEAD: 914787e
 backend origin/develop: 64285c7
-backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3
+backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3, 914787e
 backend worktree: clean
 ```
 
@@ -472,17 +496,14 @@ git ls-remote git@github.com:Sa1ivan/Nexus.UI.git HEAD
 ## 9. P1 blockers: обязательный risk register
 
 Статус 4 августа: R2–R10 согласованы на contract/plan level в P1-00, но должны
-быть доказаны реализацией и тестами соответствующих P1-02–P1-10. R1 частично
-закрыт bootstrap-уровнем: repository и architecture gate существуют, runtime
-foundation начинается в P1-02.
+быть доказаны реализацией и тестами соответствующих P1-03–P1-10. R1 закрыт на
+уровне P1-02 runtime/database foundation; business capabilities, deployment image и
+staging остаются последующими gates.
 
-P1-01 follow-up review 4 августа: `Critical: 0`, P1-02 Step 1 разрешён. До
-соответствующих следующих implementation gates закрыть:
+P1-01 follow-up review 4 августа: `Critical: 0`; generated Prisma tracing и health
+delegation закрыты в P1-02. До соответствующих следующих implementation gates закрыть:
 
 - запретить прямой `api -> domain` import и доказать negative fixture;
-- исключить generated subtree `src/generated/prisma/**` из consumer restrictions,
-  сохранив Prisma-origin tracing для его consumers;
-- определить executable delegation rule для `src/shared/health/health.controller.ts`;
 - ограничить recovery AWS adapter recovery-only surface;
 - до появления `test/contract/**` включить contract tests в verification topology.
 
@@ -490,9 +511,10 @@ P1-01 follow-up review 4 августа: `Critical: 0`, P1-02 Step 1 разре�
 
 #### R1. Backend runtime реализован частично
 
-NestJS application scaffold, CI, typed runtime configuration, CORS и stable API error
-contract существуют. Prisma schema, migrations, health/business endpoints, deployment
-image и staging environment ещё не реализованы.
+NestJS application scaffold, CI, typed runtime configuration, CORS, stable API errors,
+health, Prisma lifecycle, transaction kernel и foundation audit persistence существуют.
+Identity/tenancy и другие business schema/endpoints, deployment image и staging
+environment ещё не реализованы.
 
 #### R2. Module rules противоречат транзакциям
 
@@ -732,11 +754,17 @@ review 4 августа подтвердил `npm run verify` и production audi
 - [x] Typed environment validation и exact credentialed CORS (`6f47dc6`).
 - [x] Stable API error envelope и request IDs (`991e6c3`).
 - [ ] Safe structured logs.
-- [ ] Liveness/readiness.
-- [ ] **Следующий implementation step:** Prisma lifecycle, opaque transactions и audit.
-- [ ] PostgreSQL schema и deployable migration.
+- [x] Liveness/readiness.
+- [x] Prisma lifecycle, opaque transactions и audit (`914787e`).
+- [x] PostgreSQL foundation schema и deployable migration.
 - [ ] Expand/contract migration policy.
 - [ ] Idempotency storage primitive.
+- [x] Detailed P1-02 task и полный verification gate завершены.
+
+Три оставшихся широких program checklist пункта реализуются в назначенных detailed
+tasks: structured operational logs/deployment в P1-09, expand/contract rollout в
+schema-changing tasks, idempotency storage в P1-04. Они не блокируют переход к
+P1-03 согласно detailed Cloud Alpha plan.
 
 ### P1-03 — identity and tenancy
 
@@ -933,30 +961,31 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Открыть P1-02 в detailed Cloud Alpha plan.
-5. Сверить Step 3 evidence: error E2E `13/13`, baseline `1/1`,
-   lint/architecture/unit/build/format/audit зелёные; runtime suite `34/37`, три
-   ожидаемых RED вызваны только отсутствующими health routes.
-6. Реализовать P1-02 Step 4 с TDD: Prisma lifecycle, opaque transaction context,
-   foundation migration и append-only gap-free audit sequence.
-7. Закрыть liveness/readiness expectations до Step 5 и не переходить к business
-   modules до полного P1-02 gate.
+4. Открыть P1-03 в detailed Cloud Alpha plan.
+5. Сверить P1-02 final evidence: backend `914787e`, architecture `8/8`, unit `3/3`,
+   E2E `63/63`, migration from empty и production audit `0 vulnerabilities`.
+6. Начать P1-03 Step 1 по TDD: добавить identity/tenancy schema для `User`,
+   `Workspace`, `Membership`, rotating `RefreshSession` и hashed single-use
+   verification/reset token records.
+7. Не переходить к auth use cases до проверки schema/migration contracts и не хранить
+   raw authentication secrets.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-02 Step 4:
-> Prisma lifecycle, opaque transactions и append-only audit с TDD. Закрой сохранённые
-> health RED до общего Step 5 gate и не переходи к business modules.
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Начни P1-03 Step 1 с TDD:
+> identity/tenancy schema для User, Workspace, Membership, rotating RefreshSession и
+> hashed single-use verification/reset tokens. Не храни raw authentication secrets.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
 - `Nexus.UI` и `Nexus.BC` branch/upstream сверены после `git fetch` 4 августа.
-- P1-02 Step 3 подтверждён focused error E2E, scoped gate и production audit на Node
-  24; независимый review после security fixes не нашёл Critical/Important/Minor findings.
+- P1-02 Steps 4–5 подтверждены fresh-database migration, focused и full gates на Node
+  24; независимый review после fixes не нашёл Critical/Important/Minor findings.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
-- Backend risk register основан на review plan/contracts и уже частично подтверждён
-  typed configuration/CORS implementation; persistence/business пункты ещё не реализованы.
+- Backend risk register основан на review plan/contracts и подтверждён P1-02 runtime
+  foundation; identity/tenancy и последующие business/deployment пункты ещё не
+  реализованы.

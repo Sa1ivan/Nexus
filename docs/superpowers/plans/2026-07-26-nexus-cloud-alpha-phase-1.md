@@ -1523,7 +1523,7 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   audit pass. The existing runtime suite remains `34/37`; only the three previously
   recorded missing-health-route expectations are RED.
 
-- [ ] **Step 4: Add Prisma lifecycle, opaque transactions, and append-only audit**
+- [x] **Step 4: Add Prisma lifecycle, opaque transactions, and append-only audit**
 
   `PrismaService` owns connect/disconnect and the Prisma 7 PostgreSQL driver adapter.
   `TransactionRunner` is the only creator/unwrapper of `TransactionContext`. Apply the
@@ -1539,7 +1539,22 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   }
   ```
 
-- [ ] **Step 5: Verify and commit**
+  **Completion evidence (2026-08-04):** Prisma 7.9.1 uses the PostgreSQL driver
+  adapter, owns bounded connect/disconnect/readiness behavior, and generates only into
+  `src/generated/prisma`. `TransactionContext` is opaque and can be unwrapped only by
+  the restricted database capability while it is active. The deployable foundation
+  migration creates the singleton allocator and `AuditEvent`, and database triggers
+  reject ordinary direct inserts, mutations, and truncation outside the
+  transaction-aware writer. Focused audit E2E pass `12/12`, including unique monotonic
+  numbers, rollback reuse, concurrent gap-free commit order, metadata/resource UUID
+  validation, singleton protection, and append-only enforcement. Readiness unit tests
+  pass `3/3`, and the previously RED health suite is now fully green at `37/37`.
+  Independent follow-up review reported Critical `0`, Important `0`, Minor `0`, verdict
+  `Ready`. Deliberate raw SQL by the same PostgreSQL role can still set the custom GUC;
+  protection from a compromised database role requires the planned runtime/migration
+  role separation and is outside this application-layer foundation gate.
+
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx prisma format
@@ -1548,6 +1563,13 @@ npm run verify
 git add .env.example prisma prisma.config.ts src/shared test/e2e
 git commit -m "feat: add backend runtime foundation"
 ```
+
+**Completion evidence (2026-08-04):** on Node `v24.19.0` against a fresh PostgreSQL
+database, `prisma format` passes and `prisma migrate dev --name foundation` reports
+the schema already in sync after applying the migration from empty. `npm run verify`
+passes lint, architecture (`8/8`), unit (`3/3`), all four E2E suites (`63/63`), build,
+and format. Production dependency audit reports `0 vulnerabilities`. Backend commit:
+`914787e feat: add backend runtime foundation`.
 
 ## Task P1-03: Identity, workspace tenancy, and transactional auth messages
 
