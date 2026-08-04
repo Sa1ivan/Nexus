@@ -1,0 +1,916 @@
+# Nexus — consolidated session handoff
+
+Актуально на 4 августа 2026 года.
+
+Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
+30 июля: P1-00 и P1-01 уже завершены, отдельный backend repository создан, а
+активная работа перешла к P1-02.
+
+## 1. Executive status
+
+- [x] Nexus.UI является рабочим локальным Angular-конструктором, а не статическим
+      макетом.
+- [x] P0 frontend foundation завершён.
+- [x] Все пять follow-up из прежнего P0-review закрыты.
+- [x] Frontend прошёл дополнительный аудит correctness, architecture и typing.
+- [x] `BuilderStore` и inspector разделены на сфокусированные сервисы и компоненты.
+- [x] В production-коде и шаблонах не осталось explicit `any` и `$any`.
+- [x] Последний полный frontend gate зелёный.
+- [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
+- [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
+- [x] `Nexus.UI/develop` синхронизирован с `origin/develop` на `5a86855`.
+- [x] `Nexus.BC/develop` синхронизирован с `origin/develop` на `64285c7`.
+- [ ] `SESSION_HANDOFF.md` пока untracked и не входит в Git.
+- [ ] Локальный `origin` всё ещё указывает на старый
+      `git@github.com:Sa1ivan/Nexus.git`; GitHub перенаправляет push в
+      `Sa1ivan/Nexus.UI`.
+- [ ] В `Nexus.BC` пока реализован только bootstrap; typed runtime foundation,
+      cloud persistence и настоящее public hosting ещё отсутствуют.
+- [x] P1-02 Step 1 — 23 RED configuration/health/CORS tests добавлены и падают
+      по ожидаемым причинам.
+- [ ] P1-02 Step 2 — typed configuration boundary и credentialed CORS — следующий
+      implementation step после применимых architecture follow-up.
+
+Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
+
+> **Закрыть применимые P1-01 architecture follow-up, затем выполнить P1-02 Step 2:
+> единую typed configuration boundary и точный credentialed CORS contract.**
+
+RED подтверждён. Продолжать P1-02 по порядку: typed configuration, stable API
+errors, Prisma/transactions/audit, затем общий verification gate.
+
+## 2. Приоритет источников
+
+При расхождении документации использовать следующий порядок:
+
+1. текущий код и исполняемые тесты;
+2. этот `SESSION_HANDOFF.md`;
+3. `docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md`;
+4. `docs/superpowers/plans/2026-07-25-nexus-roadmap-execution-program.md`;
+5. `ROADMAP.md`.
+
+Важно: detailed Cloud Alpha plan прошёл P1-00 reconciliation и follow-up review.
+Checkbox state в нём evidence-bearing: P1-00 и P1-01 закрыты, P1-02 и следующие
+задачи выполняются строго по шагам.
+
+Основные документы:
+
+- `ROADMAP.md` — продуктовая стратегия и путь к Nexus 1.0;
+- `docs/superpowers/plans/2026-07-25-nexus-roadmap-execution-program.md` —
+  программа P0–P5;
+- `docs/superpowers/plans/2026-07-25-nexus-foundation-phase-0.md` — выполненный P0;
+- `docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md` — согласованный
+  P1 execution plan;
+- `README.md` — команды и текущее frontend-поведение;
+- `.codex/skills/angular-saas-builder/SKILL.md` — правила Angular-проекта.
+
+## 3. Сводка сегодняшнего анализа
+
+### 3.1 CEO/product view
+
+Сильные стороны:
+
+- уже существует связный путь wizard → builder → save → publish → lead;
+- продукт решает понятную SMB-задачу: быстро собрать сайт услуг и получить заявку;
+- структурированный секционный редактор ограничивает сложность и обеспечивает
+  responsive/accessibility baseline;
+- local-first foundation позволяет проверять UX до затрат на cloud infrastructure;
+- выбранный modular-monolith backend соответствует масштабу Cloud Alpha.
+
+Слабые стороны:
+
+- пользовательская ценность пока ограничена одним browser profile;
+- «публичная» ссылка зависит от `localStorage` и не является публичной;
+- нет аккаунтов, совместной работы, доменов, SSR/SEO, настоящих заявок и аналитики;
+- roadmap шире текущих ресурсов: нельзя параллельно строить CMS, billing, bookings,
+  eCommerce, custom domains и Pro canvas;
+- исходный Cloud Alpha plan требовал согласования frontend contracts, backend
+  modules и data model; это закрыто P1-00 и теперь контролируется executable
+  source-contract tests.
+
+Product recommendation:
+
+1. доказать Cloud Alpha end-to-end;
+2. использовать path-based public URL, а не начинать с wildcard domains;
+3. получить первые реальные публикации и leads;
+4. только по данным выбирать следующую вертикаль;
+5. не строить Wix целиком до подтверждения retention и willingness to pay.
+
+### 3.2 Frontend view
+
+Сегодня frontend стал существенно безопаснее:
+
+- закрыты ошибки autosave, route switching, publish URL и media limits;
+- проведено полное разделение тяжёлых editor-файлов;
+- введён жёсткий lint на TypeScript `any` и Angular template `$any`;
+- named contracts вынесены в module-local `*.types.ts`;
+- inspector разбит на shell, design, behavior и 11 content editors;
+- `BuilderStore` разделён на document facade, `BuilderBlockStore` и stateless
+  mutation services;
+- восстановление после failed navigation сохраняет document, active page,
+  selection и undo/redo history;
+- autosave ждёт competing write, не сохраняет snapshot в другой project и
+  корректно повторяет transient failure;
+- oversized encoded images отклоняются для upload, pasted URL и imported document;
+- mobile builder больше не показывает desktop/mobile switcher;
+- Hero-кнопка получила `filled`, `outline`, `ghost` и отдельный text color.
+
+### 3.3 System architecture view
+
+Положительные решения:
+
+- `ProjectRepository` изолирует UI от текущего local adapter;
+- SiteConfig остаётся versioned document;
+- draft, revision и release уже имеют правильную локальную семантику;
+- optimistic concurrency и immutable release проверены;
+- builder и public renderer разделены;
+- единственным владельцем document/history/dirty остаётся `BuilderStore`;
+- вынесенные mutation services stateless и не создают второй document owner.
+
+Оставшийся frontend architecture debt:
+
+- `BuilderStore.applyBlockMutation()` публичен ради `BuilderBlockStore`; это
+  internal boundary, который теоретически можно обойти произвольным updater;
+- для шести mutation services есть integration/E2E coverage, но нет полного
+  parameterized behavioral contract suite на CRUD/minimum guards/no-op semantics;
+- `BuilderStore` теперь 701 строка — намного лучше исходных 2031, но всё ещё выше
+  желательного диапазона 550–650;
+- cloud integration потребует разделить слишком широкий repository port, а не
+  просто заменить local adapter одним HTTP-классом.
+
+Итог независимого frontend review:
+
+- Critical: `0`;
+- Important: `0`;
+- Minor: два пункта выше;
+- verdict: `APPROVE`.
+
+### 3.4 Backend/cloud view
+
+Оценка текущей готовности:
+
+- frontend foundation: около `7/10`;
+- P1 architecture/contracts: review закрыт, plan готов к пошаговому исполнению;
+- реализованный backend: P1-01 bootstrap/CI/architecture gate, без runtime
+  foundation и business capabilities;
+- production/cloud readiness: около `1/10`.
+
+Главный вывод снимка 30 июля был закрыт P1-00:
+
+> transaction/module ownership, frontend/public API boundaries и idempotency
+> contracts согласованы в detailed plan; активное исполнение начинается с P1-02.
+
+## 4. Выполненные изменения
+
+### После исходного handoff, 31 июля — 2 августа
+
+Frontend/product:
+
+- `c78294e feat(builder): customize block action buttons`;
+- `6e3c4a8 feat(builder): add reactive custom settings controls`;
+- `ae93397 feat(builder): share site chrome across pages`.
+
+P1-00:
+
+- `f99187e docs: reconcile Cloud Alpha architecture contracts`;
+- `5a86855 docs: close Cloud Alpha architecture review`;
+- в `tests/unit.test.mjs` добавлены executable source-contract проверки plan;
+- Gate P1-00 закрыт, все его checklist items отмечены evidence-bearing `[x]`.
+
+P1-01 в отдельном `/Users/dkhadzhiev/Projects/Nexus.BC`:
+
+- `d9fd37a chore: bootstrap Nexus.BC architecture`;
+- `64285c7 test: harden backend architecture boundaries`;
+- NestJS 11/strict TypeScript, Node 24 contract, root modules, CI и adversarial
+  architecture tests;
+- до начала P1-02 backend `develop` был чистым и синхронизированным с
+  `origin/develop`.
+
+P1-02 Step 1, 4 августа:
+
+- добавлен `test/e2e/health.e2e-spec.ts` с 23 focused RED cases;
+- покрыты обязательные non-test env groups, independent liveness, unavailable-DB
+  readiness и exact credentialed CORS allow/deny/preflight contract;
+- Node 24 run подтвердил `23/23` ожидаемых failures: missing configuration пока
+  принимается, health routes возвращают 404, CORS отсутствует;
+- follow-up review усилен: AppModule загружается после изолированной env setup,
+  missing-key failures обязаны назвать ключ, preflight проходит через rejecting
+  guard, unsupported method/header не могут отражаться;
+- новый test file проходит ESLint и Prettier;
+- detailed Cloud Alpha plan отмечает Step 1 `[x]` и содержит RED evidence.
+
+### Изменения 30 июля
+
+### `3dd44d5 fix: resolve builder follow-ups and bundle landing images`
+
+- [x] повтор той же autosave revision после transient failure;
+- [x] flush pending edit при teardown builder;
+- [x] видимые wizard repository/validation errors;
+- [x] очистка stale document при failed explicit route load;
+- [x] page metadata commit по input/change;
+- [x] bundled landing images вместо hotlinks.
+
+### `fd1e763 fix: streamline projects empty-state actions`
+
+- [x] убраны дублирующиеся create actions;
+- [x] empty state стал контекстным;
+- [x] добавлены workspace component tests.
+
+### `e63a842 fix: refine landing wizard design controls`
+
+- [x] расширены design presets и typed custom colors;
+- [x] улучшены wizard/theme editor responsive controls;
+- [x] design settings применяются к реальному renderer;
+- [x] добавлены unit/component/E2E tests.
+
+### `191bf0b refactor(builder): split typed editor responsibilities`
+
+- [x] `BuilderStore`: примерно `2031 → 701` строка;
+- [x] добавлен `BuilderBlockStore`: `444` строки;
+- [x] inspector shell: `65` строк TypeScript и `94` строки HTML;
+- [x] 11 typed content inspector components;
+- [x] design и behavior editors отделены;
+- [x] шесть stateless typed mutation services;
+- [x] все `$any` и explicit `any` удалены;
+- [x] добавлены adjacent module type files;
+- [x] исправлены autosave/project identity/route/history/media edge cases.
+
+Mutation services:
+
+| Service       | Lines |
+| ------------- | ----: |
+| hero/content  |    88 |
+| gallery       |   140 |
+| lead form     |   163 |
+| social proof  |   265 |
+| feature/offer |   311 |
+| site chrome   |   351 |
+
+### `99d168f fix(builder): refine mobile canvas and hero buttons`
+
+- [x] mobile viewport switcher скрыт при `max-width: 900px`;
+- [x] mobile canvas ограничен шириной `390px`;
+- [x] `HeroButtonVariant = filled | outline | ghost`;
+- [x] отдельный control для button text color;
+- [x] codec сохраняет variant и мигрирует старый document в `filled`;
+- [x] renderer применяет реальные variant styles;
+- [x] добавлены contract, codec и Chromium regression tests.
+
+## 5. Фактические возможности Nexus.UI
+
+- Angular 20, standalone, Signals, OnPush, strict TypeScript;
+- Angular Material/CDK для application shell;
+- SCSS и container/media queries;
+- wizard создания лендинга;
+- 11 типов секций;
+- registry с metadata, default factory, variants и clone;
+- content/design/behavior inspectors;
+- desktop/mobile preview на desktop;
+- forced mobile canvas в mobile application layout;
+- hide/duplicate/move/remove blocks;
+- undo/redo до 50 состояний;
+- multipage project model;
+- page title/slug/SEO/social image/noIndex;
+- local Project/Revision/Release storage;
+- async repository boundary;
+- optimistic concurrency;
+- autosave/recovery/manual save;
+- versioned `.nexus.json` import/export;
+- local publish и page-level public routes;
+- local lead submissions и workspace insights;
+- accessibility baseline для navigation, menus, FAQ, lightbox и forms;
+- полный CI gate.
+
+Ограничения:
+
+- public route работает только с данными того же `localStorage`;
+- нет HTTP adapter, accounts, tenancy и RBAC;
+- нет PostgreSQL, object storage и server-side forms;
+- нет SSR/SSG, sitemap, canonical или custom domains;
+- project counters не являются web analytics;
+- local publish нельзя считать production hosting.
+
+## 6. Frontend architecture contract
+
+Сохранять:
+
+- standalone components, без NgModules;
+- Signals-based local state, без NgRx;
+- strict typing, без `any`, `$any` и casts через `unknown` ради обхода типов;
+- named contracts в domain models или adjacent module `*.types.ts`;
+- public renderer отдельно от builder UI;
+- immutable document updates;
+- `BuilderStore` — единственный owner SiteConfig/history/dirty/transient selection;
+- block mutation services — stateless;
+- persistence и transport скрыты за ports;
+- generated HTTP DTO не заменяют frontend domain model;
+- старые schema versions проходят codec normalization.
+
+Текущий editor flow:
+
+```text
+Builder UI
+  -> BuilderStore (document/history/dirty)
+    -> BuilderBlockStore (typed block facade)
+      -> stateless mutation services
+  -> BuilderProjectStore
+    -> ProjectRepository
+      -> LocalProjectRepository
+```
+
+Cloud target должен стать:
+
+```text
+Authenticated editor
+  -> ProjectRepository
+Public preview/form
+  -> PublicSiteRepository
+Lead workspace
+  -> LeadInboxRepository
+Workspace dashboard
+  -> WorkspaceReadRepository
+```
+
+Не создавать один чрезмерно широкий `HttpProjectRepository`, имитирующий все
+local capabilities.
+
+## 7. Последний verification snapshot
+
+Backend baseline review 4 августа 2026:
+
+```bash
+npm run verify
+npm audit --omit=dev --audit-level=moderate
+```
+
+Результат на Node `v24.19.0`:
+
+- lint: passed;
+- architecture: `4/4`;
+- unit: no source tests yet, command passed with `--passWithNoTests`;
+- E2E: `1/1`;
+- production build: passed;
+- format check: passed;
+- production audit: `0 vulnerabilities`;
+- worktree после gate чистый.
+
+Последний полный frontend snapshot остаётся от 30 июля 2026. Команда:
+
+```bash
+CI=1 npm run verify
+```
+
+Результат 30 июля 2026:
+
+- lint: passed;
+- source contracts: `31/31`;
+- Angular/Vitest: `133/133` в `21/21` test files;
+- E2E source contract: `1/1`;
+- Playwright Chromium: `6/6`;
+- production build: passed;
+- format check: passed;
+- initial bundle: около `402.29 kB`;
+- estimated initial transfer: около `106.44 kB`;
+- builder lazy chunk: около `260.00 kB`;
+- output: `dist/nexus.ui`.
+
+Browser scenarios:
+
+1. edit → autosave → publish → public lead;
+2. export/import in clean browser context;
+3. schema v2 recovery → save → publish;
+4. compact wizard/theme editor layout;
+5. mobile canvas without viewport switcher;
+6. Hero button variant and text color.
+
+## 8. Git state
+
+Frontend checkout:
+
+```text
+path: /Users/dkhadzhiev/Projects/Nexus
+branch: develop
+HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
+origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
+tracked modifications:
+  docs/superpowers/plans/2026-07-26-nexus-cloud-alpha-phase-1.md
+untracked: SESSION_HANDOFF.md
+```
+
+Remote facts:
+
+```text
+configured origin: git@github.com:Sa1ivan/Nexus.git
+canonical frontend: git@github.com:Sa1ivan/Nexus.UI.git
+Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
+backend: git@github.com:Sa1ivan/Nexus.BC.git
+backend path: /Users/dkhadzhiev/Projects/Nexus.BC
+backend branch: develop
+backend HEAD/origin/develop: 64285c7
+backend untracked: test/e2e/health.e2e-spec.ts
+```
+
+Без отдельной просьбы не:
+
+- удалять или перезаписывать `SESSION_HANDOFF.md`;
+- выполнять reset/rebase/force-push;
+- создавать backend внутри frontend repository.
+
+Безопасный housekeeping для remote:
+
+```bash
+git remote set-url origin git@github.com:Sa1ivan/Nexus.UI.git
+git remote -v
+git ls-remote git@github.com:Sa1ivan/Nexus.UI.git HEAD
+```
+
+## 9. P1 blockers: обязательный risk register
+
+Статус 4 августа: R2–R10 согласованы на contract/plan level в P1-00, но должны
+быть доказаны реализацией и тестами соответствующих P1-02–P1-10. R1 частично
+закрыт bootstrap-уровнем: repository и architecture gate существуют, runtime
+foundation начинается в P1-02.
+
+P1-01 follow-up review 4 августа: `Critical: 0`, P1-02 Step 1 разрешён. До
+соответствующих следующих implementation gates закрыть:
+
+- запретить прямой `api -> domain` import и доказать negative fixture;
+- исключить generated subtree `src/generated/prisma/**` из consumer restrictions,
+  сохранив Prisma-origin tracing для его consumers;
+- определить executable delegation rule для `src/shared/health/health.controller.ts`;
+- ограничить recovery AWS adapter recovery-only surface;
+- до появления `test/contract/**` включить contract tests в verification topology.
+
+### P0 — блокирует безопасный Cloud Alpha
+
+#### R1. Backend runtime ещё отсутствует
+
+NestJS application scaffold и CI существуют. Prisma schema, migrations, runtime
+configuration, business endpoints, deployment image и staging environment ещё не
+реализованы.
+
+#### R2. Module rules противоречат транзакциям
+
+Старый план одновременно:
+
+- запрещает cross-module writes и foreign keys;
+- требует atomic publish через Project, Revision и Release;
+- требует atomic Lead + Outbox.
+
+Решение:
+
+- объединить projects/revisions/releases/public read в один модуль `sites`;
+- разрешить database foreign keys;
+- запрещать чужие repository writes/imports, а не referential integrity;
+- оформить outbox как transaction-aware platform primitive.
+
+#### R3. Frontend port несовместим с planned public API
+
+Local port использует project ID для public release/lead. Planned API использует
+slug и исключает public/lead methods из backend ProjectRepository.
+
+Решение: разделить frontend ports, вернуть `publicSlug` и абсолютный `publicUrl`.
+
+#### R4. Нет command idempotency
+
+Одного `expectedDraftVersion` недостаточно: после успешного DB commit и потерянного
+HTTP response retry получит ложный conflict или создаст duplicate.
+
+Требуется:
+
+- `operationId`/`Idempotency-Key`;
+- request hash;
+- unique project revision operation;
+- unique publish operation;
+- unique lead `submissionId`;
+- same key + same payload возвращает прежний result;
+- same key + different payload возвращает `409 IDEMPOTENCY_KEY_REUSED`.
+
+#### R5. Active release invariant не защищён БД
+
+Нельзя позволять Project ссылаться на Release другого project/workspace.
+
+Решение: `ActiveRelease(projectId, releaseId)` с composite FK к
+`Release(projectId, id)`.
+
+#### R6. Не определён реальный Alpha hosting flow
+
+Для Alpha использовать:
+
+```text
+https://app.nexus.site/p/:publicSlug
+```
+
+SPA размещается на managed static hosting/CDN, API — `api.nexus.site`.
+Wildcard subdomains, SSR и custom domains оставить P2.
+
+#### R7. Нет bounded SiteConfig contract
+
+Нужны versioned JSON Schema limits:
+
+- serialized document size;
+- max pages/blocks/items;
+- max string length;
+- HTTP parser limit;
+- rejection до transaction.
+
+Начальный cloud draft target: около `1 MiB` после media extraction. Legacy import
+до `5 MiB` должен сначала вынести data URLs в object storage.
+
+#### R8. Media contract недостаточен
+
+Managed media должно ссылаться на `assetId`, а не только URL.
+
+Publish проверяет:
+
+- asset `READY`;
+- workspace/project ownership;
+- MIME и magic bytes;
+- size/dimensions/checksum;
+- asset не deleted;
+- pending/foreign asset не публикуется.
+
+#### R9. Booking payload конфликтует со strict form validation
+
+Frontend добавляет booking context, которого нет в `LeadFormFieldConfig`, а backend
+plan отклоняет unknown fields.
+
+До forms implementation зафиксировать единый submission JSON Schema. Booking
+context разрешать только release, который его объявляет.
+
+#### R10. Outbox model ломает повторные verification/reset
+
+`unique(kind, aggregateId)` допускает только одно событие вида на пользователя.
+Нужны:
+
+- unique event ID;
+- отдельный business idempotency key;
+- lease/`lockedUntil`;
+- max attempts;
+- reclaim после worker crash;
+- dead-letter state и alert;
+- encrypted/short-lived secret payload.
+
+### P1 — до внешних alpha users
+
+- canonical email (`trim + NFC + lowercase`) и DB uniqueness;
+- explicit RBAC matrix и last-owner invariant;
+- `ProjectSummary` pagination без draft/release JSON в list;
+- revision metadata pagination и retention;
+- expand/contract migration policy и previous-schema upgrade CI;
+- metrics/alerts для API, DB, OCC, publish, leads, outbox и R2;
+- minimal append-only audit events без lead contents;
+- privacy notice, consent, retention and owner delete;
+- configurable lead retention;
+- DB + object storage restore drill;
+- explicit Alpha RPO/RTO;
+- rate limit/honeypot/CAPTCHA adapter для public forms.
+
+### P2 — до public beta/monetization
+
+- SSR/public renderer и release-aware CDN caching;
+- custom domain state machine, DNS ownership и TLS lifecycle;
+- domain takeover protection;
+- billing module, entitlements и usage counters;
+- immutable webhook inbox с signature/idempotency/reconciliation;
+- image variants и responsive delivery;
+- full privacy deletion/export;
+- analytics funnel.
+
+## 10. Revised target backend architecture
+
+Один repository и один deployable modular monolith:
+
+```text
+Nexus.UI
+  ├─ authenticated editor/workspace
+  └─ /p/:publicSlug public Alpha renderer
+             │
+             ▼
+Nexus.BC NestJS modular monolith
+  ├─ identity       User, Session, EmailToken
+  ├─ workspaces     Workspace, Membership, authorization
+  ├─ sites          Project, Revision, Release, ActiveRelease, public query
+  ├─ media          MediaAsset, R2 adapter, cleanup
+  ├─ forms          Lead, release validation, abuse protection
+  ├─ notifications  Outbox worker, Resend adapter
+  └─ platform       config, errors, DB, idempotency, health, audit
+             │
+      PostgreSQL + private R2 + Resend
+```
+
+Не использовать в Alpha:
+
+- microservices;
+- Kafka;
+- Kubernetes;
+- отдельный Redis без измеренной необходимости;
+- publish queue;
+- wildcard/custom domains;
+- собственный email/CDN/image-processing provider.
+
+## 11. Minimum cloud data model
+
+- `User`, `RefreshSession`, `EmailToken`;
+- `Workspace`, `Membership`;
+- `Project(workspaceId, publicSlug, draft, schemaVersion, draftVersion)`;
+- `ProjectRevision(projectId, version, operationId, siteConfig)`;
+- `Release(projectId, version, publishOperationId, siteConfig)`;
+- `ActiveRelease(projectId, releaseId)` с composite FK;
+- `IdempotencyRecord(scope, key, requestHash, responseRef, expiresAt)`;
+- `MediaAsset(workspaceId, projectId, objectKey, status, mime, size, checksum,
+width, height)`;
+- `Lead(projectId, releaseId, blockId, submissionId, fields, consent,
+retentionUntil)`;
+- `OutboxEvent(eventId, idempotencyKey, kind, payload, availableAt, lockedUntil,
+attempts, deliveredAt, deadLetterAt)`;
+- `AuditEvent` без PII payload.
+
+Later:
+
+- `Domain`;
+- `Subscription`;
+- `WebhookInbox`;
+- `UsageCounter`.
+
+## 12. Updated execution plan
+
+### P1-00 — reconcile plan and contracts
+
+- [x] Обновить detailed Cloud Alpha plan: `projects + releases + public-sites`
+      заменить единым `sites` ownership.
+- [x] Зафиксировать module/table ownership matrix.
+- [x] Разрешить DB foreign keys и запретить direct foreign repository writes.
+- [x] Описать transaction coordinators для publish и Lead + Outbox.
+- [x] Разделить frontend ports:
+  - `ProjectRepository`;
+  - `PublicSiteRepository`;
+  - `LeadInboxRepository`;
+  - `WorkspaceReadRepository`.
+- [x] Добавить `publicSlug` и absolute `publicUrl` в cloud editor contract.
+- [x] Зафиксировать idempotency contract и error codes.
+- [x] Зафиксировать `ActiveRelease` composite invariant.
+- [x] Зафиксировать bounded SiteConfig JSON Schema.
+- [x] Зафиксировать managed media reference и READY ownership rules.
+- [x] Зафиксировать form/booking submission schema.
+- [x] Исправить Outbox schema/lease/retry semantics.
+- [x] Зафиксировать Alpha URL и static hosting topology.
+- [x] Обновить golden fixtures и acceptance matrix.
+
+Gate P1-00:
+
+- architecture rules не противоречат Prisma schema;
+- publish и lead transaction имеют одного явного coordinator;
+- local/cloud/public frontend ports имеют однозначные consumers;
+- commit-succeeded/response-lost retry описан тестом;
+- public read не может вернуть release другого tenant;
+- ни одного placeholder/TBD в contract-critical sections.
+
+Completion evidence: frontend commits `f99187e` и `5a86855`.
+
+### P1-01 — bootstrap Nexus.BC
+
+- [x] Клонировать `Sa1ivan/Nexus.BC` как sibling `../Nexus.BC`.
+- [x] NestJS 11, Node 24, strict TypeScript.
+- [x] `.nvmrc`, `.env.example`, scripts и lockfile.
+- [x] Root modules по обновлённой ownership matrix.
+- [x] Сначала RED architecture tests.
+- [x] Node 24 CI: lint, architecture, unit, E2E, build, format.
+- [x] Clean `npm ci` и первые reviewable commits.
+
+Completion evidence: backend commits `d9fd37a` и `64285c7`; свежий baseline
+review 4 августа подтвердил `npm run verify` и production audit.
+
+### P1-02 — platform and database foundation
+
+- [x] RED configuration/health/CORS tests: `23/23` ожидаемо RED.
+- [ ] **Следующий implementation step:** typed environment validation и exact
+      credentialed CORS.
+- [ ] Stable API error envelope.
+- [ ] Request IDs и safe structured logs.
+- [ ] Liveness/readiness.
+- [ ] Prisma lifecycle.
+- [ ] PostgreSQL schema и deployable migration.
+- [ ] Expand/contract migration policy.
+- [ ] Idempotency storage primitive.
+
+### P1-03 — identity and tenancy
+
+- [ ] Canonical email.
+- [ ] User/session/token schema.
+- [ ] Register/login/refresh/logout.
+- [ ] Workspace/membership.
+- [ ] Owner/editor matrix.
+- [ ] Last-owner invariant.
+- [ ] Cross-tenant/IDOR E2E.
+
+### P1-04 — cloud drafts and concurrency
+
+- [ ] Bounded SiteConfig v4 validation.
+- [ ] Create/get/save project draft.
+- [ ] Atomic OCC.
+- [ ] Idempotent save/create operations.
+- [ ] Immutable revisions.
+- [ ] ProjectSummary pagination.
+- [ ] Commit-succeeded/response-lost E2E.
+
+### P1-05 — release and public Alpha
+
+- [ ] Release + ActiveRelease schema.
+- [ ] Atomic idempotent publish.
+- [ ] Unpublish/rollback.
+- [ ] Public query only through ActiveRelease.
+- [ ] Static SPA hosting with deep-link support.
+- [ ] `/p/:publicSlug` from incognito without auth/localStorage.
+- [ ] Release-aware ETag.
+
+### P1-06 — managed media
+
+- [ ] Private R2 bucket.
+- [ ] Presign/complete flow.
+- [ ] Magic bytes, MIME, dimensions and checksum.
+- [ ] READY/ownership validation on publish.
+- [ ] Legacy data URL extraction during cloud migration.
+- [ ] Orphan cleanup with grace period.
+
+### P1-07 — forms, leads and notifications
+
+- [ ] Release-owned submission schema.
+- [ ] Booking context contract.
+- [ ] Server-side unknown/size validation.
+- [ ] Rate limit + honeypot/CAPTCHA adapter.
+- [ ] Idempotent lead submission.
+- [ ] Lead + Outbox atomic transaction.
+- [ ] Lease-based worker and dead-letter alerts.
+- [ ] Authorized lead inbox.
+- [ ] Consent/retention/delete baseline.
+
+### P1-08 — Angular cloud integration
+
+- [x] Все прежние P0 frontend follow-up закрыты.
+- [ ] Добавить новые frontend ports и local implementations.
+- [ ] Secure in-memory access token + refresh cookie session.
+- [ ] HTTP adapters скрыть за ports.
+- [ ] Mapping stable API errors.
+- [ ] Local-to-cloud migration с предварительным export.
+- [ ] Не удалять local copy автоматически.
+- [ ] Переключать конкретный project после server commit.
+- [ ] Не использовать dual-write.
+- [ ] Two-owner-session + visitor browser E2E.
+
+### P1-09 — operations
+
+- [ ] Deterministic production image.
+- [ ] Railway staging/production.
+- [ ] PostgreSQL backup.
+- [ ] R2 inventory/soft-delete policy.
+- [ ] Metrics, alerts и error tracking.
+- [ ] Audit events.
+- [ ] DB + referenced media restore drill.
+- [ ] RPO/RTO runbook.
+
+### P1-10 — Cloud Alpha gate
+
+- [ ] Clean install обоих repositories.
+- [ ] Full CI обоих repositories.
+- [ ] Register → second device draft → media → publish.
+- [ ] Incognito visitor → lead → owner inbox.
+- [ ] Stale save без data loss.
+- [ ] Commit-then-retry без duplicate/conflict.
+- [ ] API restart не меняет active release.
+- [ ] Backup restores release, lead и referenced media.
+- [ ] Production dependency audit.
+- [ ] Execution program обновлён по deployed facts.
+
+## 13. Local-to-cloud migration
+
+1. Зафиксировать bounded SiteConfig v4 schema и mirrored golden fixtures.
+2. Добавить новые frontend ports, сохранив local adapters.
+3. Создать user/workspace.
+4. Предложить `.nexus.json` export перед миграцией.
+5. Принять только bounded v1-v4 source и нормализовать v1-v3 в v4.
+6. В `V4_COMPAT` выполнять только dry-run/preview без cloud writes.
+7. После `V5_ACTIVE` повторить validation, вынести data URLs в managed assets и
+   преобразовать document в v5 asset references.
+8. Создать cloud project с import batch и idempotency key.
+9. Сохранить local ID → cloud ID только после server commit.
+10. Не удалять local copy автоматически.
+11. Не использовать dual-write.
+12. Publish разрешать только после READY-check media.
+13. Проверить owner session 2, visitor и stale OCC.
+
+## 14. 2/6/12-week outcome map
+
+### Через 2 недели
+
+- P1-00 завершён;
+- Nexus.BC scaffold/CI/architecture gate;
+- PostgreSQL/Prisma foundation;
+- canonical auth и workspace membership;
+- bounded SiteConfig;
+- idempotent create/get/save draft;
+- staging deploy.
+
+Gate: два workspace не видят данные друг друга; commit-then-retry возвращает
+предыдущий result; stale operation с другим key получает `409`.
+
+### Через 6 недель
+
+- Angular authenticated cloud editor;
+- safe local-to-cloud migration;
+- release/ActiveRelease;
+- path-based public URL;
+- managed R2 media;
+- server forms и lead inbox;
+- reliable outbox;
+- privacy/retention baseline;
+- metrics/alerts/audit;
+- DB + media restore test.
+
+Gate: register → second device draft → media → publish → incognito lead → owner
+inbox без ручного доступа к БД.
+
+### Через 12 недель
+
+- ограниченная Public Beta;
+- SSR/public renderer и CDN;
+- sitemap/robots/canonical/redirects;
+- responsive image variants;
+- custom-domain state machine и TLS;
+- analytics funnel;
+- lead workflow/export;
+- billing entitlements и idempotent webhooks;
+- load/cost budgets и full DR drill.
+
+Gate: внешний пользователь самостоятельно публикует SEO-readable сайт, подключает
+домен, получает lead и проходит billing/limits flow.
+
+## 15. Что не делать
+
+- не возвращаться к старому pre-P1-00 module map;
+- не размещать backend внутри Nexus.UI;
+- не создавать второго владельца SiteConfig во frontend;
+- не возвращать business mutations в огромный `BuilderStore`;
+- не добавлять `any`, `$any` или generic `misc types`;
+- не строить microservices/Kafka/Kubernetes для Alpha;
+- не добавлять Redis без измеренного bottleneck;
+- не начинать wildcard/custom domains до path-based public Alpha;
+- не строить одновременно CMS, eCommerce, booking и blog;
+- не использовать frontend success redirect как billing authority;
+- не хранить lead contents в logs/audit;
+- не считать local counters web analytics;
+- не удалять local project после cloud migration;
+- не откладывать минимальную privacy/retention до платной beta.
+
+## 16. Команды проверки
+
+Frontend:
+
+```bash
+npm ci
+npx playwright install chromium
+CI=1 npm run verify
+```
+
+Planned backend:
+
+```bash
+npm run lint
+npm run architecture
+npm run test
+npm run test:e2e
+npm run build
+npm run format:check
+npm audit --omit=dev --audit-level=moderate
+```
+
+## 17. Первый ход следующей сессии
+
+1. Прочитать этот handoff.
+2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
+3. Не затрагивать пользовательские untracked/dirty files.
+4. Открыть P1-02 в detailed Cloud Alpha plan.
+5. Сверить сохранённое Step 1 RED evidence: 23 теста должны падать из-за
+   отсутствующей runtime foundation, а не из-за ошибок тестового кода.
+6. Закрыть применимые P1-01 architecture follow-up из раздела 9.
+7. Реализовать P1-02 Step 2 с TDD, затем идти строго по Step 3 → Step 5.
+
+Короткий prompt для продолжения:
+
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи текущий
+> открытый шаг P1-02. Не перескакивай к Prisma/business endpoints до подтверждённого
+> RED configuration/health/CORS contract и закрытия применимых architecture
+> follow-up из review 4 августа.
+
+## 18. Review honesty
+
+- Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
+- `Nexus.UI HEAD` проверен через `git ls-remote`.
+- `Nexus.UI` и `Nexus.BC` branch/upstream сверены после `git fetch` 4 августа.
+- P1-01 backend baseline подтверждён свежими `npm run verify` и production audit
+  на Node 24; независимый review не нашёл Critical findings.
+- Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
+- Юридические требования к privacy/retention зависят от рынка и требуют отдельной
+  product/legal проверки.
+- Backend risk register основан на review текущего plan/schema/contracts, а не на
+  выполненном backend implementation.

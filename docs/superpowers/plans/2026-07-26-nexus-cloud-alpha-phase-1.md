@@ -1462,7 +1462,7 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
 - Test: `test/e2e/health.e2e-spec.ts`
 - Test: `test/e2e/audit-sequence.e2e-spec.ts`
 
-- [ ] **Step 1: Write RED configuration and health tests**
+- [x] **Step 1: Write RED configuration and health tests**
 
   Outside test mode bootstrap fails if database, JWT/refresh, web-origin allowlist, R2,
   Resend, email-from, outbox encryption, or idempotency HMAC active-version/keyring
@@ -1471,6 +1471,12 @@ vulnerabilities. The backend worktree was clean after the follow-up commit.
   for allowed credentialed actual/preflight calls, disallowed lookalike/null/foreign
   origins, an additional valid HTTPS origin returning 403 `CORS_ORIGIN_DENIED`,
   methods/headers, `Vary: Origin`, and no wildcard/reflection.
+
+  **RED evidence (2026-08-04):** `test/e2e/health.e2e-spec.ts` adds 23 focused
+  runtime configuration, liveness/readiness, and credentialed CORS cases. On Node
+  `v24.19.0` all 23 fail for the intended missing behavior: incomplete non-test
+  configuration still boots, health routes return 404, and CORS is absent. The new
+  test file passes ESLint and Prettier checks.
 
 - [ ] **Step 2: Implement one typed configuration boundary**
 
