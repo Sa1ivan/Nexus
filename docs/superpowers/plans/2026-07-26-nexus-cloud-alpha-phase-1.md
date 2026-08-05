@@ -1584,11 +1584,25 @@ and format. Production dependency audit reports `0 vulnerabilities`. Backend com
 - Modify: `prisma/schema.prisma`
 - Test: `test/e2e/auth-workspaces.e2e-spec.ts`
 
-- [ ] **Step 1: Add identity and tenancy schema**
+- [x] **Step 1: Add identity and tenancy schema**
 
   Add `User`, `Workspace`, `Membership`, and rotating `RefreshSession` tables. Add
   hashed, single-use, expiring verification/reset token records. Do not store raw
   authentication secrets. `WorkspaceRole` contains `OWNER` and `EDITOR`.
+
+  **Completion evidence (2026-08-05):** migration `20260805151020_identity_tenancy`
+  creates canonical unique users, workspaces, composite memberships, exact
+  `OWNER`/`EDITOR` roles, refresh-session families with rotation/revocation state, and
+  hash-only expiring verification/reset token records with single-use consumption
+  state. `Membership -> User` uses `RESTRICT`, so auth-owned user deletion cannot
+  cascade across the workspace boundary or bypass the later last-owner use case and
+  audit. The PostgreSQL schema contract was observed RED `3/3` before the migration;
+  after the review fix it passes `3/3` on a database migrated from empty. Full Node
+  `v24.19.0` verification passes architecture `8/8`, unit `3/3`, and E2E `66/66` in
+  `5/5` suites; migration drift is absent and production audit reports zero
+  vulnerabilities. Independent follow-up review reported Critical `0`, Important `0`,
+  Minor `0`, verdict `Ready`. Backend checkpoint: `735eaf9 feat: add identity tenancy
+schema`.
 
 - [ ] **Step 2: Add the notifications enqueue boundary and Outbox table**
 
