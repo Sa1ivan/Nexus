@@ -4,7 +4,7 @@
 
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
 30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
-следующая активная работа начинается с P1-03.
+активное исполнение P1-03 дошло до RED auth/tenant contracts.
 
 ## 1. Executive status
 
@@ -18,8 +18,8 @@
 - [x] Последний полный frontend gate зелёный.
 - [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
 - [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
-- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после P1-03 Step 1.
-- [x] Локальные commits P1-02 и P1-03 Step 1 созданы в обоих repositories.
+- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после P1-03 Step 2.
+- [x] Локальные commits P1-02 и P1-03 Steps 1–2 созданы в обоих repositories.
 - [ ] Локальный `origin` всё ещё указывает на старый
       `git@github.com:Sa1ivan/Nexus.git`; GitHub перенаправляет push в
       `Sa1ivan/Nexus.UI`.
@@ -38,13 +38,15 @@
 - [x] P1-02 Step 5 — fresh-database migration и полный verification gate — закрыт.
 - [x] P1-03 Step 1 — identity/tenancy schema, hash-only token records и rotating
       refresh-session families — реализован, проверен и закоммичен как `735eaf9`.
+- [x] P1-03 Step 2 — exact Outbox schema и transaction-aware notifications enqueue
+      boundary — реализован, проверен и закоммичен как `b6976b0`.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Выполнить P1-03 Step 2: добавить exact Outbox schema и экспортировать только
-> transaction-aware notifications enqueue port с encrypted expiring secret material.**
+> **Выполнить P1-03 Step 3: написать RED auth и tenant contracts до реализации
+> use cases, guards, controllers и authorization.**
 
-P1-03 Step 1 подтверждён RED→GREEN schema-contract, миграцией с чистой PostgreSQL
+P1-03 Steps 1–2 подтверждены RED→GREEN contracts, миграцией с чистой PostgreSQL
 database, полным gate и независимым review. Продолжать P1-03 строго по шагам.
 
 ## 2. Приоритет источников
@@ -279,6 +281,28 @@ P1-03 Step 1, 5 августа:
 - независимый follow-up review: Critical `0`, Important `0`, Minor `0`, verdict
   `Ready`.
 
+P1-03 Step 2, 5 августа:
+
+- backend commit `b6976b0 feat: add transactional notification outbox`;
+- migration `20260805152835_notification_outbox` добавляет exact `Outbox` schema с
+  delivery states, lease/claim, attempt, provider-outcome, dead-letter и encrypted
+  short-lived secret fields;
+- unique `eventId` и `businessIdempotencyKey` поддерживают повторные verification/reset
+  события без ошибочного `unique(kind, aggregateId)`;
+- `NOTIFICATION_ENQUEUE` экспортирует только application token/DTO/port, а
+  `PrismaOutbox` пишет `{ tokenRecordId }` и encrypted expiring material внутри caller
+  `TransactionContext`;
+- RED→GREEN E2E покрывает exact PostgreSQL schema, forged/expired contexts, rollback,
+  duplicate-token fence, verification/reset keys, validation и exact identifier-only
+  payload;
+- architecture gate разрешает только точную private unique-symbol branded структуру
+  `TransactionContext` и отклоняет leaky same-name/path substitute;
+- все три migrations применены from empty, drift отсутствует, полный gate:
+  architecture `10/10`, unit `3/3`, E2E `74/74` в `6/6` suites, lint/build/format
+  зелёные, production audit — `0 vulnerabilities`;
+- независимый follow-up review: Critical `0`, Important `0`, Minor `0`, verdict
+  `Ready`.
+
 ### Изменения 30 июля
 
 ### `3dd44d5 fix: resolve builder follow-ups and bundle landing images`
@@ -416,32 +440,32 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Backend P1-03 Step 1 final gate 5 августа 2026 на Node `v24.19.0` и fresh PostgreSQL
-database `nexus_p103_step1_review2`:
+Backend P1-03 Step 2 final gate 5 августа 2026 на Node `v24.19.0` и fresh PostgreSQL
+database `nexus_p103_step2_review`:
 
 ```bash
-npx prisma format
 npx prisma migrate deploy
-npx prisma migrate dev --name identity_tenancy
+npx prisma migrate dev --name notification_outbox
 npm run verify
 npm audit --omit=dev --audit-level=moderate
 ```
 
 - lint: passed;
-- architecture: `8/8`;
+- architecture: `10/10`;
 - readiness unit: `3/3`;
 - baseline E2E: `1/1`;
 - API error E2E: `13/13`;
 - runtime configuration/CORS/health E2E: `37/37`;
 - audit/transaction/database-protection E2E: `12/12`;
 - identity/tenancy schema E2E: `3/3`;
-- all E2E: `66/66` в `5/5` suites;
-- обе migrations applied from empty; schema повторно подтверждена in sync;
+- notification Outbox schema/enqueue E2E: `8/8`;
+- all E2E: `74/74` в `6/6` suites;
+- все три migrations applied from empty; schema повторно подтверждена in sync;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
 - independent review: Critical `0`, Important `0`, Minor `0`, verdict `Ready`;
-- backend worktree после commit `735eaf9` чистый.
+- backend worktree после commit `b6976b0` чистый.
 
 После обновления plan/handoff текущий frontend source-contract gate проходит `42/42`,
 а Prettier подтверждает оба изменённых Markdown-файла.
@@ -482,9 +506,9 @@ Frontend checkout:
 ```text
 path: /Users/dkhadzhiev/Projects/Nexus
 branch: develop
-snapshot parent before the final handoff commit: be23756
+snapshot parent before the final handoff commit: cb0043c
 origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
-local committed work after origin: P1-02 closeout and P1-03 Step 1 handoff updates
+local committed work after origin: P1-02 closeout and P1-03 Steps 1–2 handoff updates
 worktree at handoff: clean
 ```
 
@@ -497,10 +521,10 @@ Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
 backend: git@github.com:Sa1ivan/Nexus.BC.git
 backend path: /Users/dkhadzhiev/Projects/Nexus.BC
 backend branch: develop
-backend HEAD: 735eaf9
+backend HEAD: b6976b0
 backend origin/develop: 64285c7
 backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3, 914787e
-backend local P1-03 commits: 735eaf9
+backend local P1-03 commits: 735eaf9, b6976b0
 backend worktree: clean
 ```
 
@@ -538,8 +562,9 @@ delegation закрыты в P1-02. До соответствующих след
 
 NestJS application scaffold, CI, typed runtime configuration, CORS, stable API errors,
 health, Prisma lifecycle, transaction kernel и foundation audit persistence существуют.
-Identity/tenancy и другие business schema/endpoints, deployment image и staging
-environment ещё не реализованы.
+Identity/tenancy и transactional notification Outbox schema/boundary существуют;
+auth behavior, другие business capabilities, deployment image и staging environment
+ещё не реализованы.
 
 #### R2. Module rules противоречат транзакциям
 
@@ -795,12 +820,13 @@ P1-03 согласно detailed Cloud Alpha plan.
 
 - [x] Canonical unique email schema (`735eaf9`).
 - [x] User/session/hash-only token schema.
+- [x] Transaction-aware notifications enqueue boundary и exact Outbox (`b6976b0`).
 - [ ] Register/login/refresh/logout.
 - [x] Workspace/membership schema с user-delete restriction.
 - [ ] Owner/editor matrix.
 - [ ] Last-owner invariant.
 - [ ] Cross-tenant/IDOR E2E.
-- [ ] **Следующий implementation step:** notifications enqueue boundary и Outbox.
+- [ ] **Следующий implementation step:** RED auth и tenant E2E contracts.
 
 ### P1-04 — cloud drafts and concurrency
 
@@ -988,32 +1014,32 @@ npm audit --omit=dev --audit-level=moderate
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
 4. Открыть P1-03 в detailed Cloud Alpha plan.
-5. Сверить P1-03 Step 1 evidence: backend `735eaf9`, focused schema E2E `3/3`, full
-   E2E `66/66`, обе migrations from empty и production audit `0 vulnerabilities`.
-6. Выполнить P1-03 Step 2 по TDD: добавить exact Outbox schema и notifications
-   transaction-aware enqueue boundary.
-7. Экспортировать только application port/DTO/token; identifier-only payload и
-   encrypted expiring secret material должны записываться в caller transaction.
+5. Сверить P1-03 Step 2 evidence: backend `b6976b0`, focused Outbox E2E `8/8`, full
+   E2E `74/74`, все три migrations from empty и production audit `0 vulnerabilities`.
+6. Выполнить P1-03 Step 3 по TDD: написать RED auth и tenant E2E contracts до
+   production use cases/controllers.
+7. Покрыть register/duplicate/login-before-verification/verify/login/refresh rotation,
+   reuse-family revocation/logout/reset, owner/non-member/editor authorization,
+   atomic token plus Outbox и ciphertext/log redaction.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-03 Step 2 с
-> TDD: exact Outbox schema и transaction-aware notifications enqueue port. Экспортируй
-> только application boundary; identifier-only payload и encrypted expiring secret
-> material записывай в caller transaction.
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Продолжи P1-03 Step 3 с
+> TDD: напиши RED auth и tenant E2E contracts для полного auth lifecycle, tenant
+> authorization, atomic token plus Outbox и ciphertext/log redaction. Production
+> use cases/controllers пока не реализуй.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
-- `Nexus.BC` branch/upstream сверены после `git fetch` 5 августа; frontend remote state
-  не обновлялся в этой сессии.
-- P1-03 Step 1 подтверждён RED→GREEN schema-contract, fresh-database migration и full
-  gate на Node 24; независимый review после FK fix не нашёл
+- Branch/upstream обоих repositories сверены после `git fetch` 5 августа.
+- P1-03 Steps 1–2 подтверждены RED→GREEN contracts, fresh-database migrations и full
+  gate на Node 24; независимые follow-up reviews не нашли
   Critical/Important/Minor findings.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
 - Backend risk register основан на review plan/contracts; P1-03 identity/tenancy schema
-  реализована, auth behavior, transactional outbox и последующие business/deployment
-  пункты ещё не реализованы.
+  и transactional Outbox boundary реализованы, auth behavior и последующие
+  business/deployment пункты ещё не реализованы.

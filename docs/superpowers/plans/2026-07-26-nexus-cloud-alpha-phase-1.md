@@ -1604,11 +1604,27 @@ and format. Production dependency audit reports `0 vulnerabilities`. Backend com
   Minor `0`, verdict `Ready`. Backend checkpoint: `735eaf9 feat: add identity tenancy
 schema`.
 
-- [ ] **Step 2: Add the notifications enqueue boundary and Outbox table**
+- [x] **Step 2: Add the notifications enqueue boundary and Outbox table**
 
   Implement the exact Outbox schema above. Export only a transaction-aware enqueue
   port. Auth supplies identifier-only payload plus encrypted, expiring secret material;
   the notifications adapter writes it inside the auth coordinator's transaction.
+
+  **Completion evidence (2026-08-05):** migration
+  `20260805152835_notification_outbox` creates the exact Outbox delivery state, lease,
+  attempt, provider-outcome, encrypted-secret, and unique event/business-idempotency
+  fields. `NOTIFICATION_ENQUEUE` exposes only the transaction-aware application port;
+  `PrismaOutbox` accepts identifier-only auth metadata and writes exact
+  `{ tokenRecordId }` JSON plus copied ciphertext/expiry in the caller transaction.
+  RED→GREEN coverage proves the PostgreSQL schema, forged/expired context rejection,
+  rollback, duplicate-token fencing, both auth kinds, validation, and exact PII-free
+  payload. The architecture gate admits only the exact private unique-symbol branded
+  `TransactionContext` and rejects a leaky same-name/path substitute. A fresh database
+  applies all three migrations and reports no drift. Full verification passes
+  architecture `10/10`, unit `3/3`, and E2E `74/74` in `6/6` suites; lint, build,
+  formatting, and production dependency audit are green. Independent follow-up review
+  reported Critical `0`, Important `0`, Minor `0`, verdict `Ready`. Backend checkpoint:
+  `b6976b0 feat: add transactional notification outbox`.
 
 - [ ] **Step 3: Write RED auth and tenant tests**
 
