@@ -1,11 +1,11 @@
 # Nexus — consolidated session handoff
 
-Актуально на 5 августа 2026 года.
+Актуально на 6 августа 2026 года.
 
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
 30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
-активное исполнение P1-03 дошло до production auth/workspace capabilities и
-verification-долга перед закрытием задачи.
+P1-03 identity/tenancy полностью закрыт production-реализацией, расширенным
+verification gate и независимым review. P1-04 ещё не начинался.
 
 ## 1. Executive status
 
@@ -45,19 +45,20 @@ verification-долга перед закрытием задачи.
       boundary — реализован, проверен и закоммичен как `b6976b0`.
 - [x] P1-03 production auth/workspace checkpoint — use cases, guards, controllers,
       token security и tenant authorization — закоммичен как `40ec4c4`.
+- [x] P1-03 verification closeout — auth/workspace E2E, concurrency/unit regressions,
+      быстрый architecture analyzer и стабильный combined Jest gate — завершён в
+      backend worktree и готов к commit.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Закрыть P1-03 verification-долг: добавить auth/tenant E2E contracts, исправить
-> производительность полного architecture analyzer, локализовать `test:e2e` exit 139
-> при общем запуске и повторить полный gate.**
+> **Начать P1-04 — cloud drafts and concurrency — с bounded SiteConfig v4 validation
+> и RED contracts, не переписывая закрытый auth/tenancy слой P1-03.**
 
-P1-03 Steps 1–2 подтверждены RED→GREEN contracts, миграцией с чистой PostgreSQL
-database и полным gate. Production auth/workspace checkpoint прошёл focused checks,
-ручные smoke-сценарии и независимый review без Critical/Important findings, но ещё не
-считается полным gate: новые E2E по просьбе пользователя отложены на следующую
-сессию, общий Jest E2E process завершается с кодом 139, а полный architecture scan
-был остановлен после 32 минут CPU-bound работы.
+P1-03 подтверждён RED→GREEN contracts, миграциями на PostgreSQL, auth/workspace E2E,
+конкурентными сценариями и полным Node 24 gate. Combined Jest crash `139` устранён
+предзагрузкой Argon2 до Jest VM context, architecture scan завершается примерно за
+семь секунд, а финальный независимый review дал Critical `0`, Important `0`, verdict
+`Ready`.
 
 ## 2. Приоритет источников
 
@@ -70,8 +71,9 @@ database и полным gate. Production auth/workspace checkpoint прошёл
 5. `ROADMAP.md`.
 
 Важно: detailed Cloud Alpha plan прошёл P1-00 reconciliation и follow-up review.
-Checkbox state в нём evidence-bearing: P1-00–P1-02 закрыты, P1-03 и следующие задачи
-выполняются строго по шагам.
+Его committed checkbox state закрывает P1-00–P1-02; актуальное доказательство
+закрытия P1-03 находится в коде, тестах и этом handoff. Новые spec/plan edits в этой
+сессии по просьбе пользователя не создавались.
 
 Основные документы:
 
@@ -173,8 +175,8 @@ Product recommendation:
 - P1 architecture/contracts: review закрыт, plan готов к пошаговому исполнению;
 - реализованный backend: P1-01/P1-02 foundation, PostgreSQL/Prisma, identity/tenancy,
   transactional Outbox, auth lifecycle и workspace authorization;
-- production/cloud readiness: около `4/10`; следующий блокирующий слой — полный
-  verification P1-03, затем cloud drafts/concurrency P1-04.
+- production/cloud readiness: около `4/10`; P1-03 закрыт, следующий блокирующий слой —
+  cloud drafts/concurrency P1-04.
 
 Главный вывод снимка 30 июля был закрыт P1-00:
 
@@ -475,47 +477,34 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Последний полностью закрытый backend gate — P1-03 Step 2 от 5 августа 2026 на Node
-`v24.19.0` и fresh PostgreSQL database `nexus_p103_step2_review`:
+Последний полностью закрытый backend gate — P1-03 от 6 августа 2026 на Node
+`v24.19.0` и PostgreSQL database `nexus_p103_step5_gate_0806`:
 
 ```bash
-npx prisma migrate deploy
-npx prisma migrate dev --name notification_outbox
 npm run verify
+npx prisma migrate status
 npm audit --omit=dev --audit-level=moderate
 ```
 
 - lint: passed;
-- architecture: `10/10`;
-- readiness unit: `3/3`;
-- baseline E2E: `1/1`;
-- API error E2E: `13/13`;
-- runtime configuration/CORS/health E2E: `37/37`;
-- audit/transaction/database-protection E2E: `12/12`;
-- identity/tenancy schema E2E: `3/3`;
-- notification Outbox schema/enqueue E2E: `8/8`;
-- all E2E: `74/74` в `6/6` suites;
-- все три migrations applied from empty; schema повторно подтверждена in sync;
+- architecture: `13/13` в `2/2` suites, около `6.7s`;
+- unit: `4/4` в `2/2` suites;
+- all E2E: `85/85` в `7/7` suites, около `8.7s`;
+- auth/workspace E2E: `11/11`, включая canonical registration, exact Argon2id,
+  encrypted Outbox, log redaction, JWT tamper/expiry, verify/reset/refresh expiry,
+  refresh reuse/race, tenant/IDOR, atomic audit и concurrent owner demotion;
+- все три migrations applied; `prisma migrate status` подтверждает schema up to date;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
-- independent review: Critical `0`, Important `0`, Minor `0`, verdict `Ready`;
-- backend worktree после commit `b6976b0` чистый.
-
-Более новый P1-03 auth/workspace checkpoint `40ec4c4` проверен так:
-
-- lint, readiness unit `3/3`, production build и format check: passed;
-- production audit: `0 vulnerabilities`;
-- E2E suites при изолированном запуске: `74/74` суммарно;
-- manual smoke: auth lifecycle, tenant authorization, atomic audit rollback,
-  login/reset races и отсутствие secret output — passed;
-- независимый review: Critical `0`, Important `0`, verdict `Ready`;
-- controller-only boundary scan и isolated configuration architecture tests `2/2`:
-  passed;
-- полный `npm run test:e2e`: process exit `139` до Jest report, хотя те же suites
-  проходят отдельно;
-- полный `npm run architecture`: CPU-bound scan без результата более 32 минут,
-  остановлен вручную; analyzer требует оптимизации до утверждения полного gate.
+- independent review после нескольких adversarial cycles: Critical `0`, Important
+  `0`, один residual Minor, verdict `Ready`;
+- residual Minor: same-environment Railway private-network peer теоретически может
+  синтезировать ingress headers и `X-Real-IP`; публичный edge contract проверяется по
+  документированным Railway headers, а этот trust boundary должен быть подтверждён
+  staging/deployment проверкой;
+- backend HEAD остаётся `40ec4c4`; verification closeout пока не закоммичен и состоит
+  только из ожидаемых production/test изменений.
 
 После обновления plan/handoff текущий frontend source-contract gate проходит `42/42`,
 а Prettier подтверждает оба изменённых Markdown-файла.
@@ -556,10 +545,10 @@ Frontend checkout:
 ```text
 path: /Users/dkhadzhiev/Projects/Nexus
 branch: develop
-snapshot parent before the final handoff commit: a84734d
+HEAD before this handoff update: b4ee130
 origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
 local committed work after origin: P1-02 closeout and P1-03 handoff updates
-worktree at handoff: clean
+worktree at handoff: modified only by this SESSION_HANDOFF.md update
 ```
 
 Remote facts:
@@ -575,7 +564,7 @@ backend HEAD: 40ec4c4
 backend origin/develop: 64285c7
 backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3, 914787e
 backend local P1-03 commits: 735eaf9, b6976b0, 40ec4c4
-backend worktree: clean
+backend worktree: expected uncommitted P1-03 verification closeout; full gate green
 ```
 
 Без отдельной просьбы не:
@@ -613,8 +602,9 @@ delegation закрыты в P1-02. До соответствующих след
 NestJS application scaffold, CI, typed runtime configuration, CORS, stable API errors,
 health, Prisma lifecycle, transaction kernel и foundation audit persistence существуют.
 Identity/tenancy и transactional notification Outbox schema/boundary существуют;
-auth behavior, другие business capabilities, deployment image и staging environment
-ещё не реализованы.
+полный auth behavior и workspace authorization реализованы и проверены. Cloud drafts,
+другие business capabilities, deployment image и staging environment ещё не
+реализованы.
 
 #### R2. Module rules противоречат транзакциям
 
@@ -875,13 +865,15 @@ P1-03 согласно detailed Cloud Alpha plan.
 - [x] Workspace/membership schema с user-delete restriction.
 - [x] Owner/editor matrix.
 - [x] Last-owner invariant.
-- [ ] Cross-tenant/IDOR E2E.
-- [ ] Auth lifecycle/race/ciphertext E2E contracts.
-- [ ] Полный architecture и combined E2E gate.
-- [ ] **Следующий implementation step:** закрыть P1-03 verification-долг.
+- [x] Cross-tenant/IDOR E2E.
+- [x] Auth lifecycle/race/ciphertext/expiry E2E contracts.
+- [x] Полный architecture и combined E2E gate.
+- [x] Independent review: Critical `0`, Important `0`, verdict `Ready`.
 
 ### P1-04 — cloud drafts and concurrency
 
+- [ ] **Следующий implementation step:** bounded SiteConfig v4 validation и RED
+      contracts.
 - [ ] Bounded SiteConfig v4 validation.
 - [ ] Create/get/save project draft.
 - [ ] Atomic OCC.
@@ -1065,41 +1057,38 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Открыть P1-03 в detailed Cloud Alpha plan.
-5. Сверить production checkpoint `40ec4c4` и не переписывать уже реализованные
-   auth/workspace use cases.
-6. Добавить отложенные auth/tenant E2E contracts: register/duplicate/
-   login-before-verification/verify/login/refresh rotation, reuse-family
-   revocation/logout/reset, owner/non-member/editor authorization, cross-tenant/IDOR,
-   atomic token plus Outbox и ciphertext/log redaction.
-7. Оптимизировать recursive import/re-export architecture analyzer: текущий полный
-   scan CPU-bound и не завершился за 32 минуты. Сохранить действующие module/use-case
-   boundaries.
-8. Локализовать combined Jest E2E exit `139`; те же шесть suites проходят отдельно
-   `74/74`, поэтому сначала проверить runner/process isolation, а не менять assertions.
-9. Повторить полный Node 24 gate. Только после зелёного результата закрыть P1-03 и
-   переходить к P1-04.
+4. Сначала закоммитить готовый P1-03 verification closeout в `Nexus.BC`, если
+   пользователь попросит commit; не смешивать его с P1-04.
+5. Открыть P1-04 в detailed Cloud Alpha plan и сверить exact SiteConfig v4 limits и
+   frontend repository contracts.
+6. Начать P1-04 с RED contracts для bounded SiteConfig v4 validation.
+7. Реализовывать create/get/save draft, OCC и idempotency только по очереди после
+   соответствующих RED tests.
+8. Не переписывать закрытые auth/workspace use cases P1-03 без нового доказанного
+   defect.
+9. Для staging отдельно подтвердить, что Railway edge перезаписывает trust headers;
+   residual same-environment private-peer risk не скрывать.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. Production auth/workspace
-> checkpoint уже в backend `40ec4c4`. Закрой P1-03 verification-долг: добавь
-> auth/tenant E2E, оптимизируй долгий architecture analyzer, локализуй combined Jest
-> exit 139 и повтори полный Node 24 gate. Production слой без доказанной причины не
-> переписывай.
+> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. P1-03 полностью закрыт,
+> а его verification closeout готов к отдельному commit. После commit начни P1-04 с
+> bounded SiteConfig v4 RED contracts; закрытый auth/workspace слой без доказанной
+> причины не переписывай.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
 - Branch/upstream обоих repositories сверены после `git fetch` 5 августа.
-- P1-03 Steps 1–2 подтверждены RED→GREEN contracts, fresh-database migrations и full
-  gate на Node 24.
-- Production auth/workspace checkpoint `40ec4c4` прошёл focused checks, отдельные E2E
-  suites `74/74`, manual smoke и независимый review без Critical/Important findings;
-  новых auth/tenant E2E в этой сессии по просьбе пользователя не создавали.
-- Полный P1-03 gate не объявлен зелёным: combined Jest завершается с exit `139`, а
-  architecture analyzer был остановлен после 32 минут CPU-bound работы без результата.
+- P1-03 подтверждён RED→GREEN contracts, тремя migrations, auth/workspace E2E и
+  полным Node 24 gate: architecture `13/13`, unit `4/4`, E2E `85/85`.
+- Combined Jest exit `139` локализован до загрузки native Argon2 внутри Jest VM и
+  устранён предзагрузкой addon в основном Node context; Prisma VM mode сохранён.
+- Architecture analyzer больше не проецирует use-case dependencies, не обходит
+  external/cyclic facade origins и завершает полный scan примерно за семь секунд.
+- Финальный independent review: Critical `0`, Important `0`, один Railway
+  private-peer trust Minor, verdict `Ready`.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
