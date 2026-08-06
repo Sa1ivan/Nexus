@@ -11,8 +11,9 @@
     "start:e2e": "ng serve --host 127.0.0.1 --port 4300",
     "build": "ng build",
     "lint": "ng lint",
-    "test": "npm run test:contracts && npm run test:unit",
+    "test": "npm run test:contracts && npm run test:site-config-contract && npm run test:unit",
     "test:contracts": "node --test tests/unit.test.mjs",
+    "test:site-config-contract": "vitest run --environment node tests/site-config-v4.contract.spec.ts",
     "test:unit": "ng test --watch=false",
     "e2e": "playwright test",
     "e2e:contracts": "node --test tests/e2e-smoke.test.mjs",
@@ -30,6 +31,7 @@
     "@angular/material": "^20.0.0",
     "@angular/platform-browser": "20.3.26",
     "@angular/router": "20.3.26",
+    "ajv": "^8.18.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.8.0",
     "zone.js": "~0.15.0"

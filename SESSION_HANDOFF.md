@@ -5,7 +5,8 @@
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
 30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
 P1-03 identity/tenancy полностью закрыт production-реализацией, расширенным
-verification gate и независимым review. P1-04 ещё не начинался.
+verification gate и независимым review. В P1-04 завершён Step 1: bounded SiteConfig
+v4 contract зафиксирован и зеркально проверен в backend и frontend.
 
 ## 1. Executive status
 
@@ -19,8 +20,7 @@ verification gate и независимым review. P1-04 ещё не начин
 - [x] Последний полный frontend gate зелёный.
 - [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
 - [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
-- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после production checkpoint
-      P1-03.
+- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после P1-04 Step 1.
 - [x] Локальные commits P1-02 и P1-03 production checkpoint созданы в обоих
       repositories.
 - [ ] Локальный `origin` всё ещё указывает на старый
@@ -46,19 +46,28 @@ verification gate и независимым review. P1-04 ещё не начин
 - [x] P1-03 production auth/workspace checkpoint — use cases, guards, controllers,
       token security и tenant authorization — закоммичен как `40ec4c4`.
 - [x] P1-03 verification closeout — auth/workspace E2E, concurrency/unit regressions,
-      быстрый architecture analyzer и стабильный combined Jest gate — завершён в
-      backend worktree и готов к commit.
+      быстрый architecture analyzer и стабильный combined Jest gate — закоммичен как
+      `6ab12d6`; handoff closeout — `1a41297`.
+- [x] P1-04 Step 1 — exact bounded SiteConfig v4 JSON Schema, mirrored historical и
+      golden fixtures, fail-fast validation, safe links/media и deterministic
+      canonicalization — реализован; backend commit `c09118e`.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Начать P1-04 — cloud drafts and concurrency — с bounded SiteConfig v4 validation
-> и RED contracts, не переписывая закрытый auth/tenancy слой P1-03.**
+> **Продолжить P1-04 Step 2: добавить Project, ProjectRevision и IdempotencyRecord,
+> не переходя к API/OCC до соответствующих repository/HTTP RED contracts.**
 
 P1-03 подтверждён RED→GREEN contracts, миграциями на PostgreSQL, auth/workspace E2E,
 конкурентными сценариями и полным Node 24 gate. Combined Jest crash `139` устранён
 предзагрузкой Argon2 до Jest VM context, architecture scan завершается примерно за
 семь секунд, а финальный независимый review дал Critical `0`, Important `0`, verdict
 `Ready`.
+
+P1-04 Step 1 подтверждён зеркальными SHA-256 manifests, historical codec migration
+fixtures v1/v2/v3→v4, exact-v4 schema/runtime contracts, frontend `27/27` и backend
+`49/49` focused tests. Review закрыл unsafe HTTPS encoded traversal/backslash bypass,
+compiled schema lookup и Ajv `allErrors` memory amplification; актуальные validators
+работают fail-fast.
 
 ## 2. Приоритет источников
 
@@ -872,9 +881,9 @@ P1-03 согласно detailed Cloud Alpha plan.
 
 ### P1-04 — cloud drafts and concurrency
 
-- [ ] **Следующий implementation step:** bounded SiteConfig v4 validation и RED
-      contracts.
-- [ ] Bounded SiteConfig v4 validation.
+- [ ] **Следующий implementation step:** Project, ProjectRevision и IdempotencyRecord
+      schema/migration.
+- [x] Bounded SiteConfig v4 validation и mirrored frontend contract.
 - [ ] Create/get/save project draft.
 - [ ] Atomic OCC.
 - [ ] Idempotent save/create operations.
@@ -1043,12 +1052,8 @@ CI=1 npm run verify
 Planned backend:
 
 ```bash
-npm run lint
-npm run architecture
-npm run test
-npm run test:e2e
-npm run build
-npm run format:check
+npm run test:contract
+npm run verify
 npm audit --omit=dev --audit-level=moderate
 ```
 
@@ -1057,13 +1062,13 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Сначала закоммитить готовый P1-03 verification closeout в `Nexus.BC`, если
-   пользователь попросит commit; не смешивать его с P1-04.
-5. Открыть P1-04 в detailed Cloud Alpha plan и сверить exact SiteConfig v4 limits и
-   frontend repository contracts.
-6. Начать P1-04 с RED contracts для bounded SiteConfig v4 validation.
-7. Реализовывать create/get/save draft, OCC и idempotency только по очереди после
-   соответствующих RED tests.
+4. Убедиться, что P1-04 Step 1 commits присутствуют в обоих repositories и mirrored
+   `contracts/site-config` остаются byte-identical.
+5. Открыть P1-04 Step 2 в detailed Cloud Alpha plan и сверить exact Prisma fields и
+   uniqueness constraints для Project, ProjectRevision и IdempotencyRecord.
+6. Добавить Step 2 schema/migration с узкими RED contract checks; не начинать API.
+7. Create/get/save draft, OCC и idempotency реализовывать только по очереди после
+   Step 3 repository/HTTP RED tests.
 8. Не переписывать закрытые auth/workspace use cases P1-03 без нового доказанного
    defect.
 9. Для staging отдельно подтвердить, что Railway edge перезаписывает trust headers;
@@ -1071,16 +1076,15 @@ npm audit --omit=dev --audit-level=moderate
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и detailed Cloud Alpha plan. P1-03 полностью закрыт,
-> а его verification closeout готов к отдельному commit. После commit начни P1-04 с
-> bounded SiteConfig v4 RED contracts; закрытый auth/workspace слой без доказанной
-> причины не переписывай.
+> Прочитай `SESSION_HANDOFF.md` и P1-04 detailed plan. Step 1 bounded SiteConfig v4
+> закрыт и запушен; начни Step 2 с Project, ProjectRevision и IdempotencyRecord
+> schema/migration, не переходя к API/OCC до repository/HTTP RED contracts.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
-- Branch/upstream обоих repositories сверены после `git fetch` 5 августа.
+- Branch/upstream обоих repositories сверены после `git fetch` 6 августа.
 - P1-03 подтверждён RED→GREEN contracts, тремя migrations, auth/workspace E2E и
   полным Node 24 gate: architecture `13/13`, unit `4/4`, E2E `85/85`.
 - Combined Jest exit `139` локализован до загрузки native Argon2 внутри Jest VM и
@@ -1089,9 +1093,14 @@ npm audit --omit=dev --audit-level=moderate
   external/cyclic facade origins и завершает полный scan примерно за семь секунд.
 - Финальный independent review: Critical `0`, Important `0`, один Railway
   private-peer trust Minor, verdict `Ready`.
+- P1-04 Step 1 backend gate: architecture `13/13`, contract `49/49`, unit `4/4`, E2E
+  `85/85`, build/lint/format green; compiled validator загружается из cwd вне repo.
+- P1-04 Step 1 frontend gate: source contracts `42/42`, SiteConfig contract `27/27`,
+  unit `143/143`, lint/build/format green. Playwright не повторялся, потому что UI и
+  browser flows не менялись.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
 - Backend risk register основан на review plan/contracts; P1-03 identity/tenancy,
-  transactional Outbox, auth behavior и workspace authorization реализованы, но их
-  полный verification gate и последующие business/deployment пункты ещё не закрыты.
+  transactional Outbox, auth behavior и workspace authorization закрыты полным gate.
+  P1-04 persistence/API и последующие business/deployment пункты ещё не реализованы.
