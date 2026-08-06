@@ -229,12 +229,12 @@ State management:
 
 Сейчас проект работает без backend:
 
-- `SiteConfig` использует schema version `3`;
+- `SiteConfig` использует schema version `4`;
 - SEO страницы хранится в `SiteConfig.pages[].seo` и содержит title,
   description, social image и `noIndex`;
 - проекты, релизы, ревизии, активный проект и заявки сохраняются через
   `ProjectRepository`; текущая реализация репозитория использует `localStorage`;
-- codec принимает legacy-схемы `1` и `2`, нормализует их в schema version `3` и
+- codec принимает legacy-схемы `1`, `2` и `3`, нормализует их в schema version `4` и
   отклоняет неподдерживаемые версии;
 - изменения автоматически сохраняются через 800 мс; новый browser-сеанс
   восстанавливает последний активный проект, первую доступную страницу и блок;

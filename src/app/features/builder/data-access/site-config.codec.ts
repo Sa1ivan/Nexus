@@ -103,6 +103,7 @@ const BUNDLED_IMAGE_BY_UNSPLASH_PATH: Readonly<Record<string, string>> = {
 })
 export class SiteConfigCodec {
   private fallbackIdCounter = 0;
+  private readonly fallbackIdsInUse = new Set<string>();
 
   encode(siteConfig: SiteConfig): string {
     return JSON.stringify(siteConfig);
@@ -121,7 +122,11 @@ export class SiteConfigCodec {
   }
 
   normalize(value: unknown): SiteConfigDecodeResult {
+    this.fallbackIdCounter = 0;
+    this.fallbackIdsInUse.clear();
+
     try {
+      this.collectExistingIds(value);
       return this.normalizeValue(value);
     } catch {
       return { ok: false, reason: 'invalid-shape' };
@@ -206,7 +211,7 @@ export class SiteConfigCodec {
     const explicitHeader = this.normalizeBlock(record?.['header']);
     const explicitFooter = this.normalizeBlock(record?.['footer']);
     const pageBlocks = pages.flatMap((page) => page.blocks);
-    const defaultChrome = createDefaultSiteChrome(pageBlocks);
+    const defaultChrome = this.normalizeFallbackIds(createDefaultSiteChrome(pageBlocks));
     const migratedHeader = pageBlocks.find(isSiteHeaderBlock);
     const migratedFooter = pageBlocks.find(isSiteFooterBlock);
 
@@ -478,7 +483,7 @@ export class SiteConfigCodec {
     return this.asArray(value)
       .map((item, index) => {
         if (typeof item === 'string') {
-          return createLinkFromText(item, index);
+          return this.normalizeFallbackIds(createLinkFromText(item, index));
         }
 
         return this.readOptionalLink(item);
@@ -492,7 +497,7 @@ export class SiteConfigCodec {
   ): readonly LinkConfig[] {
     const links = this.readLinks(value);
 
-    return links.length > 0 ? links : createDefault();
+    return Array.isArray(value) ? links : this.normalizeFallbackIds(createDefault());
   }
 
   private readOptionalLinks(value: unknown): readonly LinkConfig[] | undefined {
@@ -502,7 +507,7 @@ export class SiteConfigCodec {
   }
 
   private readLink(value: unknown, fallbackLabel: string): LinkConfig {
-    const fallback = createLink(fallbackLabel, '#lead-form');
+    const fallback = this.normalizeFallbackIds(createLink(fallbackLabel, '#lead-form'));
     const record = this.asRecord(value);
 
     if (record === null) {
@@ -672,7 +677,7 @@ export class SiteConfigCodec {
   private readOfferItems(value: unknown): readonly OfferListItem[] {
     const items = this.asArray(value).map((item, index) => this.readOfferItem(item, index));
 
-    return items.length > 0 ? items : createDefaultOffers();
+    return Array.isArray(value) ? items : this.normalizeFallbackIds(createDefaultOffers());
   }
 
   private readFeatureItem(value: unknown, index: number): FeatureGridItem {
@@ -699,7 +704,7 @@ export class SiteConfigCodec {
   private readFeatureItems(value: unknown): readonly FeatureGridItem[] {
     const items = this.asArray(value).map((item, index) => this.readFeatureItem(item, index));
 
-    return items.length > 0 ? items : createDefaultFeatures();
+    return Array.isArray(value) ? items : this.normalizeFallbackIds(createDefaultFeatures());
   }
 
   private readGalleryItem(value: unknown): GalleryItem | null {
@@ -722,7 +727,7 @@ export class SiteConfigCodec {
       .map((item) => this.readGalleryItem(item))
       .filter((item): item is GalleryItem => item !== null);
 
-    return items.length > 0 ? items : createDefaultGalleryItems();
+    return Array.isArray(value) ? items : this.normalizeFallbackIds(createDefaultGalleryItems());
   }
 
   private readTestimonialItem(value: unknown, index: number): TestimonialItem {
@@ -751,7 +756,7 @@ export class SiteConfigCodec {
   private readTestimonialItems(value: unknown): readonly TestimonialItem[] {
     const items = this.asArray(value).map((item, index) => this.readTestimonialItem(item, index));
 
-    return items.length > 0 ? items : createDefaultTestimonials();
+    return Array.isArray(value) ? items : this.normalizeFallbackIds(createDefaultTestimonials());
   }
 
   private readFaqItem(value: unknown, index: number): FaqItem {
@@ -777,7 +782,7 @@ export class SiteConfigCodec {
   private readFaqItems(value: unknown): readonly FaqItem[] {
     const items = this.asArray(value).map((item, index) => this.readFaqItem(item, index));
 
-    return items.length > 0 ? items : createDefaultFaqItems();
+    return Array.isArray(value) ? items : this.normalizeFallbackIds(createDefaultFaqItems());
   }
 
   private readLeadField(value: unknown, index: number): LeadFormFieldConfig {
@@ -808,7 +813,7 @@ export class SiteConfigCodec {
   private readLeadFields(value: unknown): readonly LeadFormFieldConfig[] {
     const fields = this.asArray(value).map((field, index) => this.readLeadField(field, index));
 
-    if (fields.length > 0) {
+    if (Array.isArray(value)) {
       return fields;
     }
 
@@ -1102,12 +1107,61 @@ export class SiteConfigCodec {
   }
 
   private createId(prefix: string): string {
-    if (globalThis.crypto?.randomUUID !== undefined) {
-      return `${prefix}-${globalThis.crypto.randomUUID()}`;
+    let candidate: string;
+    do {
+      this.fallbackIdCounter += 1;
+      candidate = `${prefix}-migrated-${this.fallbackIdCounter.toString(36)}`;
+    } while (this.fallbackIdsInUse.has(candidate));
+
+    this.fallbackIdsInUse.add(candidate);
+    return candidate;
+  }
+
+  private collectExistingIds(value: unknown): void {
+    const pending = [value];
+    const visited = new Set<object>();
+
+    while (pending.length > 0) {
+      const item = pending.pop();
+      if (typeof item !== 'object' || item === null || visited.has(item)) {
+        continue;
+      }
+      visited.add(item);
+
+      if (Array.isArray(item)) {
+        pending.push(...item);
+        continue;
+      }
+
+      const record = item as Record<string, unknown>;
+      if (typeof record['id'] === 'string') {
+        this.fallbackIdsInUse.add(record['id']);
+      }
+      pending.push(...Object.values(record));
     }
+  }
 
-    this.fallbackIdCounter += 1;
+  private normalizeFallbackIds<T>(value: T): T {
+    const normalizeValue = (item: unknown): unknown => {
+      if (Array.isArray(item)) {
+        return item.map(normalizeValue);
+      }
 
-    return `${prefix}-${Date.now().toString(36)}-${this.fallbackIdCounter.toString(36)}`;
+      const record = this.asRecord(item);
+      if (record === null) {
+        return item;
+      }
+
+      return Object.fromEntries(
+        Object.entries(record).map(([key, nested]) => [
+          key,
+          key === 'id' && typeof nested === 'string'
+            ? this.createId(nested.split('-')[0] || 'item')
+            : normalizeValue(nested),
+        ]),
+      );
+    };
+
+    return normalizeValue(value) as T;
   }
 }

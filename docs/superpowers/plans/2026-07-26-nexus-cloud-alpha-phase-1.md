@@ -688,8 +688,21 @@ transactional idempotency port but never removes `scope`, `key`,
 `requestFingerprint`, status, or response identity. Authenticated operation responses
 stored in this table are allowlisted to non-PII identifiers, versions, and status—not a
 copy of the semantic request or SiteConfig. The coordinator obtains a PostgreSQL
-transaction advisory lock derived from `scope + operation + key`, reads the record, and
-applies these rules:
+transaction advisory lock derived from `scope + operation + key`. The derivation is
+frozen as `idempotency-lock-v1`: concatenate the UTF-8 bytes of the fixed prefix
+`nexus-idempotency-lock-v1\0`, then for `scope`, `operation`, and `key` in that order
+append a four-byte unsigned big-endian byte length followed by the exact UTF-8 bytes.
+Hash the frame with SHA-256, interpret the first eight digest bytes as a big-endian
+signed two's-complement 64-bit integer, and pass that value to
+`pg_advisory_xact_lock(bigint)`. All runtimes use this algorithm unchanged; a future
+algorithm requires a new explicit version and dual-version rollout. Frozen vectors:
+
+| scope             | operation        | key                                    | SHA-256                                                            | signed lock id        |
+| ----------------- | ---------------- | -------------------------------------- | ------------------------------------------------------------------ | --------------------- |
+| `workspace:alpha` | `CREATE_PROJECT` | `00000000-0000-4000-8000-000000000001` | `167454680914c4826374924de99e4c6c7164986498d0eddf903de14f3ce9d005` | `1618010971938538626` |
+| `project:β`       | `SAVE_DRAFT`     | `retry-1`                              | `1b757d9279c6a32c1baf94634e24ae57c71986c8af8f7675781463c698ba1a6b` | `1978625679360959276` |
+
+The adapter reads the record only after acquiring that lock and applies these rules:
 
 - same key and same request fingerprint returns the stored status and semantic response,
   including the original ids and versions, even after commit succeeded but the HTTP
@@ -754,7 +767,7 @@ model Project {
   draftVersion       Int               @default(1)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
-  workspace          Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace          Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   revisions          ProjectRevision[]
   releases           Release[]
   activeRelease      ActiveRelease?    @relation("ProjectActivation")
@@ -784,7 +797,7 @@ model Release {
   siteConfig    Json
   schemaVersion Int
   publishedAt   DateTime        @default(now())
-  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
   activations   ActiveRelease[] @relation("ReleaseActivation")
   leads         Lead[]
   @@unique([projectId, id])
@@ -876,7 +889,7 @@ model Lead {
   status         LeadStatus @default(NEW)
   createdAt      DateTime   @default(now())
   retentionUntil DateTime
-  release        Release    @relation(fields: [projectId, releaseId], references: [projectId, id], onDelete: Cascade)
+  release        Release    @relation(fields: [projectId, releaseId], references: [projectId, id], onDelete: Restrict)
   @@unique([projectId, submissionId])
   @@index([projectId, createdAt])
 }
@@ -885,6 +898,14 @@ model Lead {
 The body never accepts `projectId`, `releaseId`, workspace id, status, retention, or
 timestamps. `consent` stores only `{ accepted: true, noticeVersion }`; lead contents,
 booking values, and contact PII never enter audit metadata, metrics labels, or logs.
+
+Cross-owner foreign keys use `Restrict` (or an explicitly justified nullable
+`SetNull`), never `Cascade`. Workspace deletion must first invoke the exported `sites`
+deletion workflow; project/release deletion must first invoke the exported `forms` and
+`media` workflows and satisfy their retention/deletion fences. Same-owner cascades are
+allowed only when they cannot continue into a table owned by another module. This keeps
+every hard delete inside its table owner's repository and prevents privacy/audit fences
+from being bypassed by a parent delete.
 
 Alpha lead retention is a typed setting `leadRetentionDays`, default 90 and bounded
 from 1 through 365. Submission computes `retentionUntil = createdAt + configured days`
@@ -1163,10 +1184,10 @@ repository.
 
 | Port                      | Exact operations                                                                                                                                   | Consumers                                                                                             |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `ProjectRepository`       | `getProject`, `createProject`, `saveDraft`, `publishProject`, `activateRelease`, `listRevisions`                                                   | create flow, builder project store, autosave/manual save, publish/rollback controls, revision history |
+| `ProjectRepository`       | `getProject`, `createProject`, `saveDraft`, `publishProject`, `activateRelease`, `listRevisions(workspaceId, projectId, page)`                     | create flow, builder project store, autosave/manual save, publish/rollback controls, revision history |
 | `PublicSiteRepository`    | `getActiveSite(publicSlug, pageSlug?)`, `submitLead(publicSlug, request)`                                                                          | public route resolver/renderer and public lead form                                                   |
 | `LeadInboxRepository`     | `listLeads(workspaceId, projectId, cursor)`, `setLeadStatus(workspaceId, projectId, leadId, status)`, `deleteLead(workspaceId, projectId, leadId)` | authorized lead inbox; delete is owner-only                                                           |
-| `WorkspaceReadRepository` | `listProjectSummaries(workspaceId)`, `getWorkspaceMetrics(workspaceId)`                                                                            | workspace dashboard/project picker and insights cards                                                 |
+| `WorkspaceReadRepository` | `listProjectSummaries(workspaceId, page)`, `getWorkspaceMetrics(workspaceId)`                                                                      | workspace dashboard/project picker and insights cards                                                 |
 | `ActiveProjectPreference` | `get`, `set`, `clear` in local browser storage                                                                                                     | navigation convenience only; never synchronized as a cloud aggregate                                  |
 
 Concrete network adapters are named `HttpEditorProjectRepository`,
@@ -1174,6 +1195,13 @@ Concrete network adapters are named `HttpEditorProjectRepository`,
 `HttpWorkspaceReadRepository`. Local behavior may share a storage engine internally,
 but its adapters implement the same narrow ports. Generated OpenAPI DTOs stay inside
 the HTTP adapters and are mapped to frontend domain models.
+
+Both project-summary and revision collections use
+`page: { cursor?: string; limit?: number }`, default `limit = 50`, maximum `100`, and
+return `{ items, nextCursor: string | null }`. Cursors are opaque/versioned backend
+values. Project summaries order by `(updatedAt DESC, id DESC)` and revisions by
+`(version DESC, id DESC)`; the cursor contains the complete last ordering tuple so
+concurrent inserts cannot duplicate an item within a traversal.
 
 Authenticated editor project DTOs always include:
 
@@ -1662,10 +1690,12 @@ git commit -m "feat: add identity and workspace tenancy"
 - Create: `src/shared/idempotency/*`
 - Create: `contracts/site-config/v4.schema.json`
 - Create: `contracts/site-config/fixtures/*`, `contracts/site-config/manifest.sha256`
-- Modify: `prisma/schema.prisma`
+- Create: `src/shared/http/http-json-parser.ts`
+- Modify: `src/main.ts`, `prisma/schema.prisma`
 - Test: `test/contract/site-repository.contract.ts`
 - Test: `test/contract/site-config-v4.contract.ts`
 - Test: `test/e2e/sites.e2e-spec.ts`
+- Test: `test/e2e/http-json-parser.e2e-spec.ts`
 
 **Coordinated contract files in Nexus.UI:**
 
@@ -1673,13 +1703,19 @@ git commit -m "feat: add identity and workspace tenancy"
 - Create: `contracts/site-config/fixtures/*`, `contracts/site-config/manifest.sha256`
 - Test the mirrored fixtures through the existing v1/v2/v3-to-v4 codec
 
-- [ ] **Step 1: Freeze bounded SiteConfig v4**
+- [x] **Step 1: Freeze bounded SiteConfig v4**
 
   Implement the normative v4 shape, limits, validation order, safe media-source policy,
   and byte-identical golden fixtures in both repositories. Normal cloud endpoints accept
   exactly v4, canonicalize both shipped `images/...` and `./images/...` bundled sources
   to `images/...`, and reject data URLs, unsafe bundled paths, legacy versions, and
   future versions before a transaction.
+
+  **Completion evidence (2026-08-06):** both repositories contain byte-identical
+  schema/fixture/manifest bytes, the deterministic generator covers the complete golden
+  and last-accepted/first-rejected boundary matrix, UI contract tests pass `61/61`,
+  backend contract tests pass `77/77`, and HTTP parser E2E passes the exact envelope and
+  depth boundaries before controller execution.
 
 - [ ] **Step 2: Add Project, ProjectRevision, and IdempotencyRecord**
 
@@ -1688,7 +1724,9 @@ git commit -m "feat: add identity and workspace tenancy"
   Add `Workspace.projects` and the matching Project workspace relation in this
   migration. Add exact `src/shared/idempotency/prisma-idempotency.adapter.ts` without
   putting business rules in `shared`. It stores only the versioned HMAC fingerprint and
-  allowlisted non-PII result defined above.
+  allowlisted non-PII result defined above. Project-to-Workspace and Release-to-Project
+  use `onDelete: Restrict`; no migration may introduce a cascade path into a table owned
+  by another module.
 
 - [ ] **Step 3: Write RED repository and HTTP contract tests**
 
@@ -1698,7 +1736,8 @@ git commit -m "feat: add identity and workspace tenancy"
   create/save cases, bundled-source compatibility/canonicalization, and an OCC race with
   different keys. Prove RFC 8785 semantic equality, changed-payload conflict,
   active/old-key HMAC replay across rotation, unknown/missing fingerprint-version
-  failure, constant-time digest comparison, and database/log snapshots containing no
+  failure, constant-time digest comparison, both frozen advisory-lock vectors across
+  independently implemented test helpers, and database/log snapshots containing no
   canonical request or plaintext PII.
 
 - [ ] **Step 4: Implement atomic save**
@@ -1721,7 +1760,9 @@ GET  /v1/workspaces/:workspaceId/projects/:projectId/revisions
 POST/PUT require `Idempotency-Key`; save includes `expectedDraftVersion` and
 `siteConfig`. Responses include stable `publicSlug` and absolute `publicUrl`. The
 collection endpoint returns summaries for `WorkspaceReadRepository`; it is not an
-editor-aggregate operation.
+editor-aggregate operation. Both collection endpoints accept optional `cursor` and
+`limit` query parameters and return `{ items, nextCursor }` using the exact pagination
+contract above.
 
 - [ ] **Step 6: Verify and commit**
 

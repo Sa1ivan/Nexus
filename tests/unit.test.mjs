@@ -102,6 +102,7 @@ test('CI runs the complete verification gate on Node.js 24', async () => {
     'npm ci',
     'npx playwright install --with-deps chromium',
     'npm run verify',
+    'npm run audit:prod',
   ]);
   assert.match(workflow, /^\s+- uses: actions\/upload-artifact@v4$/m);
   assert.match(workflow, /^\s+if: failure\(\)$/m);

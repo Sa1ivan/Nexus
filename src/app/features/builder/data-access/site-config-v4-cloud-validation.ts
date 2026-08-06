@@ -226,7 +226,7 @@ function addUniqueString(values: Set<string>, value: unknown): boolean {
 
 function isSafeCloudMediaSource(source: string): boolean {
   if (
-    source.length > 2_048 ||
+    [...source].length > 2_048 ||
     hasControlCharacter(source) ||
     source.includes('\\') ||
     source !== source.trim()
@@ -260,7 +260,7 @@ function isSafeCloudMediaSource(source: string): boolean {
 
 function isSafeCloudLinkTarget(target: string): boolean {
   if (
-    target.length > 2_048 ||
+    [...target].length > 2_048 ||
     target !== target.trim() ||
     hasControlCharacter(target) ||
     target.includes('\\') ||

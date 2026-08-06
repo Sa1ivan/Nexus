@@ -23,9 +23,8 @@ v4 contract зафиксирован и зеркально проверен в b
 - [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после P1-04 Step 1.
 - [x] Локальные commits P1-02 и P1-03 production checkpoint созданы в обоих
       repositories.
-- [ ] Локальный `origin` всё ещё указывает на старый
-      `git@github.com:Sa1ivan/Nexus.git`; GitHub перенаправляет push в
-      `Sa1ivan/Nexus.UI`.
+- [x] Frontend `origin` приведён к canonical
+      `git@github.com:Sa1ivan/Nexus.UI.git` перед итоговым push.
 - [x] В `Nexus.BC` реализованы bootstrap, typed runtime configuration, exact
       credentialed CORS, safe API errors, health, Prisma lifecycle, transaction kernel
       и foundation audit persistence; добавлены identity/tenancy schema, полный auth
@@ -64,8 +63,8 @@ P1-03 подтверждён RED→GREEN contracts, миграциями на Po
 `Ready`.
 
 P1-04 Step 1 подтверждён зеркальными SHA-256 manifests, historical codec migration
-fixtures v1/v2/v3→v4, exact-v4 schema/runtime contracts, frontend `27/27` и backend
-`49/49` focused tests. Review закрыл unsafe HTTPS encoded traversal/backslash bypass,
+fixtures v1/v2/v3→v4, exact-v4 schema/runtime contracts и расширенной boundary
+matrix в обоих repositories. Review закрыл unsafe HTTPS encoded traversal/backslash bypass,
 compiled schema lookup и Ajv `allErrors` memory amplification; актуальные validators
 работают fail-fast.
 
@@ -486,7 +485,7 @@ local capabilities.
 
 ## 7. Последний verification snapshot
 
-Последний полностью закрытый backend gate — P1-03 от 6 августа 2026 на Node
+Итоговый correction gate P1-00–P1-04 Step 1 выполнен 6 августа 2026 на Node
 `v24.19.0` и PostgreSQL database `nexus_p103_step5_gate_0806`:
 
 ```bash
@@ -496,84 +495,67 @@ npm audit --omit=dev --audit-level=moderate
 ```
 
 - lint: passed;
-- architecture: `13/13` в `2/2` suites, около `6.7s`;
-- unit: `4/4` в `2/2` suites;
-- all E2E: `85/85` в `7/7` suites, около `8.7s`;
-- auth/workspace E2E: `11/11`, включая canonical registration, exact Argon2id,
-  encrypted Outbox, log redaction, JWT tamper/expiry, verify/reset/refresh expiry,
-  refresh reuse/race, tenant/IDOR, atomic audit и concurrent owner demotion;
+- architecture: `17/17` в `2/2` suites;
+- SiteConfig contract: `77/77`;
+- unit: `7/7` в `4/4` suites;
+- all E2E: `96/96` в `8/8` suites;
+- auth/workspace E2E дополнительно доказывает invalidation всех reset-токенов,
+  concurrent reset serialization и refresh/reset race без живой replacement session;
+- HTTP parser E2E доказывает exact 1,310,720-byte envelope, первый rejected byte,
+  depth 32/33, raw-body retention, safe error envelope и CORS на раннем `413`;
 - все три migrations applied; `prisma migrate status` подтверждает schema up to date;
 - production build: passed;
 - format check: passed;
 - production audit: `0 vulnerabilities`;
-- independent review после нескольких adversarial cycles: Critical `0`, Important
-  `0`, один residual Minor, verdict `Ready`;
+- повторное review полного correction diff: Critical `0`, Important `0`, verdict
+  `Ready`;
 - residual Minor: same-environment Railway private-network peer теоретически может
   синтезировать ingress headers и `X-Real-IP`; публичный edge contract проверяется по
   документированным Railway headers, а этот trust boundary должен быть подтверждён
-  staging/deployment проверкой;
-- backend HEAD остаётся `40ec4c4`; verification closeout пока не закоммичен и состоит
-  только из ожидаемых production/test изменений.
+  staging/deployment проверкой.
 
-После обновления plan/handoff текущий frontend source-contract gate проходит `42/42`,
-а Prettier подтверждает оба изменённых Markdown-файла.
-
-Последний полный frontend snapshot остаётся от 30 июля 2026. Команда:
+Итоговый frontend gate:
 
 ```bash
 CI=1 npm run verify
 ```
 
-Результат 30 июля 2026:
-
 - lint: passed;
-- source contracts: `31/31`;
-- Angular/Vitest: `133/133` в `21/21` test files;
+- source contracts: `42/42`;
+- mirrored SiteConfig contract: `61/61`;
+- Angular/Vitest: `143/143` в `24/24` test files;
 - E2E source contract: `1/1`;
-- Playwright Chromium: `6/6`;
+- Playwright Chromium: `9/9`;
 - production build: passed;
 - format check: passed;
-- initial bundle: около `402.29 kB`;
-- estimated initial transfer: около `106.44 kB`;
-- builder lazy chunk: около `260.00 kB`;
+- production audit: `0 vulnerabilities`;
+- initial bundle: около `407.00 kB`;
+- estimated initial transfer: около `107.77 kB`;
+- builder lazy chunk: около `303.03 kB`;
 - output: `dist/nexus.ui`.
 
-Browser scenarios:
-
-1. edit → autosave → publish → public lead;
-2. export/import in clean browser context;
-3. schema v2 recovery → save → publish;
-4. compact wizard/theme editor layout;
-5. mobile canvas without viewport switcher;
-6. Hero button variant and text color.
+SiteConfig artifacts повторно сгенерированы из checked-in generator; оба repository
+остаются byte-identical, manifest SHA-256:
+`5555fca3001240dbc982f1608f8c365985e4052752fffffcffae9bfc0a167477`.
 
 ## 8. Git state
 
-Frontend checkout:
+Состояние до correction commit:
 
 ```text
-path: /Users/dkhadzhiev/Projects/Nexus
-branch: develop
-HEAD before this handoff update: b4ee130
-origin/develop: 5a86855b1f906971873c898e47d3eb33e8f956c7
-local committed work after origin: P1-02 closeout and P1-03 handoff updates
-worktree at handoff: modified only by this SESSION_HANDOFF.md update
+frontend: /Users/dkhadzhiev/Projects/Nexus, develop, base 7167171
+backend: /Users/dkhadzhiev/Projects/Nexus.BC, develop, base c09118e
+оба base совпадали со своими origin/develop после fetch
 ```
 
-Remote facts:
+Итоговый handoff contract:
 
 ```text
-configured origin: git@github.com:Sa1ivan/Nexus.git
-canonical frontend: git@github.com:Sa1ivan/Nexus.UI.git
-Nexus.UI HEAD: 5a86855b1f906971873c898e47d3eb33e8f956c7
-backend: git@github.com:Sa1ivan/Nexus.BC.git
-backend path: /Users/dkhadzhiev/Projects/Nexus.BC
-backend branch: develop
-backend HEAD: 40ec4c4
-backend origin/develop: 64285c7
-backend local P1-02 commits: a24deac, 6f47dc6, 991e6c3, 914787e
-backend local P1-03 commits: 735eaf9, b6976b0, 40ec4c4
-backend worktree: expected uncommitted P1-03 verification closeout; full gate green
+frontend origin: git@github.com:Sa1ivan/Nexus.UI.git
+backend origin: git@github.com:Sa1ivan/Nexus.BC.git
+branch: develop в обоих repositories
+correction commits должны быть pushed без force/rebase
+точные итоговые SHA читать через git rev-parse HEAD
 ```
 
 Без отдельной просьбы не:
@@ -581,14 +563,6 @@ backend worktree: expected uncommitted P1-03 verification closeout; full gate gr
 - удалять или перезаписывать `SESSION_HANDOFF.md`;
 - выполнять reset/rebase/force-push;
 - создавать backend внутри frontend repository.
-
-Безопасный housekeeping для remote:
-
-```bash
-git remote set-url origin git@github.com:Sa1ivan/Nexus.UI.git
-git remote -v
-git ls-remote git@github.com:Sa1ivan/Nexus.UI.git HEAD
-```
 
 ## 9. P1 blockers: обязательный risk register
 
@@ -600,9 +574,9 @@ staging остаются последующими gates.
 P1-01 follow-up review 4 августа: `Critical: 0`; generated Prisma tracing и health
 delegation закрыты в P1-02. До соответствующих следующих implementation gates закрыть:
 
-- запретить прямой `api -> domain` import и доказать negative fixture;
+- [x] прямой `api -> domain` import запрещён и доказан negative fixture;
 - ограничить recovery AWS adapter recovery-only surface;
-- до появления `test/contract/**` включить contract tests в verification topology.
+- [x] `test/contract/**` включён в обязательный verification topology.
 
 ### P0 — блокирует безопасный Cloud Alpha
 
@@ -754,7 +728,7 @@ Nexus.UI
              │
              ▼
 Nexus.BC NestJS modular monolith
-  ├─ identity       User, Session, EmailToken
+  ├─ identity       User, RefreshSession, EmailVerificationToken, PasswordResetToken
   ├─ workspaces     Workspace, Membership, authorization
   ├─ sites          Project, Revision, Release, ActiveRelease, public query
   ├─ media          MediaAsset, R2 adapter, cleanup
@@ -777,18 +751,18 @@ Nexus.BC NestJS modular monolith
 
 ## 11. Minimum cloud data model
 
-- `User`, `RefreshSession`, `EmailToken`;
+- `User`, `RefreshSession`, `EmailVerificationToken`, `PasswordResetToken`;
 - `Workspace`, `Membership`;
 - `Project(workspaceId, publicSlug, draft, schemaVersion, draftVersion)`;
-- `ProjectRevision(projectId, version, operationId, siteConfig)`;
+- `ProjectRevision(projectId, draftVersion, operationId, siteConfig, createdAt)`;
 - `Release(projectId, version, publishOperationId, siteConfig)`;
 - `ActiveRelease(projectId, releaseId)` с composite FK;
-- `IdempotencyRecord(scope, key, requestHash, responseRef, expiresAt)`;
+- `IdempotencyRecord(scope, operation, key, requestFingerprint, responseRef, expiresAt)`;
 - `MediaAsset(workspaceId, projectId, objectKey, status, mime, size, checksum,
 width, height)`;
 - `Lead(projectId, releaseId, blockId, submissionId, fields, consent,
 retentionUntil)`;
-- `OutboxEvent(eventId, idempotencyKey, kind, payload, availableAt, lockedUntil,
+- `Outbox(eventId, businessIdempotencyKey, kind, payload, availableAt, lockedUntil,
 attempts, deliveredAt, deadLetterAt)`;
 - `AuditEvent` без PII payload.
 
@@ -852,7 +826,7 @@ review 4 августа подтвердил `npm run verify` и production audi
 - [x] RED configuration/health/CORS tests: `23/23` ожидаемо RED.
 - [x] Typed environment validation и exact credentialed CORS (`6f47dc6`).
 - [x] Stable API error envelope и request IDs (`991e6c3`).
-- [ ] Safe structured logs.
+- [x] Safe structured 5xx error logs без exception payload/PII/secrets.
 - [x] Liveness/readiness.
 - [x] Prisma lifecycle, opaque transactions и audit (`914787e`).
 - [x] PostgreSQL foundation schema и deployable migration.
@@ -1093,11 +1067,13 @@ npm audit --omit=dev --audit-level=moderate
   external/cyclic facade origins и завершает полный scan примерно за семь секунд.
 - Финальный independent review: Critical `0`, Important `0`, один Railway
   private-peer trust Minor, verdict `Ready`.
-- P1-04 Step 1 backend gate: architecture `13/13`, contract `49/49`, unit `4/4`, E2E
-  `85/85`, build/lint/format green; compiled validator загружается из cwd вне repo.
-- P1-04 Step 1 frontend gate: source contracts `42/42`, SiteConfig contract `27/27`,
-  unit `143/143`, lint/build/format green. Playwright не повторялся, потому что UI и
-  browser flows не менялись.
+- P1-04 Step 1 correction backend gate: architecture `17/17`, contract `77/77`, unit
+  `7/7`, E2E `96/96`, build/lint/format green; production audit `0`.
+- P1-04 Step 1 correction frontend gate: source contracts `42/42`, SiteConfig
+  contract `61/61`, unit `143/143`, E2E contract `1/1`, Playwright `9/9`,
+  lint/build/format green; production audit `0`.
+- Compiled SiteConfig validator загружает schema только из trusted module-relative
+  artifact; shadow из `process.cwd()` игнорируется.
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.

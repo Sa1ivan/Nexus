@@ -3,3 +3,4 @@ node_modules
 coverage
 .angular
 package-lock.json
+contracts/site-config/fixtures
