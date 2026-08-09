@@ -1717,7 +1717,7 @@ git commit -m "feat: add identity and workspace tenancy"
   backend contract tests pass `77/77`, and HTTP parser E2E passes the exact envelope and
   depth boundaries before controller execution.
 
-- [ ] **Step 2: Add Project, ProjectRevision, and IdempotencyRecord**
+- [x] **Step 2: Add Project, ProjectRevision, and IdempotencyRecord**
 
   Use the reconciled Prisma fields and uniqueness constraints above. Creation generates
   stable `publicSlug`/`publicUrl`, version 1, and revision 1 in one `sites` transaction.
@@ -1728,7 +1728,7 @@ git commit -m "feat: add identity and workspace tenancy"
   use `onDelete: Restrict`; no migration may introduce a cascade path into a table owned
   by another module.
 
-- [ ] **Step 3: Write RED repository and HTTP contract tests**
+- [x] **Step 3: Write RED repository and HTTP contract tests**
 
   Run the site repository contract against an in-memory fake and Prisma. Prove create,
   save version increment, immutable revisions, tenant isolation, bounds, validation
@@ -1740,14 +1740,14 @@ git commit -m "feat: add identity and workspace tenancy"
   independently implemented test helpers, and database/log snapshots containing no
   canonical request or plaintext PII.
 
-- [ ] **Step 4: Implement atomic save**
+- [x] **Step 4: Implement atomic save**
 
   Under the coordinator/idempotency transaction, update with `id`, `workspaceId`, and
   `draftVersion = expectedDraftVersion`; increment the draft version and append exactly
   one revision with `operationId`. A zero-row update returns
   `PROJECT_VERSION_CONFLICT` without a revision. The schema version written here is 4.
 
-- [ ] **Step 5: Add authenticated editor endpoints**
+- [x] **Step 5: Add authenticated editor endpoints**
 
 ```http
 GET  /v1/workspaces/:workspaceId/projects/:projectId
@@ -1764,7 +1764,7 @@ editor-aggregate operation. Both collection endpoints accept optional `cursor` a
 `limit` query parameters and return `{ items, nextCursor }` using the exact pagination
 contract above.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 ```bash
 # Nexus.BC
@@ -1778,6 +1778,16 @@ npm run verify
 git add contracts src/app/features/builder/data-access
 git commit -m "test: mirror cloud SiteConfig v4 contract"
 ```
+
+**Completion evidence (2026-08-09):** backend commits `c09118e`, `22cd006`,
+`c226033`, `fa2be05`, and `c76439c` are merged through `2a9791e`. The closeout adds
+the planned `Project` and `ProjectRevision` domain models plus explicit PostgreSQL
+contracts for command rollback before commit and save replay after a later draft
+advance. All migrations apply from an empty database; backend verification passes
+architecture `18/18`, contracts `96/96`, unit `7/7`, and E2E `135/135`; frontend
+verification passes source contracts `42/42`, SiteConfig contracts `61/61`, unit
+`143/143`, E2E contract `1/1`, and Playwright `9/9`, with both builds, lint, and
+format checks green. The mirrored SiteConfig artifacts remain byte-identical.
 
 ## Task P1-05: Immutable releases, ActiveRelease, and public reads
 
