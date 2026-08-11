@@ -74,11 +74,22 @@ release/public reads полностью закрыты production-реализа
 - [x] P1-05 closeout — activation валидирует immutable snapshot до pointer move,
       publish replay связан с исходной operation, version bounds соответствуют int4,
       а deterministic race/child-page/exact-public-DTO regressions закреплены тестами.
+- [x] P1-06 Step 1 — provider-neutral ObjectStorage port, server-owned object keys,
+      exact five-minute create-only presigned PUT contract, bounded read/head/delete и
+      RED→GREEN contracts — реализован в изолированном backend worktree.
+- [x] P1-06 Step 2 — MediaAsset/MediaImportBatch schema, exact 24-hour import batches,
+      full JPEG/PNG/WebP decode verification, atomic PENDING→READY + audit и
+      transaction-aware exact-set attachment — реализован и прошёл fresh-DB gate.
+- [x] P1-06 Step 3 — RED media/publish/delete contracts, полная v5 readiness и
+      activation matrix, cleanup controls, retained-reference rejection,
+      deterministic save/publish-vs-delete races и opaque transactional port
+      boundaries — добавлен и независимо проверен.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Начать P1-06 Step 1: определить provider-independent object-storage port и RED
-> contracts, не импортируя AWS SDK за пределами R2 adapter.**
+> **Начать P1-06 Step 4: выполнить synchronized SiteConfig v5 backend-first rollout
+> в режиме `V4_COMPAT`, сохранив v4 writes и не подмешивая media HTTP endpoints из
+> Step 5 или production flip из P1-09.**
 
 P1-03 подтверждён RED→GREEN contracts, миграциями на PostgreSQL, auth/workspace E2E,
 конкурентными сценариями и полным Node 24 gate. Combined Jest crash `139` устранён
@@ -912,12 +923,24 @@ P1-03 согласно detailed Cloud Alpha plan.
 
 ### P1-06 — managed media
 
+- [x] Step 1: provider-independent ObjectStorage contract; PUT create-only, чтобы
+      повторно используемый presigned URL не мог перезаписать verified bytes.
+- [x] Step 2: PostgreSQL media foundation, server-side completion verification,
+      allowlisted media audit и transaction-aware import attachment.
+- [x] Step 3: deliberate RED contracts для media readiness/integrity, cleanup,
+      activation safety, retained references, cross-module transaction ports и
+      deterministic delete races.
 - [ ] Private R2 bucket.
 - [ ] Presign/complete flow.
-- [ ] Magic bytes, MIME, dimensions and checksum.
+- [x] Magic bytes, MIME, dimensions and checksum.
 - [ ] READY/ownership validation on publish.
 - [ ] Legacy data URL extraction during cloud migration.
 - [ ] Orphan cleanup with grace period.
+
+Step 1–3 находятся без commit/stage в `/private/tmp/nexus-bc-p1-06-step1` на branch
+`personal/d.khadzhiev/p1-06-step1`: detailed plan намеренно создаёт backend commit
+только в Step 6 после media endpoints и synchronized v5 work. Main backend
+`/Users/dkhadzhiev/Projects/Nexus.BC` остаётся чистым на `develop`.
 
 ### P1-07 — forms, leads and notifications
 
@@ -1071,23 +1094,25 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Убедиться, что четыре P1-05 commits и closeout присутствуют в backend, а detailed
-   plan и этот handoff остаются актуальными.
-5. Открыть P1-06 Step 1 и определить provider-independent ObjectStorage port contracts.
-6. Сначала добавить RED object-storage contracts, затем R2/AWS adapter; AWS SDK не
-   должен выходить за infrastructure adapter.
-7. Сохранить P1-05 public contracts и не подмешивать frontend renderer/static hosting
+4. Продолжить именно в `/private/tmp/nexus-bc-p1-06-step1` на
+   `personal/d.khadzhiev/p1-06-step1`; не потерять uncommitted Step 1–3 diff и не
+   переносить его в чистый main backend checkout.
+5. Открыть P1-06 Step 4 и выполнить backend-first SiteConfig v5 rollout строго в
+   `V4_COMPAT`: readers `[4, 5]`, accepted input/write version только v4.
+6. Добавить capabilities, exact handler tuples, rollout fence/marker races и безопасный
+   v4→v5 up-converter; managed-v5→v4 conversion запрещён.
+7. Не начинать Step 5 media HTTP endpoints и не выполнять production `V5_ACTIVE`
+   flip: endpoints принадлежат следующему шагу, deployed flip — P1-09.
+8. Сохранить P1-05 public contracts и не подмешивать frontend renderer/static hosting
    в P1-06.
-8. Не переписывать закрытые auth/workspace use cases P1-03 без нового доказанного
-   defect.
-9. Для staging отдельно подтвердить, что Railway edge перезаписывает trust headers;
-   residual same-environment private-peer risk не скрывать.
+9. Не создавать промежуточный backend commit: detailed plan коммитит coordinated
+   P1-06 backend scope в Step 6.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и P1-06 detailed plan. Backend P1-05 полностью закрыт;
-> начни P1-06 Step 1 с RED contracts для provider-neutral ObjectStorage port, не
-> импортируя AWS SDK за пределами R2 adapter.
+> Прочитай `SESSION_HANDOFF.md` и P1-06 detailed plan. P1-06 Step 1–3 готовы без
+> commit в `/private/tmp/nexus-bc-p1-06-step1`; начни Step 4 с synchronized v5
+> backend-first `V4_COMPAT` rollout, не добавляя Step 5 endpoints и не делая flip.
 
 ## 18. Review honesty
 
@@ -1109,6 +1134,21 @@ npm audit --omit=dev --audit-level=moderate
   build/lint/format green; production `npm audit` — `0 vulnerabilities`.
 - P1-05 closeout independent re-review: Critical `0`, Important `0`, Minor `0`,
   verdict `READY`.
+- P1-06 Step 1–2 final backend gate на новой пустой PostgreSQL database под Node 24:
+  architecture `18/18`, contract `124/124`, unit `17/17`, E2E `195/195`,
+  build/lint/format green; production `npm audit` — `0 vulnerabilities`.
+- P1-06 Step 1–2 re-review после fixes: Critical `0`, Important `0`, verdict `Ready`;
+  create-only PUT, exact 24h expiry, DB-clock attachment CAS и canonical concurrent
+  completion evidence закреплены contracts/E2E.
+- P1-06 Step 3 deliberate RED gate на новой пустой PostgreSQL database под Node 24:
+  focused contract `15/19` с четырьмя ожидаемыми RED port/wiring cases; focused E2E
+  `6/34` с 28 ожидаемыми RED future cases; Step 1–2 baseline остаётся зелёным —
+  architecture `18/18`, contract `124/124`, unit `17/17`, E2E `195/195`, build,
+  lint и format green. После focused Step 3 suite: users/workspaces/assets/batches и
+  `p106_%` triggers/functions/tables — `0`.
+- P1-06 Step 3 final independent reviews: Critical `0`, Important `0`, verdict
+  `Ready`; cleanup discovery намеренно использует bounded internal test seam вместо
+  небезопасного runtime probing произвольных destructive providers.
 - P1-04 closeout frontend gate: source contracts `42/42`, SiteConfig contract `61/61`,
   unit `143/143`, E2E contract `1/1`, Playwright `9/9`, lint/build/format green.
 - Compiled SiteConfig validator загружает schema только из trusted module-relative
@@ -1119,4 +1159,4 @@ npm audit --omit=dev --audit-level=moderate
 - Backend risk register основан на review plan/contracts; P1-03 identity/tenancy,
   P1-04 drafts/concurrency и backend P1-05 releases/public reads закрыты полным gate.
   Frontend renderer/static hosting остаются P1-08/P1-09, следующий backend task —
-  managed media P1-06.
+  P1-06 Step 4 synchronized SiteConfig v5 rollout в `V4_COMPAT`.
