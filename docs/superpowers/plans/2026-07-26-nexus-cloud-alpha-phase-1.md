@@ -1800,13 +1800,13 @@ format checks green. The mirrored SiteConfig artifacts remain byte-identical.
 - Modify: `prisma/schema.prisma`
 - Test: `test/e2e/public-release.e2e-spec.ts`
 
-- [ ] **Step 1: Add Release and ActiveRelease**
+- [x] **Step 1: Add Release and ActiveRelease**
 
   Apply the exact composite schema above. There is no project activation column.
   Rollback means activating an existing immutable release through the same composite
   constraint and membership authorization.
 
-- [ ] **Step 2: Write RED publish and public-read tests**
+- [x] **Step 2: Write RED publish and public-read tests**
 
   Cover atomic OCC/revision/release/activation, immutable public output after later
   draft edits, rollback pointer-only behavior, operation uniqueness, response-loss
@@ -1816,7 +1816,7 @@ format checks green. The mirrored SiteConfig artifacts remain byte-identical.
   same activate key after response loss returns the original result; reusing that key
   for another release returns `409 IDEMPOTENCY_KEY_REUSED` without pointer movement.
 
-- [ ] **Step 3: Implement publish as one sites transaction**
+- [x] **Step 3: Implement publish as one sites transaction**
 
   Validate v4 before the transaction; inside it perform the version-guarded draft
   update, append one revision and one release with the operation id, and upsert
@@ -1824,7 +1824,7 @@ format checks green. The mirrored SiteConfig artifacts remain byte-identical.
   activation becomes visible only at commit. The same-key stored result returns the
   original release after response loss.
 
-- [ ] **Step 4: Add publish and public endpoints**
+- [x] **Step 4: Add publish and public endpoints**
 
 ```http
 POST /v1/workspaces/:workspaceId/projects/:projectId/publish
@@ -1838,7 +1838,7 @@ Publish/activate require `Idempotency-Key`. Public responses include immutable
 page plus the configured privacy notice URL/version, but no workspace, user, revision,
 or draft data.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx prisma migrate dev --name site_releases_activation
@@ -1846,6 +1846,13 @@ npm run verify
 git add prisma src/modules/sites test/e2e/public-release.e2e-spec.ts
 git commit -m "feat: add immutable active releases"
 ```
+
+Completion evidence: the backend work landed as `50950b4` (schema/domain), `655171d`
+(RED contracts), `17412cf` (application transactions), and `c250a1f` (HTTP/public
+reads), merged through `f3906ce`. The 11 August closeout added fail-closed activation
+of stored snapshots, operation-bound publish replay, PostgreSQL-int4 request bounds,
+and deterministic race, child-page, exact-public-DTO regressions. Static SPA hosting
+and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
 
 ## Task P1-06: Managed media and synchronized SiteConfig v5
 

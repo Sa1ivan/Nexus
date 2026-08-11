@@ -1,11 +1,12 @@
 # Nexus — consolidated session handoff
 
-Актуально на 9 августа 2026 года.
+Актуально на 11 августа 2026 года.
 
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
 30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
-P1-03 identity/tenancy и P1-04 cloud drafts/concurrency полностью закрыты
-production-реализацией, PostgreSQL contracts, свежими verification gates и review.
+P1-03 identity/tenancy, P1-04 cloud drafts/concurrency и backend-часть P1-05
+release/public reads полностью закрыты production-реализацией, PostgreSQL contracts,
+свежими verification gates и review.
 
 ## 1. Executive status
 
@@ -19,7 +20,7 @@ production-реализацией, PostgreSQL contracts, свежими verifica
 - [x] Последний полный frontend gate зелёный.
 - [x] P1-00 завершён: Cloud Alpha plan и architecture contracts согласованы.
 - [x] P1-01 завершён: отдельный `Nexus.BC` bootstrap и architecture gate созданы.
-- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после полного P1-04 closeout.
+- [x] `SESSION_HANDOFF.md` отслеживается Git и обновлён после backend closeout P1-05.
 - [x] Локальные commits P1-02 и P1-03 production checkpoint созданы в обоих
       repositories.
 - [x] Frontend `origin` приведён к canonical
@@ -27,7 +28,8 @@ production-реализацией, PostgreSQL contracts, свежими verifica
 - [x] В `Nexus.BC` реализованы bootstrap, typed runtime configuration, exact
       credentialed CORS, safe API errors, health, Prisma lifecycle, transaction kernel
       и foundation audit persistence; добавлены identity/tenancy schema, полный auth
-      lifecycle и workspace authorization. Public hosting ещё отсутствует.
+      lifecycle, workspace authorization, immutable releases и anonymous public-read
+      API. Frontend public renderer и static hosting ещё отсутствуют.
 - [x] P1-02 Step 1 — исходные 23 RED configuration/health/CORS tests добавлены;
       первоначальные ожидаемые failures подтверждены до реализации.
 - [x] P1-02 Step 2 — typed configuration boundary и credentialed CORS — реализован,
@@ -60,11 +62,23 @@ production-реализацией, PostgreSQL contracts, свежими verifica
 - [x] P1-04 closeout — domain-модели Project/ProjectRevision, business+idempotency
       rollback и save response-loss-after-advance contracts добавлены; полный fresh-DB
       gate зелёный.
+- [x] P1-05 Step 1 — exact Release/ActiveRelease composite schema, migration и readonly
+      domain models — реализован в `50950b4`.
+- [x] P1-05 Step 2 — frozen publish/activate/public HTTP contracts и rollback, race,
+      replay и tenant-isolation matrix — зафиксирован в `655171d`.
+- [x] P1-05 Step 3 — atomic publish/activation application transactions, immutable
+      replay и allowlisted audit — реализован в `17412cf`.
+- [x] P1-05 Step 4 — authenticated mutation endpoints, anonymous public reads и
+      representation-aware ETag/304 — реализован в `c250a1f`; merge checkpoint —
+      `f3906ce`.
+- [x] P1-05 closeout — activation валидирует immutable snapshot до pointer move,
+      publish replay связан с исходной operation, version bounds соответствуют int4,
+      а deterministic race/child-page/exact-public-DTO regressions закреплены тестами.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Начать P1-05 Step 1: добавить Release и ActiveRelease по exact composite schema,
-> не переходя к publish/public API до RED schema и repository contracts.**
+> **Начать P1-06 Step 1: определить provider-independent object-storage port и RED
+> contracts, не импортируя AWS SDK за пределами R2 adapter.**
 
 P1-03 подтверждён RED→GREEN contracts, миграциями на PostgreSQL, auth/workspace E2E,
 конкурентными сценариями и полным Node 24 gate. Combined Jest crash `139` устранён
@@ -79,6 +93,12 @@ authenticated editor endpoints. Closeout дополнительно закреп
 полный rollback business write вместе с replay state и исторический save replay после
 следующего изменения draft.
 
+Backend-часть P1-05 подтверждена exact composite Release/ActiveRelease schema,
+атомарными publish/activate transactions, immutable replay, pointer-only rollback,
+tenant isolation, anonymous public reads только через ActiveRelease и release-aware
+ETag. Frontend route `/p/:publicSlug` и static SPA hosting остаются отдельными gates
+P1-08 и P1-09, а не незавершённой backend-работой P1-05.
+
 ## 2. Приоритет источников
 
 При расхождении документации использовать следующий порядок:
@@ -90,10 +110,10 @@ authenticated editor endpoints. Closeout дополнительно закреп
 5. `ROADMAP.md`.
 
 Важно: detailed Cloud Alpha plan прошёл P1-00 reconciliation и follow-up review.
-Его committed checkbox state закрывает P1-00–P1-02 и P1-04; доказательство закрытия
-P1-03 остаётся в коде, тестах и этом handoff. Актуальное доказательство P1-04 также
-записано в completion evidence плана. Новые design/spec документы в этой сессии не
-создавались.
+Его committed checkbox state закрывает P1-00–P1-02 и P1-04–P1-05; доказательство
+закрытия P1-03 остаётся в коде, тестах и этом handoff. Актуальные доказательства P1-04
+и P1-05 также записаны в completion evidence плана. Новые design/spec документы в
+этой сессии не создавались.
 
 Основные документы:
 
@@ -193,10 +213,11 @@ Product recommendation:
 
 - frontend foundation: около `7/10`;
 - P1 architecture/contracts: review закрыт, plan готов к пошаговому исполнению;
-- реализованный backend: P1-01/P1-02 foundation, PostgreSQL/Prisma, identity/tenancy,
-  transactional Outbox, auth lifecycle и workspace authorization;
-- production/cloud readiness: около `4/10`; P1-03 закрыт, следующий блокирующий слой —
-  cloud drafts/concurrency P1-04.
+- реализованный backend: P1-01–P1-05 foundation, PostgreSQL/Prisma, identity/tenancy,
+  transactional Outbox, auth lifecycle, workspace authorization, cloud drafts,
+  immutable releases и anonymous public reads;
+- следующий backend-слой Cloud Alpha — managed media P1-06; frontend public renderer
+  и static hosting закрываются в P1-08/P1-09.
 
 Главный вывод снимка 30 июля был закрыт P1-00:
 
@@ -879,13 +900,15 @@ P1-03 согласно detailed Cloud Alpha plan.
 
 ### P1-05 — release and public Alpha
 
-- [ ] Release + ActiveRelease schema.
-- [ ] Atomic idempotent publish.
-- [ ] Unpublish/rollback.
-- [ ] Public query only through ActiveRelease.
-- [ ] Static SPA hosting with deep-link support.
-- [ ] `/p/:publicSlug` from incognito without auth/localStorage.
-- [ ] Release-aware ETag.
+- [x] Release + ActiveRelease schema.
+- [x] Atomic idempotent publish.
+- [x] Pointer-only rollback through `activateRelease`; literal unpublish is not part of
+      the detailed P1-05 contract.
+- [x] Public query only through ActiveRelease.
+- [ ] Static SPA hosting with deep-link support — P1-09 deployment ownership.
+- [ ] `/p/:publicSlug` from incognito without auth/localStorage — P1-08 browser flow;
+      deployed fallback remains P1-09.
+- [x] Release-aware ETag.
 
 ### P1-06 — managed media
 
@@ -1035,7 +1058,7 @@ npx playwright install chromium
 CI=1 npm run verify
 ```
 
-Planned backend:
+Backend:
 
 ```bash
 npm run test:contract
@@ -1048,13 +1071,13 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Убедиться, что P1-04 commits и closeout присутствуют в обоих repositories, а
-   mirrored `contracts/site-config` остаются byte-identical.
-5. Открыть P1-05 Step 1 в detailed Cloud Alpha plan и сверить exact composite fields,
-   uniqueness и delete behavior для Release и ActiveRelease.
-6. Сначала добавить RED schema/repository contracts P1-05, затем migration и domain
-   models; не начинать publish/public HTTP API раньше соответствующих contracts.
-7. Publish, activation rollback и public reads реализовывать последовательно по P1-05.
+4. Убедиться, что четыре P1-05 commits и closeout присутствуют в backend, а detailed
+   plan и этот handoff остаются актуальными.
+5. Открыть P1-06 Step 1 и определить provider-independent ObjectStorage port contracts.
+6. Сначала добавить RED object-storage contracts, затем R2/AWS adapter; AWS SDK не
+   должен выходить за infrastructure adapter.
+7. Сохранить P1-05 public contracts и не подмешивать frontend renderer/static hosting
+   в P1-06.
 8. Не переписывать закрытые auth/workspace use cases P1-03 без нового доказанного
    defect.
 9. Для staging отдельно подтвердить, что Railway edge перезаписывает trust headers;
@@ -1062,15 +1085,15 @@ npm audit --omit=dev --audit-level=moderate
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и P1-05 detailed plan. P1-04 cloud drafts/concurrency
-> полностью закрыт; начни P1-05 Step 1 с RED contracts для exact Release и
-> ActiveRelease composite schema, не переходя к publish/public API раньше времени.
+> Прочитай `SESSION_HANDOFF.md` и P1-06 detailed plan. Backend P1-05 полностью закрыт;
+> начни P1-06 Step 1 с RED contracts для provider-neutral ObjectStorage port, не
+> импортируя AWS SDK за пределами R2 adapter.
 
 ## 18. Review honesty
 
 - Факты о frontend подтверждены кодом, Git и полным `npm run verify`.
 - `Nexus.UI HEAD` проверен через `git ls-remote`.
-- Branch/upstream обоих repositories сверены после `git fetch` 9 августа.
+- Branch/upstream обоих repositories сверены после `git fetch` 11 августа.
 - P1-03 подтверждён RED→GREEN contracts, тремя migrations, auth/workspace E2E и
   полным Node 24 gate: architecture `13/13`, unit `4/4`, E2E `85/85`.
 - Combined Jest exit `139` локализован до загрузки native Argon2 внутри Jest VM и
@@ -1081,6 +1104,11 @@ npm audit --omit=dev --audit-level=moderate
   private-peer trust Minor, verdict `Ready`.
 - P1-04 closeout backend gate на пустой PostgreSQL schema: architecture `18/18`,
   contract `96/96`, unit `7/7`, E2E `135/135`, build/lint/format green.
+- P1-05 closeout backend gate на новой пустой PostgreSQL database под Node 24:
+  architecture `18/18`, contract `98/98`, unit `14/14`, E2E `182/182`,
+  build/lint/format green; production `npm audit` — `0 vulnerabilities`.
+- P1-05 closeout independent re-review: Critical `0`, Important `0`, Minor `0`,
+  verdict `READY`.
 - P1-04 closeout frontend gate: source contracts `42/42`, SiteConfig contract `61/61`,
   unit `143/143`, E2E contract `1/1`, Playwright `9/9`, lint/build/format green.
 - Compiled SiteConfig validator загружает schema только из trusted module-relative
@@ -1088,6 +1116,7 @@ npm audit --omit=dev --audit-level=moderate
 - Provider-specific цены/лимиты Railway, R2 и Resend сегодня не проверялись.
 - Юридические требования к privacy/retention зависят от рынка и требуют отдельной
   product/legal проверки.
-- Backend risk register основан на review plan/contracts; P1-03 identity/tenancy и
-  P1-04 drafts/concurrency persistence/API закрыты полным gate. P1-05 releases/public
-  reads и последующие business/deployment пункты ещё не реализованы.
+- Backend risk register основан на review plan/contracts; P1-03 identity/tenancy,
+  P1-04 drafts/concurrency и backend P1-05 releases/public reads закрыты полным gate.
+  Frontend renderer/static hosting остаются P1-08/P1-09, следующий backend task —
+  managed media P1-06.
