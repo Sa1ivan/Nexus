@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import { format } from 'prettier';
 
 const JSON_ENVELOPE_BYTES_LIMIT = 1_310_720;
 const CANONICAL_BYTES_LIMIT = 1_048_576;
@@ -13,6 +14,7 @@ const sourceName = readdirSync(fixtureRoot).includes('valid-v4.json')
   ? 'valid-v4.json'
   : 'v4-full-valid.json';
 const full = JSON.parse(readFileSync(join(fixtureRoot, sourceName), 'utf8'));
+const v4Schema = JSON.parse(readFileSync(join(contractRoot, 'v4.schema.json'), 'utf8'));
 
 function clone(value) {
   return structuredClone(value);
@@ -49,6 +51,54 @@ function firstLeadField(config) {
   const field = firstBlock(config, 'leadForm').fields[0];
   if (field === undefined) throw new Error('Missing lead field');
   return field;
+}
+
+function createV5Schema() {
+  const schema = clone(v4Schema);
+  schema.$id = 'https://nexus.local/contracts/site-config/v5.schema.json';
+  schema.title = 'Nexus SiteConfig v5';
+  schema.properties.schemaVersion.const = 5;
+
+  const focalPoint = clone(schema.definitions.media.properties.focalPoint);
+  const alt = { $ref: '#/definitions/shortText' };
+  schema.definitions.media = {
+    oneOf: [
+      {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          kind: { const: 'managed' },
+          assetId: { $ref: '#/definitions/id' },
+          alt,
+          focalPoint,
+        },
+        required: ['kind', 'assetId', 'alt'],
+      },
+      {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          kind: { const: 'external' },
+          src: { $ref: '#/definitions/url' },
+          alt,
+          focalPoint,
+        },
+        required: ['kind', 'src', 'alt'],
+      },
+      {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          kind: { const: 'bundled' },
+          path: { $ref: '#/definitions/url' },
+          alt,
+          focalPoint,
+        },
+        required: ['kind', 'path', 'alt'],
+      },
+    ],
+  };
+  return schema;
 }
 
 function minimalConfig() {
@@ -253,8 +303,8 @@ writeJson(
 const managedV5 = clone(full);
 managedV5.schemaVersion = 5;
 firstBlock(managedV5, 'hero').media = {
+  kind: 'managed',
   assetId: 'asset-managed-1',
-  src: 'https://cdn.example.com/managed.webp',
   alt: 'Managed media',
 };
 writeJson('v5-managed-valid.json', managedV5);
@@ -262,14 +312,34 @@ const missingAssetV5 = clone(managedV5);
 delete firstBlock(missingAssetV5, 'hero').media.assetId;
 writeJson('v5-managed-missing-asset-id.json', missingAssetV5);
 const unsafeExternalV5 = clone(managedV5);
-firstBlock(unsafeExternalV5, 'hero').media.src = 'http://example.com/unsafe.webp';
+firstBlock(unsafeExternalV5, 'hero').media = {
+  kind: 'external',
+  src: 'http://example.com/unsafe.webp',
+  alt: 'Unsafe external media',
+};
 writeJson('v5-external-unsafe.json', unsafeExternalV5);
 const traversalV5 = clone(managedV5);
-firstBlock(traversalV5, 'hero').media.src = 'images/../unsafe.webp';
+firstBlock(traversalV5, 'hero').media = {
+  kind: 'bundled',
+  path: 'images/../unsafe.webp',
+  alt: 'Unsafe bundled media',
+};
 writeJson('v5-bundled-traversal.json', traversalV5);
+
+writeFileSync(
+  join(contractRoot, 'v5.schema.json'),
+  await format(JSON.stringify(createV5Schema()), {
+    parser: 'json',
+    printWidth: 100,
+    tabWidth: 2,
+    useTabs: false,
+    endOfLine: 'lf',
+  }),
+);
 
 const artifactNames = [
   'v4.schema.json',
+  'v5.schema.json',
   ...readdirSync(fixtureRoot).map((name) => `fixtures/${name}`),
 ].sort();
 const manifest = artifactNames
@@ -283,5 +353,5 @@ const manifest = artifactNames
 writeFileSync(join(contractRoot, 'manifest.sha256'), `${manifest}\n`);
 
 process.stdout.write(
-  `Generated ${artifactNames.length - 1} SiteConfig fixtures in ${basename(contractRoot)}\n`,
+  `Generated ${artifactNames.length - 2} SiteConfig fixtures in ${basename(contractRoot)}\n`,
 );

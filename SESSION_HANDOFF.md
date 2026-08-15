@@ -1,12 +1,13 @@
 # Nexus — consolidated session handoff
 
-Актуально на 11 августа 2026 года.
+Актуально на 15 августа 2026 года.
 
 Этот документ — единая точка входа для следующей сессии. Он обновляет снимок от
 30 июля: P1-00, P1-01 и P1-02 уже завершены, отдельный backend repository создан, а
 P1-03 identity/tenancy, P1-04 cloud drafts/concurrency и backend-часть P1-05
 release/public reads полностью закрыты production-реализацией, PostgreSQL contracts,
-свежими verification gates и review.
+свежими verification gates и review. P1-06 Steps 1–6 завершены в одной обычной
+feature-ветке; следующий продуктовый этап — P1-07.
 
 ## 1. Executive status
 
@@ -76,7 +77,7 @@ release/public reads полностью закрыты production-реализа
       а deterministic race/child-page/exact-public-DTO regressions закреплены тестами.
 - [x] P1-06 Step 1 — provider-neutral ObjectStorage port, server-owned object keys,
       exact five-minute create-only presigned PUT contract, bounded read/head/delete и
-      RED→GREEN contracts — реализован в изолированном backend worktree.
+      RED→GREEN contracts — реализован в backend feature-ветке.
 - [x] P1-06 Step 2 — MediaAsset/MediaImportBatch schema, exact 24-hour import batches,
       full JPEG/PNG/WebP decode verification, atomic PENDING→READY + audit и
       transaction-aware exact-set attachment — реализован и прошёл fresh-DB gate.
@@ -84,12 +85,23 @@ release/public reads полностью закрыты production-реализа
       activation matrix, cleanup controls, retained-reference rejection,
       deterministic save/publish-vs-delete races и opaque transactional port
       boundaries — добавлен и независимо проверен.
+- [x] P1-06 Step 4 — exact no-store capabilities, v4/v5 readers, exhaustive rollout
+      handlers, immutable activation marker, fail-closed readiness/write guard,
+      safe v4→v5 up-converter и bounded client-capabilities parser — реализован и
+      проверен marker-race/first-v5 persistence E2E.
+- [x] P1-06 Step 5 — все project/import media endpoints, exact SigV4 R2 grants,
+      READY verification/public delivery, atomic attachment, retained-reference
+      delete guards и bounded durable cleanup reconciliation — реализованы; финальный
+      independent review дал Critical `0`, Important `0`, verdict `Ready`.
+- [x] P1-06 Step 6 — coordinated backend/frontend gates зелёные; backend зафиксирован
+      commit `83e060b`, frontend contracts и closeout handoff входят в текущий
+      одноимённый commit этой ветки.
 
 Активный продуктовый этап остаётся **P1 — Cloud Alpha**, но следующий ход теперь:
 
-> **Начать P1-06 Step 4: выполнить synchronized SiteConfig v5 backend-first rollout
-> в режиме `V4_COMPAT`, сохранив v4 writes и не подмешивая media HTTP endpoints из
-> Step 5 или production flip из P1-09.**
+> **Начать P1-07 только после пользовательского merge, sync `develop` и обязательной
+> очистки project caches/generated temporary artifacts; production `V5_ACTIVE` flip
+> остаётся в P1-09.**
 
 P1-03 подтверждён RED→GREEN contracts, миграциями на PostgreSQL, auth/workspace E2E,
 конкурентными сценариями и полным Node 24 gate. Combined Jest crash `139` устранён
@@ -580,25 +592,31 @@ CI=1 npm run verify
 
 SiteConfig artifacts повторно сгенерированы из checked-in generator; оба repository
 остаются byte-identical, manifest SHA-256:
-`5555fca3001240dbc982f1608f8c365985e4052752fffffcffae9bfc0a167477`.
+`e0c1d861d1da41572ac19914d2afbbe326aa6c72e5ea80727f7b7f900bb84071`.
 
 ## 8. Git state
 
-Состояние до correction commit:
+Актуальное состояние обычных checkout:
 
 ```text
-frontend: /Users/dkhadzhiev/Projects/Nexus, develop, base 7167171
-backend: /Users/dkhadzhiev/Projects/Nexus.BC, develop, base c09118e
-оба base совпадали со своими origin/develop после fetch
+frontend: /Users/dkhadzhiev/Projects/Nexus
+branch: personal/d.khadzhiev/p1-06-step1, HEAD 33f801a, origin/develop +1
+backend: /Users/dkhadzhiev/Projects/Nexus.BC
+branch: personal/d.khadzhiev/p1-06-step1, HEAD 82a0deb, origin/develop +2
 ```
 
-Итоговый handoff contract:
+Работа ведётся только в этих обычных checkout; Git worktree для P1-06 не используется.
+Одинаковые workflow-правила закреплены в `AGENTS.md` обоих repositories: отдельная
+ветка вместо worktree, обновление плана после каждого шага и безопасная очистка cache/
+generated trash после merge+sync `develop` перед следующим шагом.
+
+Git contract:
 
 ```text
 frontend origin: git@github.com:Sa1ivan/Nexus.UI.git
 backend origin: git@github.com:Sa1ivan/Nexus.BC.git
-branch: develop в обоих repositories
-correction commits должны быть pushed без force/rebase
+branch: personal/d.khadzhiev/p1-06-step1 в обоих repositories
+commits должны быть pushed без force/rebase
 точные итоговые SHA читать через git rev-parse HEAD
 ```
 
@@ -930,17 +948,19 @@ P1-03 согласно detailed Cloud Alpha plan.
 - [x] Step 3: deliberate RED contracts для media readiness/integrity, cleanup,
       activation safety, retained references, cross-module transaction ports и
       deterministic delete races.
-- [ ] Private R2 bucket.
-- [ ] Presign/complete flow.
+- [x] Step 4: synchronized SiteConfig v5 rollout в release mode `V4_COMPAT` с
+      compiled/tested `V5_ACTIVE`, но без production flip.
+- [x] Private R2 bucket contract and authenticated R2 adapter.
+- [x] Presign/complete flow.
 - [x] Magic bytes, MIME, dimensions and checksum.
-- [ ] READY/ownership validation on publish.
+- [x] READY/ownership validation on publish.
 - [ ] Legacy data URL extraction during cloud migration.
-- [ ] Orphan cleanup with grace period.
+- [x] Durable orphan reconciliation with repeated DELETE and fair bounded queues.
 
-Step 1–3 находятся без commit/stage в `/private/tmp/nexus-bc-p1-06-step1` на branch
-`personal/d.khadzhiev/p1-06-step1`: detailed plan намеренно создаёт backend commit
-только в Step 6 после media endpoints и synchronized v5 work. Main backend
-`/Users/dkhadzhiev/Projects/Nexus.BC` остаётся чистым на `develop`.
+Steps 1–3 сохранены backend commits `c4281c7` и `82a0deb`; Steps 4–6 зафиксированы
+backend commit `83e060b` в том же `personal/d.khadzhiev/p1-06-step1` обычном checkout.
+Frontend держит зеркальные v5 artifacts, closeout handoff и workflow rules в
+одноимённом coordinated commit.
 
 ### P1-07 — forms, leads and notifications
 
@@ -1094,25 +1114,23 @@ npm audit --omit=dev --audit-level=moderate
 1. Прочитать этот handoff.
 2. Проверить `git status`, branch/upstream и remote URL в обоих repositories.
 3. Не затрагивать пользовательские untracked/dirty files.
-4. Продолжить именно в `/private/tmp/nexus-bc-p1-06-step1` на
-   `personal/d.khadzhiev/p1-06-step1`; не потерять uncommitted Step 1–3 diff и не
-   переносить его в чистый main backend checkout.
-5. Открыть P1-06 Step 4 и выполнить backend-first SiteConfig v5 rollout строго в
-   `V4_COMPAT`: readers `[4, 5]`, accepted input/write version только v4.
-6. Добавить capabilities, exact handler tuples, rollout fence/marker races и безопасный
-   v4→v5 up-converter; managed-v5→v4 conversion запрещён.
-7. Не начинать Step 5 media HTTP endpoints и не выполнять production `V5_ACTIVE`
-   flip: endpoints принадлежат следующему шагу, deployed flip — P1-09.
-8. Сохранить P1-05 public contracts и не подмешивать frontend renderer/static hosting
-   в P1-06.
-9. Не создавать промежуточный backend commit: detailed plan коммитит coordinated
-   P1-06 backend scope в Step 6.
+4. Продолжить в обычных checkout `/Users/dkhadzhiev/Projects/Nexus` и
+   `/Users/dkhadzhiev/Projects/Nexus.BC` на `personal/d.khadzhiev/p1-06-step1`; не
+   создавать и не использовать worktree.
+5. Убедиться, что пользовательский merge завершён, синхронизировать `develop`, затем
+   безопасно очистить project caches/generated temporary artifacts перед P1-07.
+6. Сохранить P1-06 release configuration в `V4_COMPAT`; production `V5_ACTIVE` flip
+   принадлежит P1-09, а managed-v5→v4 conversion запрещён.
+7. Не подмешивать frontend renderer/static hosting из P1-08/P1-09.
+8. Начать P1-07 с отдельной обычной feature-ветки и обновлять active plan после каждого
+   завершённого шага.
 
 Короткий prompt для продолжения:
 
-> Прочитай `SESSION_HANDOFF.md` и P1-06 detailed plan. P1-06 Step 1–3 готовы без
-> commit в `/private/tmp/nexus-bc-p1-06-step1`; начни Step 4 с synchronized v5
-> backend-first `V4_COMPAT` rollout, не добавляя Step 5 endpoints и не делая flip.
+> Прочитай `SESSION_HANDOFF.md` и Cloud Alpha detailed plan. P1-06 Steps 1–6 завершены
+> в обычной ветке `personal/d.khadzhiev/p1-06-step1` обоих repositories. После моего
+> merge синхронизируй `develop`, очисти caches/generated trash и начинай P1-07 в
+> отдельной обычной ветке, без worktree и без production `V5_ACTIVE` flip.
 
 ## 18. Review honesty
 
@@ -1149,6 +1167,21 @@ npm audit --omit=dev --audit-level=moderate
 - P1-06 Step 3 final independent reviews: Critical `0`, Important `0`, verdict
   `Ready`; cleanup discovery намеренно использует bounded internal test seam вместо
   небезопасного runtime probing произвольных destructive providers.
+- P1-06 Step 4 backend gate под Node 24: architecture `18/18`, unit `39/39`,
+  SiteConfig contracts `85/85`, repository contract `19/19`, focused rollout/sites/
+  release/public E2E `73/73`, build/lint/format green. Full future-facing baseline
+  остаётся RED только на Step 5: media transaction contract `15/19`; полный E2E —
+  `210/238`, все `28` failures находятся в двух deliberate RED media endpoint/race
+  suites. Первый v5 writer доказан как ожидающий activation advisory lock до commit
+  marker; create/save/publish после marker сохраняют schema 5.
+- P1-06 Step 5–6 final backend gate под Node 24: architecture `18/18`, contracts
+  `151/151`, unit `44/44`, E2E `246/246`, build/lint/format green; commit `83e060b`.
+- P1-06 Step 6 final frontend gate под Node 24: source contracts `42/42`, SiteConfig
+  contract `61/61`, unit `143/143`, E2E contract `1/1`, Playwright `9/9`,
+  build/lint/format green.
+- P1-06 final independent review: Critical `0`, Important `0`, verdict `Ready`.
+- Mirrored frontend/backend SiteConfig artifacts byte-identical; manifest SHA-256
+  `e0c1d861d1da41572ac19914d2afbbe326aa6c72e5ea80727f7b7f900bb84071`.
 - P1-04 closeout frontend gate: source contracts `42/42`, SiteConfig contract `61/61`,
   unit `143/143`, E2E contract `1/1`, Playwright `9/9`, lint/build/format green.
 - Compiled SiteConfig validator загружает schema только из trusted module-relative
@@ -1158,5 +1191,5 @@ npm audit --omit=dev --audit-level=moderate
   product/legal проверки.
 - Backend risk register основан на review plan/contracts; P1-03 identity/tenancy,
   P1-04 drafts/concurrency и backend P1-05 releases/public reads закрыты полным gate.
-  Frontend renderer/static hosting остаются P1-08/P1-09, следующий backend task —
-  P1-06 Step 4 synchronized SiteConfig v5 rollout в `V4_COMPAT`.
+  Frontend renderer/static hosting остаются P1-08/P1-09; P1-06 Steps 1–6 завершены
+  отдельными coordinated commits в текущей feature-ветке.
