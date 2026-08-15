@@ -1873,7 +1873,7 @@ and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
 - Test: `test/e2e/media-publish-delete-race.e2e-spec.ts`
 - Modify mirrored v5 schema/codecs/fixtures in Nexus.UI in the coordinated frontend PR
 
-- [ ] **Step 1: Define the provider-independent storage port**
+- [x] **Step 1: Define the provider-independent storage port**
 
   Support presigned PUT, metadata head, bounded streaming read for checksum/magic/image
   inspection, and delete. Return provider-neutral values. Only the R2 adapter imports
@@ -1881,7 +1881,7 @@ and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
   `workspaces/<workspaceId>/projects/<projectId>/<assetId>/<safeName>`; unattached
   migration keys use `workspaces/<workspaceId>/imports/<batchId>/<assetId>/<safeName>`.
 
-- [ ] **Step 2: Add MediaAsset and completion verification**
+- [x] **Step 2: Add MediaAsset and completion verification**
 
   Allow JPEG, PNG, and WebP up to 10 MiB, at most 12,000 pixels on either axis and at
   most 40,000,000 decoded pixels. Store `PENDING`, `READY`, and `DELETING`, declared
@@ -1898,7 +1898,7 @@ and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
   Successful media verification and deletion append allowlisted AuditEvents in their
   owning transactions without object key, URL, filename, or user content.
 
-- [ ] **Step 3: Write RED media and publish tests**
+- [x] **Step 3: Write RED media and publish tests**
 
   Cover foreign ownership, mismatch/corruption, oversize, expired pending upload,
   idempotent completion, unattached cleanup, and every v5 publish readiness failure from
@@ -1909,7 +1909,7 @@ and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
   no cross-module Prisma import. A pending/foreign/deleted asset must not activate a
   release.
 
-- [ ] **Step 4: Execute the synchronized v5 rollout**
+- [x] **Step 4: Execute the synchronized v5 rollout**
 
   Follow the exact backend-first compatibility rollout above. P1-06 implements
   `GET /v1/capabilities`, v4/v5 readers, the two exhaustively mapped handler tuples, and
@@ -1929,7 +1929,24 @@ and the incognito browser renderer remain explicitly owned by P1-09 and P1-08.
   frontend is P1-08, the irreversible deployed flip/telemetry is P1-09, and
   observation/retirement remains later.
 
-- [ ] **Step 5: Add media endpoints**
+  Completion evidence (15 August 2026): Steps 1–3 are preserved in backend commits
+  `c4281c7` and `82a0deb` on `personal/d.khadzhiev/p1-06-step1`; Step 4 remains in the
+  same ordinary-checkout branch for the coordinated Step 6 commit. The backend now
+  exposes the exact no-store capability tuples, v4/v5 readers and exhaustive write
+  handlers, the immutable `SiteConfigRolloutState` marker, fail-closed readiness/write
+  guard, safe v4→v5 conversion, and the bounded capabilities-header parser. A dedicated
+  fresh-database E2E proves the first v5 writer waits behind the activation advisory
+  lock and persists only after the marker commits; create/save/publish then all store
+  schema 5 while a pre-marker `V5_ACTIVE` process and a post-marker `V4_COMPAT` process
+  fail closed. Focused Step 4 gates are green: architecture `18/18`, unit `39/39`,
+  SiteConfig contracts `85/85`, repository contract `19/19`, focused E2E `73/73`,
+  build/lint/format green. The full future-facing baseline remains intentionally RED
+  only for Step 5: media transaction contract `15/19`, and the two media endpoint/race
+  E2E suites contribute `28` expected failures; all other E2E suites pass (`210`).
+  Mirrored frontend/backend SiteConfig artifacts are byte-identical with manifest
+  SHA-256 `e0c1d861d1da41572ac19914d2afbbe326aa6c72e5ea80727f7b7f900bb84071`.
+
+- [x] **Step 5: Add media endpoints**
 
 ```http
 POST   /v1/workspaces/:workspaceId/projects/:projectId/media/uploads
@@ -1941,7 +1958,20 @@ POST   /v1/workspaces/:workspaceId/media/import-batches/:batchId/uploads
 POST   /v1/workspaces/:workspaceId/media/import-batches/:batchId/media/:assetId/complete
 ```
 
-- [ ] **Step 6: Verify both coordinated PRs and commit separately**
+Completion evidence (15 August 2026): all seven authenticated endpoints are wired
+through provider-neutral ports with exact five-minute, create-only SigV4 PUT grants,
+bounded server-side verification, atomic import attachment, retained-reference
+deletion guards, and deterministic save/publish/delete locks. Public v5 managed
+media resolves only READY assets to short-lived read-only R2 URLs; provider keys are
+not exposed as DTO fields. Cleanup uses durable batch/asset tombstones and a bounded
+hourly reconciliation queue: R2 I/O runs outside database transactions, late PUTs
+are caught by repeated DELETE, poison keys cannot block sibling or project cleanup,
+fair due-order has supporting partial indexes, and each run attempts at most 60
+objects with capacity reserved for both queues. Exact PUT/GET signatures match
+independent `@aws-sdk/s3-request-presigner` known-answer vectors. Final independent
+review: Critical `0`, Important `0`, verdict `Ready`.
+
+- [x] **Step 6: Verify both coordinated PRs and commit separately**
 
 ```bash
 # Nexus.BC
@@ -1955,6 +1985,15 @@ npm run verify
 git add contracts src package.json package-lock.json
 git commit -m "feat: support managed media SiteConfig v5"
 ```
+
+Completion evidence (15 August 2026): the final backend gate under Node 24 passed
+architecture `18/18`, contracts `151/151`, unit `44/44`, E2E `246/246`, build, lint,
+and format; backend commit `83e060b` records Steps 4–6. The coordinated frontend gate
+passed source contracts `42/42`, SiteConfig contract `61/61`, unit `143/143`, E2E
+contract `1/1`, Playwright `9/9`, build, lint, and format. Mirrored SiteConfig
+artifacts are byte-identical, and final independent review reported Critical `0`,
+Important `0`, verdict `Ready`. The frontend commit containing the mirrored artifacts
+and this closeout is the coordinated changeset paired with `83e060b`.
 
 ## Task P1-07: Server-side forms, lead inbox, and leased notifications
 
